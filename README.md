@@ -66,11 +66,14 @@ Setelah langkah uang, cek `store_ledger` / `balance_ledger` / `loyalty_ledger` d
 cd back
 npm run db:reset        # migrasi + seed (hanya project valostock)
 npm run test:smoke      # 14 langkah end-to-end (API berjalan, mode simulasi, seed baru)
-npm run test:features   # 9 langkah fitur bisnis toko, reseller, admin
+npm run test:features   # 15 langkah: promosi, reseller, lock, iklan, laporan, RBAC, deposit/sanksi, penutupan toko, refund, Balance, paket
+npm run test:unit       # unit test aturan uang + pencocokan nama (tanpa API)
 npm run test:sweep      # semua endpoint GET per peran
 npm run build
 cd ../front && npm run build && npm run lint
 ```
+
+Jika `back/.env` memakai `PAYMENT_MODE=midtrans`, jalankan API kedua dalam mode simulasi untuk pengujian: `npm run dev:sim` (port 4100, `.env.simulation`). Skrip test otomatis memakai API simulasi yang sedang berjalan (`API_URL` bisa diisi manual).
 
 ## Cakupan
 

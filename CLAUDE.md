@@ -101,7 +101,9 @@ npm run build               # tsc
 npm run db:seed:gen         # regenerate supabase/seed.sql from front/src/lib/mock
 npm run docs:tables         # regenerate docs/modeling/05-struktur-tabel.md from the database
 npm run test:smoke          # end-to-end API test (API running, simulation mode, fresh seed)
-npm run test:features       # promotions, reseller transfers, lock, ads, reports, master data, RBAC
+npm run test:features       # promotions, reseller, lock, ads, reports, RBAC, deposit, closure, refunds
+npm run test:unit           # money rules + name matching (node:test)
+npm run dev:sim             # simulation API on :4100 when .env uses PAYMENT_MODE=midtrans
 npm run test:sweep          # every read endpoint per role
 
 # Frontend (front/)

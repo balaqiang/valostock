@@ -58,12 +58,15 @@ flowchart TD
         PAY --> PAY_Check{"Status from Midtrans Status API / signed webhook"}
         PAY_Check -- settlement --> PAY_OK["PAID → apply by purpose"]
         PAY_Check -- "expire / cancel" --> PAY_Fail["FAILED/EXPIRED → order CANCELLED, catalog LISTED"]
+        PAY_Fail -. "Midtrans reports PAID later" .-> PAY_Late["Payment PAID · refunds row PENDING (PAID_AFTER_CANCEL)"]
     end
     PAY_OK -- ORDER --> RK_Open
     PAY_OK -- TOPUP --> TU_Deliver
     PAY_OK -- BALANCE_FILL --> BL_Credit
     PAY_OK -- "STORE_DEPOSIT" --> S_Review
-    PAY_OK -- "SUBSCRIPTION / AD / LOCK" --> PAY_Other["activate plan · start featured ad · lock catalog 30 min"]
+    PAY_OK -- "SUBSCRIPTION / AD / LOCK" --> PAY_Other["activate plan · start featured ad · lock catalog 30 min<br/>(lock on a sold catalog → refund queue)"]
+    PAY_Late --> A_Ref{"Admin completes refund (note)"}
+    PAY_Other -. "LOCK_UNAVAILABLE" .-> A_Ref
 
     %% ================= REKBER =================
     subgraph REKBER["ESCROW + REKBER"]
@@ -81,7 +84,8 @@ flowchart TD
     subgraph DISP["DISPUTE & RATING"]
         DSP["Dispute OPEN (reason + evidence) · store deadline 72 h"]
         DSP --> DSP_Resp["Store statement + evidence"] --> A_Dsp{"Admin decides"}
-        A_Dsp -- Buyer wins --> DSP_B["Refund escrow (or compensation from store balance) · catalog LISTED"]
+        A_Dsp -- Buyer wins --> DSP_B["Refund escrow (or compensation from store balance, shortfall from DEPOSIT) · catalog LISTED"]
+        A_Dsp -. "sanction" .-> SANC["WARNING · FINE (DEPOSIT_DEDUCTION) · SUSPEND"]
         A_Dsp -- Store wins --> DSP_S["Order completes · escrow released"]
         RK_Release --> RATE["Rating ±1 + 3 service scores · store replies once"]
     end
@@ -96,12 +100,21 @@ flowchart TD
         A_Pay -- Reject --> W_Rev["REJECTED · PAYOUT_REVERSAL"]
     end
 
+    %% ================= STORE CLOSURE =================
+    subgraph CLOSE["STORE CLOSURE"]
+        CL_Req["Store: 'Tutup toko' (no active orders, disputes, pending payouts, escrow = 0) → CLOSING, catalogs DELISTED"]
+        CL_Req --> A_Close{"Admin decision"}
+        A_Close -- Approve --> CL_Done["CLOSED · DEPOSIT_REFUND → available · withdraw the rest"]
+        A_Close -- "Reject (reason)" --> CL_Back["ACTIVE again"]
+    end
+
     %% ================= TOP-UP =================
     subgraph TOPUP["TOP-UP + CLOSED-LOOP BALANCE"]
         TU_Start["Game → UID → nominal → promo → contact"] --> TU_Src{"Pay with?"}
         TU_Src -- Midtrans --> PAY
         TU_Src -- Balance --> TU_Bal["SPEND_TOPUP"] --> TU_Deliver
         TU_Deliver["Delivery (simulated) → SUCCESS · points earned"] --> TU_Inv["Invoice check (masked game ID)"]
+        TU_Deliver -. "not received · admin refund" .-> TU_Ref["Member: REFUND_CREDIT to Balance · Guest: refund queue (TOPUP_UNDELIVERED)"]
         BL_Fill["Buy Balance vouchers"] --> PAY
         BL_Credit["TOPUP_CREDIT"]
         PTS["Redeem 100 points → Rp1.000 Balance"]

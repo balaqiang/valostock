@@ -40,14 +40,17 @@ src/
 
 ```bash
 npm run dev             # tsx watch
+npm run dev:sim         # second API on :4100 with PAYMENT_MODE=simulation, jobs off (for tests while .env uses midtrans)
 npm run build           # tsc → dist/
 npm run db:reset        # npx supabase db reset (migrations + seed, project valostock only)
 npm run db:seed:gen     # regenerate ../supabase/seed.sql from ../front/src/lib/mock
 npm run docs:tables     # regenerate ../docs/modeling/05-struktur-tabel.md from the database
 npm run test:smoke      # 14-step end-to-end test (API running, simulation mode, fresh seed)
-npm run test:features   # 9 more steps: promotions, reseller transfers, lock, ads, reports, master data, RBAC
+npm run test:features   # 15 steps: promotions, reseller transfers, lock, ads, reports, master data, RBAC,
+                        # deposit fine/top-up, store closure, late-payment refund, top-up refunds, Balance adjust, plan tools
+npm run test:unit       # node:test unit tests for money rules + name matching (no API needed)
 npm run test:sweep      # every read endpoint for admin / store / buyer
 ```
 
-The tests talk to the running API over HTTP (`API_URL`, default `http://localhost:4000/api`) and use the demo accounts
+The HTTP tests talk to the running API (`API_URL`; otherwise the first of `:4100` / `:4000` that reports simulation mode) and use the demo accounts
 (password `valostock-demo`).
