@@ -1,5 +1,6 @@
 // Server Components → Express API. Pages that use these render per request
 // (never at build time), so they always show the current database state.
+import { cache } from "react";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 import { API_URL } from "@/lib/api";
@@ -39,3 +40,19 @@ export async function publicApiGet<T>(path: string): Promise<T | null> {
   await connection();
   return getJson<T>(path, null);
 }
+
+export type ApiStatus = "ok" | "api-down" | "db-down";
+
+/**
+ * Whether the Express API (and through it the Supabase database) answers.
+ * Pages treat an unreachable API like "no data", so this lets the UI say why
+ * instead of showing empty lists or "no access". Cached per request.
+ */
+export const getApiStatus = cache(async (): Promise<ApiStatus> => {
+  try {
+    const res = await fetch(`${API_URL}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(2000) });
+    return res.ok ? "ok" : "db-down";
+  } catch {
+    return "api-down";
+  }
+});

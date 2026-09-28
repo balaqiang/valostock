@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SessionSync } from "@/components/auth/session-sync";
+import { ApiStatusBanner } from "@/components/system/api-status-banner";
 import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
@@ -47,6 +48,7 @@ export default async function RootLayout({
         <ThemeProvider>
           {children}
           <SessionSync serverUserId={user?.id ?? null} />
+          <ApiStatusBanner />
         </ThemeProvider>
       </body>
     </html>
