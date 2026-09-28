@@ -17,6 +17,9 @@ const purposeLabel: Record<PaymentStatusView["purpose"], string> = {
   BALANCE_FILL: "Isi Balance",
   ORDER: "Pembelian akun",
   STORE_DEPOSIT: "Deposit toko",
+  SUBSCRIPTION: "Langganan toko",
+  AD: "Iklan featured",
+  LOCK: "Lock akun",
 };
 
 /**

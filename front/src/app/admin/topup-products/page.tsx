@@ -1,0 +1,77 @@
+import type { Metadata } from "next";
+import { Denied } from "@/components/admin/denied";
+import { ActionButton } from "@/components/dashboard/action-button";
+import { ApiForm } from "@/components/dashboard/api-form";
+import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
+import { adminGet, type AdminGame, type AdminProduct } from "@/lib/data/admin";
+import { formatRupiah } from "@/lib/format";
+
+export const metadata: Metadata = { title: "Produk Top-Up — Admin" };
+
+export default async function AdminTopupProductsPage() {
+  const [data, games] = await Promise.all([adminGet<{ products: AdminProduct[] }>("/topup-products"), adminGet<{ games: AdminGame[] }>("/games")]);
+  if (!data || !games) return <Denied permission="master:manage" />;
+  const topupGames = games.games.filter((g) => g.supportsTopup);
+
+  return (
+    <div className="space-y-6">
+      <DashHeader title="Produk Top-Up" description="Nominal top-up per game dan harga jual (Rupiah). Pengiriman ke Digiflazz disimulasikan." />
+      <Table head={["Produk", "Game", "Harga", "Terjual", "Status", ""]}>
+        {data.products.map((p) => (
+          <tr key={p.id}>
+            <Td>
+              <span className="font-medium text-text">{p.amountLabel}</span>
+              <span className="block text-xs text-text-secondary">
+                {p.id} · {p.name}
+                {p.popular && " · populer"}
+              </span>
+            </Td>
+            <Td className="text-xs">{p.gameName}</Td>
+            <Td className="num">
+              <details>
+                <summary className="cursor-pointer">{formatRupiah(p.retailPrice)}</summary>
+                <div className="mt-2 w-64">
+                  <ApiForm
+                    endpoint={`/api/admin/topup-products/${p.id}`}
+                    method="PATCH"
+                    columns={1}
+                    resetOnSuccess={false}
+                    fields={[
+                      { name: "retailPrice", label: "Harga jual", type: "money", required: true, defaultValue: p.retailPrice },
+                      { name: "sortOrder", label: "Urutan", type: "number", defaultValue: p.sortOrder },
+                      { name: "popular", label: "Populer", type: "checkbox", defaultValue: p.popular },
+                    ]}
+                  />
+                </div>
+              </details>
+            </Td>
+            <Td className="num">{p.sold}</Td>
+            <Td>
+              <Tone tone={p.isActive ? "success" : "secondary"}>{p.isActive ? "Aktif" : "Nonaktif"}</Tone>
+            </Td>
+            <Td>
+              <ActionButton variant="ghost" method="PATCH" endpoint={`/api/admin/topup-products/${p.id}`} body={{ isActive: !p.isActive }}>
+                {p.isActive ? "Nonaktifkan" : "Aktifkan"}
+              </ActionButton>
+            </Td>
+          </tr>
+        ))}
+      </Table>
+      <Panel title="Tambah produk">
+        <ApiForm
+          endpoint="/api/admin/topup-products"
+          columns={3}
+          submitLabel="Tambah produk"
+          fields={[
+            { name: "id", label: "ID produk", type: "text", required: true, placeholder: "vp-5350", hint: "huruf kecil, angka, minus" },
+            { name: "gameId", label: "Game", type: "select", numeric: true, required: true, defaultValue: String(topupGames[0]?.id ?? ""), options: topupGames.map((g) => ({ value: String(g.id), label: g.name })) },
+            { name: "name", label: "Nama", type: "text", required: true, placeholder: "Valorant Points" },
+            { name: "amountLabel", label: "Label nominal", type: "text", required: true, placeholder: "5350 VP" },
+            { name: "retailPrice", label: "Harga jual (Rp)", type: "money", required: true, min: 1 },
+            { name: "popular", label: "Populer", type: "checkbox" },
+          ]}
+        />
+      </Panel>
+    </div>
+  );
+}

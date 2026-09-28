@@ -6,7 +6,7 @@ import {
   Store as StoreIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { MockStore } from "@/lib/mock/stores";
+import type { Store as MockStore } from "@/types/domain";
 import { storeLevelLabel, storeTypeLabel } from "@/lib/labels";
 
 /**

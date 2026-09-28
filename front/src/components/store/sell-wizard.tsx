@@ -180,8 +180,11 @@ export function SellWizard({ store }: { store: StoreContext | null }) {
             <h2 className="mt-3 font-display text-xl font-bold text-text">Menunggu verifikasi admin</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
               Deposit sudah diterima. Admin sedang memeriksa data toko <b>{store.name}</b> (pemilik: {store.ownerLegalName}).
-              Muat ulang halaman ini untuk melihat hasilnya.
+              Kamu akan mendapat notifikasi saat diputuskan.
             </p>
+            <Button href="/store-dashboard/catalogs/new" variant="secondary" size="md" className="mt-5">
+              Siapkan katalog (draf) sambil menunggu
+            </Button>
           </div>
         )}
 

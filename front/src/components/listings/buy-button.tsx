@@ -8,10 +8,31 @@ import { ApiError, apiFetch } from "@/lib/api";
 import type { OrderView } from "@/types/api";
 
 /**
- * "Beli Sekarang" (DFD 6.1): the API creates the order and locks the catalog,
- * then the buyer picks a payment method on /checkout/[orderId]/pay.
+ * "Beli" (DFD 6.1): the API prices the order (offer / flash sale / bundle /
+ * voucher), reserves the catalogs, then the buyer picks a payment method on
+ * /checkout/[orderId]/pay.
  */
-export function BuyButton({ catalogId, available }: { catalogId: string; available: boolean }) {
+export function BuyButton({
+  catalogId,
+  bundleId,
+  offerId,
+  voucherCode,
+  available = true,
+  label = "Beli Sekarang",
+  returnTo,
+  size = "lg",
+  variant = "primary",
+}: {
+  catalogId?: string;
+  bundleId?: string;
+  offerId?: string;
+  voucherCode?: string;
+  available?: boolean;
+  label?: string;
+  returnTo?: string;
+  size?: "md" | "lg";
+  variant?: "primary" | "secondary";
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,12 +43,12 @@ export function BuyButton({ catalogId, available }: { catalogId: string; availab
     try {
       const { order } = await apiFetch<{ order: OrderView }>("/api/orders", {
         method: "POST",
-        body: JSON.stringify({ catalogId }),
+        body: JSON.stringify({ catalogId, bundleId, offerId, voucherCode: voucherCode || undefined }),
       });
       router.push(`/checkout/${order.id}/pay`);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(`/catalog/${catalogId}`)}`);
+        router.push(`/login?next=${encodeURIComponent(returnTo ?? (catalogId ? `/catalog/${catalogId}` : "/"))}`);
         return;
       }
       setError(err instanceof Error ? err.message : "Gagal membuat pesanan.");
@@ -37,9 +58,9 @@ export function BuyButton({ catalogId, available }: { catalogId: string; availab
 
   return (
     <div>
-      <Button variant="primary" size="lg" className="w-full" onClick={buy} disabled={!available || loading}>
+      <Button variant={variant} size={size} className="w-full" onClick={buy} disabled={!available || loading}>
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-        {available ? "Beli Sekarang" : "Sedang dalam transaksi"}
+        {available ? label : "Sedang dalam transaksi"}
       </Button>
       {error && <p className="mt-2 text-center text-xs text-red-600 dark:text-red-400">{error}</p>}
     </div>

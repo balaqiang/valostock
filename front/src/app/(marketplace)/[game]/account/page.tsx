@@ -6,8 +6,8 @@ import { Footer } from "@/components/marketing/footer";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { ListingCard } from "@/components/listings/listing-card";
-import { FilterBar, type FilterDef } from "@/components/listings/filter-bar";
-import { getGame, listingsByGame } from "@/lib/data/catalog";
+import { TemplateFilters, toListingQuery, type FilterValues } from "@/components/listings/template-filters";
+import { getGame, getGameFields, searchListings } from "@/lib/data/catalog";
 
 export async function generateMetadata({
   params,
@@ -24,84 +24,20 @@ export async function generateMetadata({
   };
 }
 
-// Game-specific filters — mirrors CATALOGS.attributes (JSONB) per game
-// (docs/SITEMAP.md §1: "game-specific filters from attributes").
-const gameFilters: Record<string, FilterDef[]> = {
-  valorant: [
-    {
-      key: "server",
-      label: "Server",
-      options: ["Semua", "Indonesia", "Asia Pacific", "Malaysia", "Philippines", "Singapore"],
-      defaultValue: "Semua",
-    },
-    {
-      key: "rank",
-      label: "Rank",
-      options: ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"],
-      multi: true,
-    },
-    {
-      key: "vp",
-      label: "Valorant Points",
-      options: ["0 – 1.000 VP", "1.000 – 5.000 VP", "5.000 – 10.000 VP", "10.000+ VP"],
-    },
-    {
-      key: "level",
-      label: "Account Level",
-      options: ["1 – 50", "51 – 100", "101 – 200", "200+"],
-    },
-    {
-      key: "skins",
-      label: "Skins Count",
-      options: ["< 25 skin", "25 – 50 skin", "50 – 100 skin", "100+ skin"],
-    },
-    { key: "platform", label: "Platforms", options: ["PC", "Console"], multi: true },
-  ],
-  "mobile-legends": [
-    {
-      key: "server",
-      label: "Server",
-      options: ["Semua", "Indonesia", "Malaysia", "Philippines", "Singapore"],
-      defaultValue: "Semua",
-    },
-    {
-      key: "rank",
-      label: "Rank",
-      options: ["Warrior", "Elite", "Master", "Grandmaster", "Epic", "Legend", "Mythic", "Mythical Glory"],
-      multi: true,
-    },
-    {
-      key: "heroes",
-      label: "Jumlah Hero",
-      options: ["< 40", "40 – 80", "80 – 120", "120+"],
-    },
-    {
-      key: "skins",
-      label: "Jumlah Skin",
-      options: ["< 25 skin", "25 – 100 skin", "100 – 300 skin", "300+ skin"],
-    },
-  ],
-};
-
-const sort: FilterDef = {
-  key: "sort",
-  label: "Urutkan",
-  prefix: "Urutkan",
-  options: ["Terbaru", "Terpopuler", "Termurah", "Termahal", "Rating toko"],
-  defaultValue: "Terbaru",
-};
-
 export default async function GameAccountPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ game: string }>;
+  searchParams: Promise<FilterValues>;
 }) {
   const { game: slug } = await params;
+  const values = await searchParams;
   const game = await getGame(slug);
   if (!game || !game.supportsAccount) notFound();
 
-  const gameListings = await listingsByGame(game.slug);
-  const filters = gameFilters[game.slug] ?? [];
+  const fields = await getGameFields(game.slug);
+  const gameListings = await searchListings({ game: game.slug, limit: 200, ...toListingQuery(values, fields) });
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background pt-16">
@@ -137,7 +73,7 @@ export default async function GameAccountPage({
         </section>
 
         <Container className="py-8 sm:py-10">
-          {filters.length > 0 && <FilterBar filters={filters} sort={sort} />}
+          <TemplateFilters action={`/${game.slug}/account`} fields={fields} values={values} />
 
           <p className="mt-5 text-sm text-text-secondary">
             <span className="num font-medium text-text">

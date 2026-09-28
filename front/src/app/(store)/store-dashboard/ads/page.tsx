@@ -1,100 +1,67 @@
 import type { Metadata } from "next";
-import { featuredPricing } from "@/lib/fees";
-import { getAds, getSubscription, requireStore } from "@/lib/data/store";
-import { Megaphone, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/account/bits";
-import { formatDateShort, formatRupiah } from "@/lib/format";
+import { ActionButton } from "@/components/dashboard/action-button";
+import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
+import { AdCreator } from "@/components/store-dashboard/ad-creator";
+import { getAds, getMyCatalogs, requireStore } from "@/lib/data/store";
+import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = {
-  title: "Iklan & Featured — valostock.id",
-};
+export const metadata: Metadata = { title: "Iklan & Featured — valostock.id" };
 
-export default async function StoreAdsPage() {
+const STATUS = {
+  PENDING_PAYMENT: ["Menunggu bayar", "warning"],
+  ACTIVE: ["Aktif", "success"],
+  EXPIRED: ["Berakhir", "secondary"],
+  STOPPED: ["Dihentikan", "destructive"],
+} as const;
+
+export default async function AdsPage() {
   const store = await requireStore("/store-dashboard/ads");
-  const [mySubscription, myAds] = await Promise.all([getSubscription(store.slug), getAds(store.slug)]);
-  const freeLeft =
-    mySubscription.freeFeaturedSlots - mySubscription.usedFeaturedSlots;
+  const [info, listed] = await Promise.all([getAds(), getMyCatalogs("LISTED")]);
+  const freeAvailable = info.freeFirstWeekAvailable || info.freeSlotsLeft > 0;
 
   return (
-    <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="Iklan & Featured"
-          description="Naikkan visibilitas listing dengan slot featured atau banner kampanye."
-        />
-        <Button variant="primary" size="md">
-          <Megaphone className="h-4 w-4" />
-          Pasang Iklan
-        </Button>
-      </div>
-
-      {/* Free slots (Premium perk) */}
-      <div className="mt-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4">
-        <Sparkles className="h-5 w-5 flex-none text-primary" />
-        <p className="text-sm text-text">
-          Paket {mySubscription.tier}:{" "}
-          <span className="num font-semibold">{freeLeft}</span> dari{" "}
-          <span className="num">{mySubscription.freeFeaturedSlots}</span> slot
-          featured gratis tersisa bulan ini.
-        </p>
-      </div>
-
-      {/* Pricing per MONEY_RULES §7 */}
-      <section className="mt-6">
-        <h2 className="font-display text-lg font-bold tracking-tight text-text">
-          Harga Featured Listing
-        </h2>
-        <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-          {featuredPricing.map((option) => (
-            <div
-              key={option.duration}
-              className="rounded-xl border border-border bg-surface p-3.5 text-center"
-            >
-              <p className="text-xs text-text-secondary">{option.duration}</p>
-              <p className="num mt-1 text-sm font-semibold text-text">
-                {formatRupiah(option.price)}
-              </p>
-            </div>
+    <div className="space-y-6">
+      <DashHeader
+        title="Iklan & Featured"
+        description="Katalog yang diiklankan tampil paling atas di pencarian dan di beranda. Minggu pertama gratis (sekali per toko); paket Pro/Business punya slot gratis tambahan."
+      />
+      {store.status === "ACTIVE" && (
+        <Panel
+          title="Pasang iklan"
+          description={
+            info.freeFirstWeekAvailable
+              ? "Jatah minggu pertama gratis masih tersedia."
+              : `Sisa slot gratis dari paket: ${info.freeSlotsLeft}.`
+          }
+        >
+          <AdCreator catalogs={listed.map((c) => ({ id: c.id, title: c.title, code: c.code }))} prices={info.prices} freeAvailable={freeAvailable} />
+        </Panel>
+      )}
+      <Panel title="Riwayat iklan">
+        <Table head={["Katalog", "Durasi", "Biaya", "Status", "Periode", ""]} empty="Belum ada iklan.">
+          {info.ads.map((ad) => (
+            <tr key={ad.id}>
+              <Td className="max-w-xs truncate">{ad.catalog.title}</Td>
+              <Td>{ad.durationDays} hari</Td>
+              <Td className="num">{ad.isFree ? "Gratis" : formatRupiah(ad.price)}</Td>
+              <Td>
+                <Tone tone={STATUS[ad.status][1]}>{STATUS[ad.status][0]}</Tone>
+                {ad.stopReason && <p className="mt-1 text-xs text-text-secondary">{ad.stopReason}</p>}
+              </Td>
+              <Td className="text-xs text-text-secondary">
+                {ad.startsAt ? `${formatDbDateTime(ad.startsAt)} – ${ad.endsAt ? formatDbDateTime(ad.endsAt) : ""}` : "-"}
+              </Td>
+              <Td>
+                {ad.status === "ACTIVE" && (
+                  <ActionButton variant="ghost" endpoint={`/api/stores/me/ads/${ad.id}/stop`} confirm="Hentikan iklan ini? Sisa durasi tidak dikembalikan.">
+                    Hentikan
+                  </ActionButton>
+                )}
+              </Td>
+            </tr>
           ))}
-        </div>
-        <p className="mt-2 text-xs text-text-secondary">
-          Minggu pertama gratis untuk setiap toko baru (sekali). Banner ads
-          (homepage/kategori/pencarian) dihargai per kampanye.
-        </p>
-      </section>
-
-      {/* Campaigns */}
-      <section className="mt-8">
-        <h2 className="font-display text-lg font-bold tracking-tight text-text">
-          Kampanye Kamu
-        </h2>
-        <ul className="mt-4 space-y-3">
-          {myAds.map((ad) => (
-            <li
-              key={ad.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"
-            >
-              <span className="min-w-0">
-                <span className="flex items-center gap-2 text-sm font-medium text-text">
-                  <Badge variant="outline">
-                    {ad.kind === "FEATURED" ? "Featured" : "Banner"}
-                  </Badge>
-                  <span className="truncate">{ad.target}</span>
-                </span>
-                <span className="num mt-1 block text-xs text-text-secondary">
-                  {ad.duration} · sampai {formatDateShort(ad.expiresAt)} ·{" "}
-                  {ad.price === 0 ? "Slot gratis" : formatRupiah(ad.price)}
-                </span>
-              </span>
-              <Badge variant={ad.status === "ACTIVE" ? "success" : "secondary"}>
-                {ad.status === "ACTIVE" ? "Aktif" : "Berakhir"}
-              </Badge>
-            </li>
-          ))}
-        </ul>
-      </section>
+        </Table>
+      </Panel>
     </div>
   );
 }

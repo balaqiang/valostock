@@ -7,7 +7,7 @@ import { Footer } from "@/components/marketing/footer";
 import { Container } from "@/components/ui/container";
 import { Badge } from "@/components/ui/badge";
 import { HelpfulVote } from "@/components/help/helpful-vote";
-import type { HelpBlock } from "@/lib/mock/help";
+import type { HelpBlock } from "@/types/domain";
 import { helpCategoryLabel } from "@/lib/labels";
 import { getHelpArticle, getHelpArticles } from "@/lib/data/catalog";
 

@@ -39,7 +39,7 @@ const sections: {
     items: [
       { label: "Pesanan Saya", href: "/account/orders/my", icon: Package },
       {
-        label: "Klaim Proteksi",
+        label: "Sengketa & Proteksi",
         href: "/account/orders/insured",
         icon: ShieldCheck,
       },

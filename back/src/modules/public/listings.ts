@@ -25,6 +25,8 @@ export interface ListingRow {
   store_id: string;
   store_slug: string;
   store_name: string;
+  store_rating: number;
+  store_sold: number;
   images: string[];
   sale_price: number | null;
   flash_ends_at: string | null;
@@ -35,6 +37,7 @@ export const LISTING_SELECT = `
   select c.id, c.vs_code, c.title, c.description, c.price, c.old_price, c.status, c.account_checked, c.instant,
          c.attributes, c.views, c.review_note, c.submitted_at, c.listed_at, c.created_at,
          g.slug as game_slug, g.name as game_name, s.id as store_id, s.slug as store_slug, s.name as store_name,
+         s.rating as store_rating, s.sold as store_sold,
          (select coalesce(json_agg(ci.storage_path order by ci.sort_order), '[]'::json)
             from catalog_images ci where ci.catalog_id = c.id) as images,
          fs.sale_price, fs.ends_at as flash_ends_at,
@@ -84,6 +87,8 @@ export function toListing(row: ListingRow) {
   return {
     ...DEFAULTS,
     ...row.attributes,
+    rating: row.store_rating,
+    sold: row.store_sold,
     id: row.id,
     code: row.vs_code ?? '',
     game: row.game_slug,

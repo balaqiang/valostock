@@ -9,7 +9,7 @@ import { stores } from '../../front/src/lib/mock/stores.ts';
 import { listings } from '../../front/src/lib/mock/listings.ts';
 import { promoCodes, topupProducts } from '../../front/src/lib/mock/topup.ts';
 import { helpArticles } from '../../front/src/lib/mock/help.ts';
-import { newsArticles } from '../../front/src/app/(marketplace)/news/mock-data.ts';
+import { newsArticles } from '../../front/src/lib/mock/news.ts';
 
 /** Password of every demo account (local development only, see supabase/README.md). */
 const DEMO_PASSWORD = 'valostock-demo';

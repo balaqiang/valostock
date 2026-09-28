@@ -10,14 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { OrderActions } from "@/components/orders/order-actions";
 import { RekberRoom } from "@/components/orders/rekber-room";
+import { RatingForm } from "@/components/orders/rating-form";
+import { DisputeForm } from "@/components/orders/dispute-form";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
-import { orderStatusLabel, orderSteps, stepIndexOf } from "@/lib/labels";
+import { disputeStatusLabel, orderStatusLabel, orderSteps, stepIndexOf } from "@/lib/labels";
 import { requireUser } from "@/lib/auth";
 import { getOrder } from "@/lib/data/buyer";
 
 export const metadata: Metadata = { title: "Detail Pesanan — valostock.id" };
 
-const REKBER_VISIBLE = new Set(["PAID", "IN_REKBER", "SAFE", "COMPLETED"]);
+const REKBER_VISIBLE = new Set(["PAID", "IN_REKBER", "SAFE", "COMPLETED", "DISPUTED", "REFUNDED"]);
+const REKBER_WRITABLE = new Set(["PAID", "IN_REKBER", "SAFE", "DISPUTED"]);
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -120,11 +123,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   orderId={order.id}
                   roomCode={order.roomCode}
                   viewerRole={order.viewerRole}
-                  canSend={!completed && order.viewerRole !== "ADMIN"}
+                  canSend={REKBER_WRITABLE.has(order.status)}
                 />
               )}
 
               <OrderActions order={order} />
+
+              {order.canRate && <RatingForm orderId={order.id} />}
+
+              {order.status === "SAFE" && order.autoCompleteAt && (
+                <p className="rounded-xl bg-surface-elevated px-4 py-3 text-xs text-text-secondary">
+                  Jika tidak ada sengketa, pesanan selesai otomatis pada {formatDbDateTime(order.autoCompleteAt)} WIB dan dana dilepas ke toko.
+                </p>
+              )}
 
               <div className="rounded-2xl border border-border bg-surface p-6">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
@@ -132,9 +143,18 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   Proteksi {protectionDays} hari
                 </h2>
                 <p className="mt-2 text-sm text-text-secondary">
-                  Jendela dukungan & penanganan keamanan — bantuan recall dan sengketa, bukan penahanan dana. Fitur
-                  pengajuan sengketa belum tersedia di prototype; hubungi admin melalui halaman Kontak.
+                  Jendela dukungan & penanganan keamanan — bantuan recall dan sengketa, bukan penahanan dana.
+                  {order.protectionUntil && <> Aktif sampai {formatDbDateTime(order.protectionUntil)} WIB.</>}
                 </p>
+                {order.dispute ? (
+                  <Link href={`/disputes/${order.dispute.id}`} className="mt-4 inline-flex text-sm font-medium text-primary">
+                    Lihat sengketa ({disputeStatusLabel[order.dispute.status]}) →
+                  </Link>
+                ) : order.canDispute ? (
+                  <div className="mt-4">
+                    <DisputeForm orderId={order.id} afterCompletion={completed} />
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -143,7 +163,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 <h2 className="text-sm font-semibold text-text">Detail Pesanan</h2>
                 <Link href={`/catalog/${order.catalog.id}`} className="group mt-4 flex gap-3">
                   <span className="relative h-16 w-20 flex-none overflow-hidden rounded-lg border border-border bg-surface-elevated">
-                    <Image src={order.catalog.image} alt={order.catalog.title} fill sizes="80px" className="object-cover" />
+                    <Image src={order.catalog.image} alt={order.catalog.title} fill sizes="80px" className="object-cover" unoptimized />
                   </span>
                   <span className="min-w-0">
                     <span className="line-clamp-2 text-sm font-medium text-text transition-colors duration-200 group-hover:text-primary">
@@ -154,8 +174,30 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                 </Link>
 
                 <dl className="mt-4 space-y-1.5 border-t border-border pt-4 text-sm">
+                  {order.isBundle && (
+                    <ul className="mb-2 space-y-0.5 text-xs text-text-secondary">
+                      {order.items.map((item) => (
+                        <li key={item.catalogId} className="flex justify-between gap-2">
+                          <span className="truncate">{item.vsCode} · {item.title}</span>
+                          <span className="num">{formatRupiah(item.price)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {order.voucherDiscount > 0 && (
+                    <>
+                      <div className="flex justify-between text-text-secondary">
+                        <dt>Subtotal</dt>
+                        <dd className="num">{formatRupiah(order.itemsSubtotal)}</dd>
+                      </div>
+                      <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                        <dt>Voucher {order.voucherCode}</dt>
+                        <dd className="num">−{formatRupiah(order.voucherDiscount)}</dd>
+                      </div>
+                    </>
+                  )}
                   <div className="flex justify-between text-text-secondary">
-                    <dt>Harga akun</dt>
+                    <dt>Harga akun{order.viaOffer ? " (hasil nego)" : ""}</dt>
                     <dd className="num">{formatRupiah(order.itemPrice)}</dd>
                   </div>
                   <div className="flex justify-between text-text-secondary">

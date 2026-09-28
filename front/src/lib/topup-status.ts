@@ -21,6 +21,8 @@ export const balanceLedgerTypeLabel: Record<BalanceLedgerType, string> = {
   TOPUP_CREDIT: "Isi Balance",
   SPEND_TOPUP: "Bayar Top-Up",
   REFUND_CREDIT: "Refund",
+  LOYALTY_CREDIT: "Tukar Poin",
+  REFERRAL_CREDIT: "Hadiah Referral",
   ADJUSTMENT: "Penyesuaian",
 };
 

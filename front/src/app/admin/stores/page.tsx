@@ -1,89 +1,68 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Store } from "lucide-react";
-import { AdminShell } from "@/components/admin/admin-shell";
-import { ReviewButtons } from "@/components/admin/review-buttons";
-import { Badge } from "@/components/ui/badge";
-import { requireAdmin } from "@/lib/auth";
-import { serverApiGet } from "@/lib/api-server";
-import { formatDbDateTime, formatRupiah } from "@/lib/format";
-import { storeTypeLabel } from "@/lib/labels";
-import type { AdminStore, StoreStatus } from "@/types/api";
+import { Denied } from "@/components/admin/denied";
+import { DashHeader, StatusTabs, Table, Td, Tone } from "@/components/dashboard/ui";
+import { adminGet, type AdminStoreRow } from "@/lib/data/admin";
+import { storeStatusLabel, storeTypeLabel } from "@/lib/labels";
+import { formatDbDateTime } from "@/lib/format";
+import type { StoreStatus } from "@/types/api";
 
-export const metadata: Metadata = { title: "Verifikasi Toko — Admin valostock.id", robots: { index: false } };
+export const metadata: Metadata = { title: "Verifikasi Toko — Admin" };
 
-const tabs: { status: StoreStatus | "ALL"; label: string }[] = [
-  { status: "PENDING_REVIEW", label: "Menunggu verifikasi" },
-  { status: "PENDING_DEPOSIT", label: "Belum bayar deposit" },
-  { status: "ACTIVE", label: "Aktif" },
-  { status: "REJECTED", label: "Ditolak" },
-  { status: "ALL", label: "Semua" },
-];
+const TABS = ["PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED", "PENDING_DEPOSIT", "ALL"] as const;
 
-const statusVariant = (status: StoreStatus) =>
-  status === "ACTIVE" ? "success" : status === "REJECTED" || status === "SUSPENDED" ? "destructive" : "warning";
-
-// Manual store verification (replaces a KYC provider): the admin checks the
-// owner's legal name and store data, then approves or rejects with a note.
-export default async function AdminStoresPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
-  await requireAdmin("/admin/stores");
-  const { status: raw } = await searchParams;
-  const status = tabs.some((tab) => tab.status === raw) ? (raw as StoreStatus | "ALL") : "PENDING_REVIEW";
-  const query = status === "ALL" ? "" : `?status=${status}`;
-  const stores = (await serverApiGet<{ stores: AdminStore[] }>(`/api/admin/stores${query}`))?.stores ?? [];
+export default async function AdminStoresPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
+  const sp = await searchParams;
+  const status = TABS.includes(sp.status as (typeof TABS)[number]) ? sp.status! : "PENDING_REVIEW";
+  const params = new URLSearchParams({ status });
+  if (sp.q) params.set("q", sp.q);
+  const data = await adminGet<{ stores: AdminStoreRow[] }>(`/stores?${params}`);
+  if (!data) return <Denied permission="stores:view" />;
 
   return (
-    <AdminShell
-      active="/admin/stores"
-      title="Verifikasi Toko"
-      description="Periksa nama pemilik (sesuai KTP) dan data toko yang sudah membayar deposit, lalu setujui atau tolak. Setiap keputusan tercatat di audit log."
-    >
-      <div className="flex flex-wrap gap-1.5">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.status}
-            href={`/admin/stores?status=${tab.status}`}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-              tab.status === status ? "bg-text text-background" : "border border-border text-text-secondary hover:text-text"
-            }`}
-          >
-            {tab.label}
-          </Link>
+    <div className="space-y-6">
+      <DashHeader
+        title="Verifikasi Toko"
+        description="Tanpa penyedia KYC: admin mencocokkan nama pemilik (KTP) dengan data akun secara manual setelah deposit dibayar. Setujui, tolak dengan alasan, atau tangguhkan."
+      />
+      <StatusTabs base="/admin/stores" current={status} tabs={TABS.map((t) => ({ value: t, label: t === "ALL" ? "Semua" : storeStatusLabel[t as StoreStatus] }))} />
+      <form className="flex gap-2 text-sm">
+        <input type="hidden" name="status" value={status} />
+        <input name="q" defaultValue={sp.q ?? ""} placeholder="nama toko / email / nama KTP" className="h-9 w-72 rounded-lg border border-border bg-background px-3" />
+        <button className="h-9 rounded-lg bg-primary px-4 text-white">Cari</button>
+      </form>
+      <Table head={["Toko", "Pemilik (KTP)", "Akun", "Deposit", "Paket", "Status", "Daftar", ""]} empty="Tidak ada toko di status ini.">
+        {data.stores.map((s) => (
+          <tr key={s.id}>
+            <Td>
+              <Link href={`/admin/stores/${s.id}`} className="font-medium text-text hover:text-primary">
+                {s.name}
+              </Link>
+              <span className="block text-xs text-text-secondary">
+                {storeTypeLabel[s.type]} · {s.listedCount} katalog tayang
+              </span>
+            </Td>
+            <Td>{s.ownerLegalName}</Td>
+            <Td className="text-xs">
+              {s.owner.name}
+              <span className="block text-text-secondary">{s.owner.email}</span>
+            </Td>
+            <Td className="text-xs">{s.depositStatus === "HELD" ? "Ditahan" : s.depositStatus === "RELEASED" ? "Dikembalikan" : "Belum bayar"}</Td>
+            <Td className="text-xs">{s.tier}</Td>
+            <Td>
+              <Tone tone={s.status === "ACTIVE" ? "success" : s.status === "PENDING_REVIEW" ? "warning" : s.status === "PENDING_DEPOSIT" ? "secondary" : "destructive"}>
+                {storeStatusLabel[s.status]}
+              </Tone>
+            </Td>
+            <Td className="whitespace-nowrap text-xs text-text-secondary">{formatDbDateTime(s.createdAt)}</Td>
+            <Td>
+              <Link href={`/admin/stores/${s.id}`} className="text-xs font-medium text-primary">
+                {s.status === "PENDING_REVIEW" ? "Verifikasi →" : "Detail →"}
+              </Link>
+            </Td>
+          </tr>
         ))}
-      </div>
-
-      {stores.length === 0 ? (
-        <p className="mt-6 flex items-center gap-2 rounded-2xl border border-dashed border-border p-8 text-sm text-text-secondary">
-          <Store className="h-4 w-4" /> Tidak ada toko pada status ini.
-        </p>
-      ) : (
-        <ul className="mt-6 space-y-3">
-          {stores.map((store) => (
-            <li key={store.id} className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-border bg-surface p-5">
-              <div className="min-w-0 space-y-1 text-sm">
-                <p className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-text">{store.name}</span>
-                  <Badge variant={statusVariant(store.status)}>{store.status}</Badge>
-                  <span className="text-xs text-text-secondary">{storeTypeLabel[store.type]}</span>
-                </p>
-                <p className="text-text-secondary">
-                  Nama pemilik (KTP): <span className="font-medium text-text">{store.ownerLegalName}</span>
-                </p>
-                <p className="text-text-secondary">
-                  Akun: {store.owner.name} · {store.owner.email}
-                </p>
-                <p className="text-text-secondary">
-                  Deposit: <span className="num">{formatRupiah(store.depositAmount)}</span> ({store.depositStatus}) · Daftar{" "}
-                  {formatDbDateTime(store.createdAt)}
-                </p>
-                {store.description && <p className="text-xs text-text-secondary">“{store.description}”</p>}
-                {store.reviewNote && <p className="text-xs text-text-secondary">Catatan admin: {store.reviewNote}</p>}
-              </div>
-              {store.status === "PENDING_REVIEW" && <ReviewButtons endpoint={`/api/admin/stores/${store.id}`} approveLabel="Setujui toko" />}
-            </li>
-          ))}
-        </ul>
-      )}
-    </AdminShell>
+      </Table>
+    </div>
   );
 }

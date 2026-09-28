@@ -12,8 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default async function SearchPage() {
-  const [listings, games, stores] = await Promise.all([getListings(), getGames(), getStores()]);
+  const [all, games, stores] = await Promise.all([getListings(), getGames(), getStores()]);
   const storeLevels = Object.fromEntries(stores.map((store) => [store.slug, store.level]));
+  // Store rating/sold per listing, for the "Rating toko" sort and the cards.
+  const byStore = new Map(stores.map((store) => [store.slug, store]));
+  const listings = all.map((l) => ({ ...l, rating: byStore.get(l.storeSlug)?.rating ?? 0, sold: byStore.get(l.storeSlug)?.sold ?? 0 }));
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background pt-16">

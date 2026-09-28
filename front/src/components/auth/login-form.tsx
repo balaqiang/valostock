@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormAlert, safeNextPath } from "@/components/auth/form-alert";
-import { setSessionUser } from "@/lib/hooks/use-session";
+import { refreshSession, setSessionUser, useSession } from "@/lib/hooks/use-session";
 import { apiFetch } from "@/lib/api";
 import type { PublicUser } from "@/types/api";
 
@@ -16,6 +16,19 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const session = useSession();
+
+  // An expired access cookie makes server pages send the visitor here; the
+  // browser can still refresh the session with its refresh cookie — then go on.
+  useEffect(() => {
+    void refreshSession();
+  }, []);
+  useEffect(() => {
+    if (session.status === "ready" && session.user) {
+      router.replace(safeNextPath(searchParams.get("next")));
+      router.refresh();
+    }
+  }, [session, router, searchParams]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

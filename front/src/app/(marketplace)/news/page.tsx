@@ -3,7 +3,7 @@ import { Navbar } from "@/components/marketing/navbar";
 import { Footer } from "@/components/marketing/footer";
 import { Container } from "@/components/ui/container";
 import { NewsExplorer } from "@/components/news/news-explorer";
-import { newsArticles } from "./mock-data";
+import { getNewsArticles } from "@/lib/data/catalog";
 
 export const metadata: Metadata = {
   title: "Berita — valostock.id",
@@ -11,7 +11,8 @@ export const metadata: Metadata = {
     "Pengumuman platform, pembaruan fitur, panduan, event, dan berita esports dari valostock.id.",
 };
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  const newsArticles = await getNewsArticles();
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background pt-16">
       <Navbar variant="solid" />

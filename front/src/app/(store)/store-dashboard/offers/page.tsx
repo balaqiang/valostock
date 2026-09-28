@@ -1,24 +1,20 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/account/bits";
+import { DashHeader } from "@/components/dashboard/ui";
 import { OffersInbox } from "@/components/store-dashboard/offers-inbox";
-import { getIncomingOffers, requireStore } from "@/lib/data/store";
+import { getStoreOffers, requireStore } from "@/lib/data/store";
 
-export const metadata: Metadata = {
-  title: "Penawaran Masuk — valostock.id",
-};
+export const metadata: Metadata = { title: "Penawaran Masuk — valostock.id" };
 
 export default async function StoreOffersPage() {
-  const store = await requireStore("/store-dashboard/offers");
-  const offers = await getIncomingOffers(store.slug);
+  await requireStore("/store-dashboard/offers");
+  const offers = await getStoreOffers();
   return (
-    <div>
-      <PageHeader
+    <div className="space-y-6">
+      <DashHeader
         title="Penawaran Masuk"
-        description="Terima, tolak, atau beri tawaran balik — setiap penawaran punya masa berlaku."
+        description="Terima, tolak, atau beri tawaran balik. Tawaran berlaku 24 jam; harga yang disepakati berlaku 24 jam untuk checkout pembeli."
       />
-      <div className="mt-6">
-        <OffersInbox offers={offers} />
-      </div>
+      <OffersInbox offers={offers} />
     </div>
   );
 }

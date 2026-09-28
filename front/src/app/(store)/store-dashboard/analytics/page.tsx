@@ -1,121 +1,76 @@
 import type { Metadata } from "next";
-import { getAnalytics, getSubscription, requireStore } from "@/lib/data/store";
-import { BarChart3, Download, Eye, TrendingUp, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/account/bits";
+import Link from "next/link";
+import { BarChart3, Eye, Heart, ShoppingBag } from "lucide-react";
+import { DashHeader, Panel, StatCard, Table, Td, Tone } from "@/components/dashboard/ui";
+import { getAnalytics, requireStore } from "@/lib/data/store";
+import { catalogStatusLabel, catalogStatusTone } from "@/lib/labels";
 import { formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = {
-  title: "Analytics Toko — valostock.id",
-};
+export const metadata: Metadata = { title: "Analytics Toko — valostock.id" };
 
 export default async function StoreAnalyticsPage() {
-  const store = await requireStore("/store-dashboard/analytics");
-  const [analytics, mySubscription] = await Promise.all([getAnalytics(store.slug), getSubscription(store.slug)]);
-  const stats = [
-  {
-    label: "Dilihat (7 hari)",
-    value: analytics.views7d.toLocaleString("id-ID"),
-    icon: Eye,
-  },
-  {
-    label: "Pengunjung (7 hari)",
-    value: analytics.visitors7d.toLocaleString("id-ID"),
-    icon: Users,
-  },
-  {
-    label: "Konversi",
-    value: `${analytics.conversion.toLocaleString("id-ID")}%`,
-    icon: TrendingUp,
-  },
-  {
-    label: "Pendapatan 30 hari",
-    value: formatRupiah(analytics.revenue30d),
-    icon: BarChart3,
-  },
-];
-  const maxViews = Math.max(1, ...analytics.viewsByDay.map((day) => day.views));
+  await requireStore("/store-dashboard/analytics");
+  const a = await getAnalytics();
+  const daily = a?.daily ?? [];
+  const gmv30 = daily.reduce((sum, d) => sum + d.gmv, 0);
+  const orders30 = daily.reduce((sum, d) => sum + d.orders, 0);
+  const maxGmv = Math.max(1, ...daily.map((d) => d.gmv));
+  const funnel = a?.funnel ?? { views: 0, orders: 0, wishlists: 0 };
+  const conversion = funnel.views ? (funnel.orders / funnel.views) * 100 : 0;
 
   return (
-    <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="Analytics"
-          description={`Termasuk dalam paket ${mySubscription.tier} — pantau performa etalase dan listingmu.`}
-        />
-        <Button variant="secondary" size="md">
-          <Download className="h-4 w-4" />
-          Export
-        </Button>
+    <div className="space-y-6">
+      <DashHeader title="Analytics" description="Kinerja toko 30 hari terakhir, dihitung dari pesanan yang selesai dan data kunjungan katalog." />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="GMV 30 hari" value={formatRupiah(gmv30)} icon={BarChart3} />
+        <StatCard label="Pesanan selesai 30 hari" value={orders30} icon={ShoppingBag} />
+        <StatCard label="Total dilihat" value={funnel.views.toLocaleString("id-ID")} icon={Eye} hint={`Konversi ${conversion.toLocaleString("id-ID", { maximumFractionDigits: 2 })}%`} />
+        <StatCard label="Disimpan ke wishlist" value={funnel.wishlists} icon={Heart} />
       </div>
 
-      {/* Stats */}
-      <div className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-border bg-surface p-5"
-          >
-            <stat.icon className="h-5 w-5 text-primary" />
-            <p className="num mt-3 truncate font-display text-lg font-bold text-text">
-              {stat.value}
-            </p>
-            <p className="mt-0.5 text-xs text-text-secondary">{stat.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Views by day */}
-      <section className="mt-6 rounded-2xl border border-border bg-surface p-6">
-        <h2 className="text-sm font-semibold text-text">
-          Kunjungan 7 Hari Terakhir
-        </h2>
-        <div className="mt-5 flex h-40 items-end gap-2 sm:gap-3">
-          {analytics.viewsByDay.map((day) => (
-            <div key={day.day} className="flex flex-1 flex-col items-center gap-1.5">
-              <span className="num text-[10px] text-text-secondary">
-                {day.views}
-              </span>
-              <div
-                className="w-full rounded-t-md bg-primary/80 transition-colors duration-200 hover:bg-primary"
-                style={{ height: `${(day.views / maxViews) * 100}%` }}
-              />
-              <span className="text-[10px] font-medium text-text-secondary">
-                {day.day}
+      <Panel title="GMV harian (30 hari)">
+        <div className="flex h-40 items-end gap-1">
+          {daily.map((d) => (
+            <div key={d.day} className="group relative flex-1">
+              <div className="w-full rounded-t bg-primary/70 group-hover:bg-primary" style={{ height: `${Math.max(2, (d.gmv / maxGmv) * 150)}px` }} />
+              <span className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded bg-text px-2 py-1 text-[10px] text-background group-hover:block">
+                {d.day.slice(5)} · {formatRupiah(d.gmv)}
               </span>
             </div>
           ))}
         </div>
-      </section>
+      </Panel>
 
-      {/* Best sellers */}
-      <section className="mt-6">
-        <h2 className="font-display text-lg font-bold tracking-tight text-text">
-          Terlaris (30 hari)
-        </h2>
-        <ul className="mt-4 space-y-3">
-          {analytics.bestSellers.map((item, index) => (
-            <li
-              key={item.title}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"
-            >
-              <span className="flex min-w-0 items-center gap-3">
-                <Badge className="num">#{index + 1}</Badge>
-                <span className="truncate text-sm font-medium text-text">
-                  {item.title}
-                </span>
-              </span>
-              <span className="num text-sm text-text-secondary">
-                {item.sold} terjual ·{" "}
-                <span className="font-semibold text-text">
-                  {formatRupiah(item.revenue)}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel title="Katalog paling banyak dilihat">
+          <Table head={["Katalog", "Dilihat", "Status"]}>
+            {(a?.topViewed ?? []).map((c) => (
+              <tr key={c.id}>
+                <Td>
+                  <Link href={`/store-dashboard/catalogs/${c.id}`} className="block max-w-[220px] truncate hover:text-primary">
+                    {c.vsCode ?? "Draf"} · {c.title}
+                  </Link>
+                </Td>
+                <Td className="num">{c.views}</Td>
+                <Td>
+                  <Tone tone={catalogStatusTone[c.status]}>{catalogStatusLabel[c.status]}</Tone>
+                </Td>
+              </tr>
+            ))}
+          </Table>
+        </Panel>
+        <Panel title="Penjualan per game">
+          <Table head={["Game", "Terjual", "GMV"]} empty="Belum ada penjualan.">
+            {(a?.byGame ?? []).map((g) => (
+              <tr key={g.game}>
+                <Td>{g.game}</Td>
+                <Td className="num">{g.sold}</Td>
+                <Td className="num">{formatRupiah(g.gmv)}</Td>
+              </tr>
+            ))}
+          </Table>
+        </Panel>
+      </div>
     </div>
   );
 }

@@ -17,7 +17,7 @@ import {
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { StoreSidebar } from "@/components/store-dashboard/sidebar";
-import type { StoreType } from "@/lib/mock/stores";
+import type { StoreType } from "@/types/domain";
 import { storeTypeLabel } from "@/lib/labels";
 
 /** What the shell shows about the logged-in owner's store (loaded by the layout). */
@@ -25,11 +25,15 @@ export type ShellInfo = {
   name: string;
   slug: string;
   type: StoreType;
+  status: string;
   tier: string;
   commissionRate: number;
   /** Things needing action (rekber delivery, disputes) + pending offers. */
   alertCount: number;
   unreadChats: number;
+  pendingOffers: number;
+  /** Paid orders waiting for the store to send the account. */
+  toDeliver: number;
 };
 
 function SidebarContent({ onNavigate, info }: { onNavigate?: () => void; info: ShellInfo }) {
@@ -75,7 +79,7 @@ function SidebarContent({ onNavigate, info }: { onNavigate?: () => void; info: S
           if ((event.target as HTMLElement).closest("a")) onNavigate?.();
         }}
       >
-        <StoreSidebar />
+        <StoreSidebar type={info.type} badges={{ offers: info.pendingOffers, orders: info.toDeliver, chat: info.unreadChats }} />
       </div>
 
       {/* Bottom links */}
@@ -207,7 +211,7 @@ export function StoreDashboardShell({
             <div className="ml-auto flex flex-none items-center gap-1">
               <IconButton
                 label="Notifikasi"
-                href="/store-dashboard/offers"
+                href="/store-dashboard/notifications"
                 count={alertCount}
               >
                 <Bell className="h-[18px] w-[18px]" />
@@ -244,6 +248,16 @@ export function StoreDashboardShell({
           </div>
         </header>
 
+        {info.status === "PENDING_REVIEW" && (
+          <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-700 sm:px-6 dark:text-amber-300">
+            Toko sedang <strong>diverifikasi admin</strong>. Kamu sudah bisa menyiapkan katalog sebagai draf — pengajuan ke admin dan penjualan dibuka setelah toko disetujui.
+          </div>
+        )}
+        {info.status === "SUSPENDED" && (
+          <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-700 sm:px-6 dark:text-red-300">
+            Toko sedang <strong>ditangguhkan</strong> admin — katalog disembunyikan dan transaksi baru dinonaktifkan. Hubungi support.
+          </div>
+        )}
         {/* Page content */}
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-[1200px]">{children}</div>

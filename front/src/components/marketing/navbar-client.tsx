@@ -16,7 +16,7 @@ import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import type { MockGame } from "@/lib/mock/games";
+import type { Game as MockGame } from "@/types/domain";
 import { useSession } from "@/lib/hooks/use-session";
 
 // SITEMAP §1 top nav: Logo · Search · Games ▾ · Top-Up · News · Help · Login/Register

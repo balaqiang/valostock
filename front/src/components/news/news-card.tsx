@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatDateShort } from "@/lib/format";
-import type { MockNewsArticle } from "@/app/(marketplace)/news/mock-data";
+import type { NewsArticle as MockNewsArticle } from "@/types/domain";
 
 function CardMeta({ article }: { article: MockNewsArticle }) {
   return (

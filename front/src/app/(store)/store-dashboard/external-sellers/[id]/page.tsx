@@ -1,155 +1,80 @@
 import type { Metadata } from "next";
-import { getExternalSeller, getStoreOrders, getTransferRequests, requireStore } from "@/lib/data/store";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ChevronRight, FileKey, History } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/account/bits";
-import { TransferRequestForm } from "@/components/store-dashboard/transfer-request-form";
-import { formatDateShort, formatRupiah } from "@/lib/format";
+import { notFound, redirect } from "next/navigation";
+import { ApiForm } from "@/components/dashboard/api-form";
+import { DashHeader, KeyValues, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
+import { getExternalSeller, getStoreBalance, getTransfers, requireStore } from "@/lib/data/store";
+import { TRANSFER_FEE } from "@/lib/fees";
+import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
+export const metadata: Metadata = { title: "Penjual Eksternal — valostock.id" };
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+export default async function ExternalSellerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const store = await requireStore(`/store-dashboard/external-sellers/${id}`);
-  const seller = await getExternalSeller(store.slug, id);
-  return {
-    title: seller
-      ? `${seller.alias} — Penjual Eksternal`
-      : "Penjual tidak ditemukan — valostock.id",
-  };
-}
-
-export default async function ExternalSellerDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const store = await requireStore(`/store-dashboard/external-sellers/${id}`);
-  const [seller, transferRequests, storeOrders] = await Promise.all([
-    getExternalSeller(store.slug, id),
-    getTransferRequests(store.slug),
-    getStoreOrders(store.slug),
-  ]);
-  if (!seller) notFound();
-
-  const transfers = transferRequests.filter(
-    (transfer) => transfer.sellerId === seller.id,
-  );
+  if (store.type !== "RESELLER") redirect("/store-dashboard");
+  const [data, { eligibleOrders }, balance] = await Promise.all([getExternalSeller(id), getTransfers(), getStoreBalance()]);
+  if (!data) notFound();
+  const { seller, transfers } = data;
 
   return (
-    <div>
-      {/* Breadcrumb */}
-      <nav
-        aria-label="Breadcrumb"
-        className="flex items-center gap-1.5 text-sm text-text-secondary"
-      >
-        <Link
-          href="/store-dashboard/external-sellers"
-          className="transition-colors duration-200 hover:text-text"
+    <div className="space-y-6">
+      <DashHeader title={seller.alias} back={{ href: "/store-dashboard/external-sellers", label: "Penjual Eksternal" }} />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Panel title="Data penjual">
+          <KeyValues
+            rows={[
+              ["Rekening", `${seller.payoutBank} ${seller.payoutAccount}`],
+              ["Atas nama", seller.payoutName],
+              ["Total terkirim", <span key="t" className="num">{formatRupiah(seller.paidTotal)}</span>],
+              ["Catatan", seller.note ?? "-"],
+            ]}
+          />
+        </Panel>
+        <Panel
+          className="lg:col-span-2"
+          title="Ajukan transfer"
+          description={`Dari saldo tersedia tokomu (${formatRupiah(balance.available)}). Satu transfer per pesanan selesai; biaya ${formatRupiah(TRANSFER_FEE)} dipotong dari jumlah.`}
         >
-          Penjual Eksternal
-        </Link>
-        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-        <span className="truncate text-text">{seller.alias}</span>
-      </nav>
-
-      <div className="mt-4">
-        <PageHeader
-          title={seller.alias}
-          description={`Terdaftar sejak ${formatDateShort(seller.createdAt)} · ${seller.consignedCount} akun titipan`}
-        />
+          {store.status !== "ACTIVE" ? (
+            <p className="text-sm text-text-secondary">Toko tidak aktif.</p>
+          ) : eligibleOrders.length === 0 ? (
+            <p className="text-sm text-text-secondary">Belum ada pesanan selesai yang bisa ditransfer.</p>
+          ) : (
+            <ApiForm
+              endpoint="/api/stores/me/transfers"
+              extra={{ externalSellerId: seller.id }}
+              submitLabel="Ajukan transfer"
+              successMessage="Transfer diajukan — menunggu persetujuan admin."
+              fields={[
+                {
+                  name: "orderId",
+                  label: "Pesanan",
+                  type: "select",
+                  required: true,
+                  defaultValue: eligibleOrders[0]?.id,
+                  options: eligibleOrders.map((o) => ({ value: o.id, label: `${o.number} · bagian toko ${formatRupiah(o.storeReceives)}` })),
+                },
+                { name: "amount", label: "Jumlah (Rp)", type: "money", required: true, min: TRANSFER_FEE + 1, hint: "Maksimal sebesar bagian toko dari pesanan itu." },
+              ]}
+            />
+          )}
+        </Panel>
       </div>
-
-      {/* Record */}
-      <div className="mt-6 rounded-2xl border border-border bg-surface p-6">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
-          <FileKey className="h-4 w-4 text-primary" />
-          Data Penjual (dipegang toko)
-        </h2>
-        <dl className="mt-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-text-secondary">Identitas (KTP)</dt>
-            <dd className="mt-0.5 font-medium text-text">
-              Tersimpan terenkripsi ✓
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-text-secondary">Rekening payout</dt>
-            <dd className="num mt-0.5 font-medium text-text">
-              {seller.payoutChannel} {seller.payoutAccount}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs text-text-secondary">Nama pemilik rekening</dt>
-            <dd className="mt-0.5 font-medium text-text">{seller.payoutName}</dd>
-          </div>
-        </dl>
-      </div>
-
-      {/* New transfer */}
-      <div className="mt-5">
-        <TransferRequestForm seller={seller} orders={storeOrders} />
-      </div>
-
-      {/* Transfer history */}
-      <section className="mt-8">
-        <h2 className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-text">
-          <History className="h-4 w-4 text-primary" />
-          Riwayat Transfer
-        </h2>
-        {transfers.length > 0 ? (
-          <ul className="mt-4 space-y-3">
-            {transfers.map((transfer) => (
-              <li
-                key={transfer.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"
-              >
-                <span className="min-w-0">
-                  <span className="num block text-xs text-text-secondary">
-                    {transfer.id} · {transfer.orderId} ·{" "}
-                    {formatDateShort(transfer.date)}
-                  </span>
-                  <span className="mt-0.5 block truncate text-sm text-text">
-                    {transfer.catalogTitle}
-                  </span>
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="num text-sm font-semibold text-text">
-                    {formatRupiah(transfer.amount)}
-                  </span>
-                  <Badge
-                    variant={
-                      transfer.status === "COMPLETED"
-                        ? "success"
-                        : transfer.status === "FAILED"
-                          ? "destructive"
-                          : "warning"
-                    }
-                  >
-                    {transfer.status === "COMPLETED"
-                      ? "Terkirim"
-                      : transfer.status === "PROCESSING"
-                        ? "Diproses"
-                        : transfer.status === "FAILED"
-                          ? "Gagal"
-                          : "Validasi"}
-                  </Badge>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-4 rounded-xl border border-dashed border-border py-10 text-center text-sm text-text-secondary">
-            Belum ada transfer ke penjual ini.
-          </p>
-        )}
-      </section>
+      <Panel title="Riwayat transfer ke penjual ini">
+        <Table head={["No.", "Pesanan", "Jumlah", "Status", "Tanggal"]} empty="Belum ada transfer.">
+          {transfers.map((t) => (
+            <tr key={t.id}>
+              <Td className="num text-xs">{t.id}</Td>
+              <Td className="num text-xs">{t.order.number}</Td>
+              <Td className="num">{formatRupiah(t.amount)}</Td>
+              <Td>
+                <Tone tone={t.status === "COMPLETED" ? "success" : t.status === "REJECTED" ? "destructive" : "warning"}>{t.status}</Tone>
+              </Td>
+              <Td className="text-xs text-text-secondary">{formatDbDateTime(t.date)}</Td>
+            </tr>
+          ))}
+        </Table>
+      </Panel>
     </div>
   );
 }

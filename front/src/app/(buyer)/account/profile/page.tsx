@@ -3,19 +3,18 @@ import {
   BadgeCheck,
   CircleUserRound,
   Globe,
-  ImageUp,
   KeyRound,
   Pencil,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ApiForm } from "@/components/dashboard/api-form";
 import { PageHeader } from "@/components/account/bits";
 import { requireUser } from "@/lib/auth";
 import { customerIdFor, formatDbDateTime } from "@/lib/format";
 
 // Buyers never need identity verification; 2FA/OTP is future work.
 const IDENTITY_VERIFIED = false;
-const TWOFA_ENABLED = false;
 
 export const metadata: Metadata = {
   title: "Profil Saya — valostock.id",
@@ -110,14 +109,6 @@ export default async function ProfilePage() {
           <dl className="divide-y divide-border">
             <Row label="Email" value={user.email} />
             <Row label="Password" value="••••••••••" />
-            <Row
-              label="Autentikasi 2 Langkah"
-              value={
-                <Badge variant={TWOFA_ENABLED ? "success" : "warning"}>
-                  {TWOFA_ENABLED ? "Aktif" : "Nonaktif — aktifkan untuk keamanan ekstra"}
-                </Badge>
-              }
-            />
           </dl>
         </ProfileBlock>
 
@@ -129,16 +120,30 @@ export default async function ProfilePage() {
           </p>
         </ProfileBlock>
 
-        {/* Avatar */}
-        <ProfileBlock icon={ImageUp} title="Avatar">
-          <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-primary/10 font-display text-lg font-bold text-primary">
-              {user.name.charAt(0).toUpperCase()}
-            </span>
-            <p className="text-xs text-text-secondary">
-              PNG/JPG maks. 2MB. Avatar tampil di ulasan dan chat.
-            </p>
-          </div>
+        {/* Edit profile */}
+        <ProfileBlock icon={CircleUserRound} title="Ubah Profil">
+          <ApiForm
+            endpoint="/api/auth/profile"
+            method="PATCH"
+            resetOnSuccess={false}
+            fields={[
+              { name: "name", label: "Nama", type: "text", required: true, defaultValue: user.name },
+              { name: "phone", label: "Nomor HP", type: "text", defaultValue: user.phone ?? "", hint: "Contoh 081234567890 — bisa dipakai untuk login." },
+            ]}
+          />
+        </ProfileBlock>
+
+        {/* Change password */}
+        <ProfileBlock icon={KeyRound} title="Ganti Password">
+          <ApiForm
+            endpoint="/api/auth/change-password"
+            submitLabel="Ganti password"
+            successMessage="Password diganti."
+            fields={[
+              { name: "currentPassword", label: "Password saat ini", type: "password", required: true },
+              { name: "newPassword", label: "Password baru (min. 8)", type: "password", required: true },
+            ]}
+          />
         </ProfileBlock>
       </div>
     </div>

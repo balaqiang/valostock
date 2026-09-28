@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Flame, Gamepad2, Wallet } from "lucide-react";
-import type { MockGame } from "@/lib/mock/games";
+import type { Game as MockGame } from "@/types/domain";
 
 /** Per-game card on home/top-up hub — links to /[game]/account & /[game]/topup. */
 export function GameCard({ game }: { game: MockGame }) {

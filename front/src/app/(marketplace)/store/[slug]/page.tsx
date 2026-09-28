@@ -9,7 +9,13 @@ import { StoreBadges } from "@/components/store/store-badges";
 import { FollowButton } from "@/components/store/follow-button";
 import { ListingCard } from "@/components/listings/listing-card";
 import { formatCompact, formatRupiah } from "@/lib/format";
-import { getStore, listingsByStore } from "@/lib/data/catalog";
+import { getStore, getStorePage, listingsByStore } from "@/lib/data/catalog";
+import { getFollowing } from "@/lib/data/buyer";
+import { getCurrentUser } from "@/lib/auth";
+import { ChatStoreButton } from "@/components/chat/chat-store-button";
+import { ReportButton } from "@/components/account/report-button";
+import { BuyButton } from "@/components/listings/buy-button";
+import { formatDbDateTime } from "@/lib/format";
 
 export async function generateMetadata({
   params,
@@ -38,10 +44,13 @@ export default async function StorefrontPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const store = await getStore(slug);
-  if (!store) notFound();
+  const page = await getStorePage(slug);
+  if (!page) notFound();
+  const { store, bundles, ratings } = page;
 
-  const storeListings = await listingsByStore(store.slug);
+  const [storeListings, user] = await Promise.all([listingsByStore(store.slug), getCurrentUser()]);
+  const following = user ? (await getFollowing()).some((f) => f.slug === store.slug) : false;
+  const isOwner = user?.store?.slug === store.slug;
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background pt-16">
@@ -80,7 +89,10 @@ export default async function StorefrontPage({
                   </p>
                 </div>
               </div>
-              <FollowButton followers={store.followers} />
+              <div className="flex flex-wrap items-center gap-2">
+                {!isOwner && <ChatStoreButton storeSlug={store.slug} returnTo={`/store/${store.slug}`} variant="invert" />}
+                {!isOwner && <FollowButton slug={store.slug} followers={store.followers} initialFollowing={following} loggedIn={Boolean(user)} />}
+              </div>
             </div>
           </Container>
         </section>
@@ -183,6 +195,70 @@ export default async function StorefrontPage({
               </div>
             )}
           </div>
+
+          {/* Bundles */}
+          {bundles.length > 0 && (
+            <div className="mt-10">
+              <h2 className="font-display text-xl font-bold tracking-tight text-text">Bundle Hemat</h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {bundles.map((bundle) => (
+                  <div key={bundle.id} className="rounded-2xl border border-border bg-surface p-5">
+                    <p className="font-semibold text-text">{bundle.title}</p>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      {bundle.catalogIds.length} akun ·{" "}
+                      <span className="num font-semibold text-text">{formatRupiah(bundle.bundlePrice)}</span>{" "}
+                      <span className="num line-through">{formatRupiah(bundle.itemsTotal)}</span>
+                    </p>
+                    <ul className="mt-2 space-y-0.5 text-xs text-text-secondary">
+                      {bundle.catalogIds.map((id) => {
+                        const item = storeListings.find((l) => l.id === id);
+                        return <li key={id}>• {item?.title ?? id}</li>;
+                      })}
+                    </ul>
+                    {!isOwner && (
+                      <div className="mt-4 w-48">
+                        <BuyButton bundleId={bundle.id} size="md" label="Beli bundle" returnTo={`/store/${store.slug}`} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Ratings */}
+          <div className="mt-10">
+            <h2 className="font-display text-xl font-bold tracking-tight text-text">Ulasan Pembeli</h2>
+            {ratings.length === 0 ? (
+              <p className="mt-3 text-sm text-text-secondary">Belum ada ulasan.</p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {ratings.map((r, i) => (
+                  <li key={i} className="rounded-xl border border-border bg-surface p-4">
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="font-medium text-text">{r.buyer}</span>
+                      <span className="text-xs text-text-secondary">{formatDbDateTime(r.date)}</span>
+                    </div>
+                    <p className="num mt-1 text-xs text-text-secondary">
+                      Akurasi {r.descAccuracy}/5 · Sikap {r.attitude}/5 · Kecepatan {r.deliverySpeed}/5
+                    </p>
+                    {r.comment && <p className="mt-2 text-sm text-text">{r.comment}</p>}
+                    {r.reply && (
+                      <p className="mt-2 rounded-lg bg-surface-elevated px-3 py-2 text-xs text-text-secondary">
+                        <span className="font-medium text-text">Balasan toko:</span> {r.reply}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {!isOwner && store.id && (
+            <div className="mt-8">
+              <ReportButton targetType="STORE" targetId={store.id} returnTo={`/store/${store.slug}`} />
+            </div>
+          )}
         </Container>
       </main>
 

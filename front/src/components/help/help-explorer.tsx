@@ -18,7 +18,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { HelpCategory, MockHelpArticle } from "@/lib/mock/help";
+import type { HelpCategory, HelpArticle as MockHelpArticle } from "@/types/domain";
 import { helpCategoryLabel } from "@/lib/labels";
 
 const categoryIcons: Record<HelpCategory, React.ComponentType<{ className?: string }>> = {

@@ -1,30 +1,28 @@
-// Store-dashboard data.
-// - Store identity, catalogs, orders, balance and withdrawals come from the
-//   Express API (GET /api/stores/me/…), scoped to the store the logged-in
-//   user owns — the web app never picks a store by a URL slug.
-// - Subscription, ads, vouchers, flash sales, bundles, analytics, ratings,
-//   chats, external sellers and notification channels are NOT in the
-//   prototype: they show demo data of the persona store (NusaGame) only.
+// Store-dashboard data. Every call is scoped by the API to the store the
+// logged-in user owns (GET /api/stores/me/…) — never picked by a URL slug.
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { serverApiGet } from '@/lib/api-server';
-import * as persona from '@/lib/mock/store-dashboard';
 import type {
-  MockAdCampaign,
-  MockBundle,
-  MockExternalSeller,
-  MockFlashSale,
-  MockIncomingOffer,
-  MockNotifChannel,
-  MockStoreCatalog,
-  MockStoreOrder,
-  MockStoreRating,
-  MockStoreVoucherFull,
-  MockTransferRequest,
-  StoreOrderStatus,
-} from '@/lib/mock/store-dashboard';
-import type { OrderView, StoreContext, StoreLedgerEntry, Withdrawal } from '@/types/api';
+  AdView,
+  BundleView,
+  CatalogDetail,
+  ConversationView,
+  DisputeSummary,
+  ExternalSeller,
+  FlashSaleView,
+  OfferView,
+  OrderStatus,
+  OrderView,
+  StoreContext,
+  StoreLedgerEntry,
+  StoreRatingView,
+  StoreVoucherFull,
+  TransferView,
+  Withdrawal,
+} from '@/types/api';
+import type { CatalogStatus, Listing } from '@/types/domain';
 
 export type { StoreContext };
 
@@ -34,156 +32,121 @@ export const getMyStore = cache(async (): Promise<StoreContext | null> => {
 });
 
 /**
- * For the store dashboard: the user's ACTIVE store, or a redirect — guests to
- * /login, users without an active (admin-verified) store to /sell.
+ * For the store dashboard: the user's store, or a redirect — guests to /login,
+ * users without a store (or still paying the deposit / rejected) to /sell.
+ * PENDING_REVIEW stores may prepare draft catalogs; SUSPENDED stores are read-only
+ * (the API refuses selling actions for both).
  */
 export const requireStore = cache(async (returnTo: string): Promise<StoreContext> => {
   await requireUser(returnTo);
   const store = await getMyStore();
-  if (!store || store.status !== 'ACTIVE') redirect('/sell');
+  if (!store || !['ACTIVE', 'SUSPENDED', 'PENDING_REVIEW'].includes(store.status)) redirect('/sell');
   return store;
 });
 
-// ── API-backed ──
+const get = <T>(path: string) => serverApiGet<T>(`/api/stores/me${path}`);
 
-export async function getStoreBalance(slug: string): Promise<{ available: number; escrow: number; ledger: StoreLedgerEntry[] }> {
-  void slug; // the API scopes to the session's own store
-  const data = await serverApiGet<{ available: number; escrow: number; ledger: StoreLedgerEntry[] }>('/api/stores/me/balance');
-  return data ?? { available: 0, escrow: 0, ledger: [] };
-}
-
-export async function getMyCatalogs(slug: string): Promise<MockStoreCatalog[]> {
-  void slug;
-  return (await serverApiGet<{ catalogs: MockStoreCatalog[] }>('/api/stores/me/catalogs'))?.catalogs ?? [];
-}
-
-export async function getMyCatalog(slug: string, id: string): Promise<MockStoreCatalog | undefined> {
-  return (await getMyCatalogs(slug)).find((catalog) => catalog.id === id);
-}
-
-/** A store order in the dashboard's shape (+ the human order number). */
-export type StoreOrder = MockStoreOrder & { orderNumber: string };
-
-const toStoreOrder = (order: OrderView): StoreOrder => ({
-  id: order.id,
-  orderNumber: order.orderNumber,
-  catalogId: order.catalog.id,
-  title: order.catalog.title,
-  buyer: order.buyer.name,
-  itemPrice: order.itemPrice,
-  status: order.status as StoreOrderStatus,
-  roomCode: order.roomCode,
-  createdAt: order.createdAt,
-  safeAt: order.safeAt ?? undefined,
-});
-
-/** Orders the store has to act on or has handled (paid onwards), newest first. */
-export async function getStoreOrders(slug: string): Promise<StoreOrder[]> {
-  void slug;
-  const orders = (await serverApiGet<{ orders: OrderView[] }>('/api/stores/me/orders'))?.orders ?? [];
-  return orders.map(toStoreOrder);
-}
-
-export async function getWithdrawals(slug: string): Promise<Withdrawal[]> {
-  void slug;
-  return (await serverApiGet<{ withdrawals: Withdrawal[] }>('/api/stores/me/withdrawals'))?.withdrawals ?? [];
-}
-
-// ── Demo-only (persona store) ──
-
-/** Demo rows belong to the persona store only; any other store sees none. */
-function personaRows<T>(slug: string, rows: T[]): T[] {
-  return slug === persona.myStoreSlug ? rows : [];
-}
-
-export type Subscription = {
-  tier: 'FREE' | 'PRO' | 'BUSINESS';
-  commissionRate: number;
-  maxListings: number;
-  freeFeaturedSlots: number;
-  usedFeaturedSlots: number;
-  currentPeriodEnd: string;
+export type StoreDashboard = {
+  catalogs: Partial<Record<CatalogStatus, number>>;
+  orders: Partial<Record<OrderStatus, number>>;
+  balance: { escrow: number; available: number };
+  last30Days: { gmv: number; net: number; n: number } | null;
+  pendingOffers: number;
+  unreadChats: number;
 };
 
-/** Subscriptions are future work: every store is on the Free plan (5% commission). */
-const FREE_PLAN: Subscription = {
-  tier: 'FREE',
-  commissionRate: 0.05,
-  maxListings: 15,
-  freeFeaturedSlots: 0,
-  usedFeaturedSlots: 0,
-  currentPeriodEnd: '',
-};
-
-export async function getSubscription(slug: string): Promise<Subscription> {
-  void slug;
-  return FREE_PLAN;
-}
-
-export async function getIncomingOffers(slug: string): Promise<MockIncomingOffer[]> {
-  return personaRows(slug, persona.incomingOffers);
-}
-
-export async function getExternalSellers(slug: string): Promise<MockExternalSeller[]> {
-  return personaRows(slug, persona.externalSellers);
-}
-
-export async function getExternalSeller(slug: string, id: string): Promise<MockExternalSeller | undefined> {
-  return (await getExternalSellers(slug)).find((seller) => seller.id === id);
-}
-
-export async function getTransferRequests(slug: string): Promise<MockTransferRequest[]> {
-  return [...personaRows(slug, persona.transferRequests)].sort((a, b) => b.date.localeCompare(a.date));
-}
-
-export async function getVouchers(slug: string): Promise<MockStoreVoucherFull[]> {
-  return personaRows(slug, persona.myVouchers);
-}
-
-export async function getFlashSales(slug: string): Promise<MockFlashSale[]> {
-  return personaRows(slug, persona.myFlashSales);
-}
-
-export async function getBundles(slug: string): Promise<MockBundle[]> {
-  return personaRows(slug, persona.myBundles);
-}
-
-export async function getAds(slug: string): Promise<MockAdCampaign[]> {
-  return personaRows(slug, persona.myAds);
+export async function getDashboard(): Promise<StoreDashboard | null> {
+  return get<StoreDashboard>('/dashboard');
 }
 
 export type StoreAnalytics = {
-  views7d: number;
-  visitors7d: number;
-  conversion: number;
-  revenue30d: number;
-  viewsByDay: { day: string; views: number }[];
-  bestSellers: { title: string; sold: number; revenue: number }[];
+  daily: { day: string; orders: number; gmv: number }[];
+  topViewed: { id: string; title: string; vsCode: string | null; views: number; status: CatalogStatus; price: number }[];
+  byGame: { game: string; sold: number; gmv: number }[];
+  funnel: { views: number; orders: number; wishlists: number };
 };
 
-const EMPTY_ANALYTICS: StoreAnalytics = {
-  views7d: 0,
-  visitors7d: 0,
-  conversion: 0,
-  revenue30d: 0,
-  viewsByDay: [],
-  bestSellers: [],
+export async function getAnalytics(): Promise<StoreAnalytics | null> {
+  return get<StoreAnalytics>('/analytics');
+}
+
+export async function getMyCatalogs(status?: CatalogStatus): Promise<Listing[]> {
+  return (await get<{ catalogs: Listing[] }>(`/catalogs${status ? `?status=${status}` : ''}`))?.catalogs ?? [];
+}
+
+export async function getMyCatalog(id: string): Promise<CatalogDetail | null> {
+  return get<CatalogDetail>(`/catalogs/${encodeURIComponent(id)}`);
+}
+
+export async function getStoreOrders(): Promise<OrderView[]> {
+  return (await get<{ orders: OrderView[] }>('/orders'))?.orders ?? [];
+}
+
+export async function getStoreOffers(): Promise<OfferView[]> {
+  return (await get<{ offers: OfferView[] }>('/offers'))?.offers ?? [];
+}
+
+export async function getStoreDisputes(): Promise<DisputeSummary[]> {
+  return (await get<{ disputes: DisputeSummary[] }>('/disputes'))?.disputes ?? [];
+}
+
+export async function getStoreBalance(): Promise<{ available: number; escrow: number; ledger: StoreLedgerEntry[] }> {
+  return (await get<{ available: number; escrow: number; ledger: StoreLedgerEntry[] }>('/balance')) ?? { available: 0, escrow: 0, ledger: [] };
+}
+
+export async function getWithdrawals(): Promise<Withdrawal[]> {
+  return (await get<{ withdrawals: Withdrawal[] }>('/withdrawals'))?.withdrawals ?? [];
+}
+
+export type SubscriptionInfo = {
+  current: { tier: 'FREE' | 'PRO' | 'BUSINESS'; current_period_end: string | null; used_featured_slots: number; free_featured_slots: number } | null;
+  plans: { tier: 'FREE' | 'PRO' | 'BUSINESS'; price: number; commissionRate: number; maxListings: number | null; freeFeaturedSlots: number }[];
+  history: { invoice: string; amount: number; status: string; tier: string; date: string }[];
 };
 
-export async function getAnalytics(slug: string): Promise<StoreAnalytics> {
-  return slug === persona.myStoreSlug ? persona.analytics : EMPTY_ANALYTICS;
+export async function getSubscription(): Promise<SubscriptionInfo | null> {
+  return get<SubscriptionInfo>('/subscription');
 }
 
-export async function getRatings(slug: string): Promise<MockStoreRating[]> {
-  return [...personaRows(slug, persona.storeRatings)].sort((a, b) => b.date.localeCompare(a.date));
+export async function getVouchers(): Promise<StoreVoucherFull[]> {
+  return (await get<{ vouchers: StoreVoucherFull[] }>('/vouchers'))?.vouchers ?? [];
 }
 
-export type StoreChat = { id: string; buyer: string; lastMessage: string; date: string; unread: number };
-
-export async function getStoreChats(slug: string): Promise<StoreChat[]> {
-  return [...personaRows(slug, persona.storeChats)].sort((a, b) => b.date.localeCompare(a.date));
+export async function getFlashSales(): Promise<FlashSaleView[]> {
+  return (await get<{ flashSales: FlashSaleView[] }>('/flash-sales'))?.flashSales ?? [];
 }
 
-export async function getNotifChannels(slug: string): Promise<MockNotifChannel[]> {
-  return personaRows(slug, persona.notifChannels);
+export async function getBundles(): Promise<BundleView[]> {
+  return (await get<{ bundles: BundleView[] }>('/bundles'))?.bundles ?? [];
+}
+
+export type AdsInfo = { ads: AdView[]; prices: Record<string, number>; freeFirstWeekAvailable: boolean; freeSlotsLeft: number };
+
+export async function getAds(): Promise<AdsInfo> {
+  return (await get<AdsInfo>('/ads')) ?? { ads: [], prices: {}, freeFirstWeekAvailable: false, freeSlotsLeft: 0 };
+}
+
+export async function getRatings(): Promise<{ summary: StoreContext; ratings: StoreRatingView[] } | null> {
+  return get<{ summary: StoreContext; ratings: StoreRatingView[] }>('/ratings');
+}
+
+export async function getStoreConversations(): Promise<ConversationView[]> {
+  return (await get<{ conversations: ConversationView[] }>('/conversations'))?.conversations ?? [];
+}
+
+export async function getExternalSellers(): Promise<ExternalSeller[]> {
+  return (await get<{ sellers: ExternalSeller[] }>('/external-sellers'))?.sellers ?? [];
+}
+
+export async function getExternalSeller(id: string): Promise<{ seller: ExternalSeller; transfers: TransferView[] } | null> {
+  return get<{ seller: ExternalSeller; transfers: TransferView[] }>(`/external-sellers/${encodeURIComponent(id)}`);
+}
+
+export type TransfersInfo = {
+  transfers: TransferView[];
+  eligibleOrders: { id: string; number: string; storeReceives: number; completedAt: string }[];
+};
+
+export async function getTransfers(): Promise<TransfersInfo> {
+  return (await get<TransfersInfo>('/transfers')) ?? { transfers: [], eligibleOrders: [] };
 }

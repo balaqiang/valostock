@@ -8,16 +8,8 @@ import { Footer } from "@/components/marketing/footer";
 import { Container } from "@/components/ui/container";
 import { NewsCard } from "@/components/news/news-card";
 import { formatDateLong } from "@/lib/format";
-import {
-  getArticle,
-  newsArticles,
-  relatedArticles,
-  type NewsBlock,
-} from "../mock-data";
-
-export function generateStaticParams() {
-  return newsArticles.map((article) => ({ slug: article.slug }));
-}
+import { getNewsArticle, getNewsArticles } from "@/lib/data/catalog";
+import type { NewsBlock } from "@/types/domain";
 
 export async function generateMetadata({
   params,
@@ -25,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getNewsArticle(slug);
   return {
     title: article
       ? `${article.title} — valostock.id`
@@ -76,10 +68,11 @@ export default async function NewsDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const article = getArticle(slug);
+  const article = await getNewsArticle(slug);
   if (!article) notFound();
 
-  const related = relatedArticles(article.slug);
+  const others = (await getNewsArticles()).filter((a) => a.slug !== article.slug);
+  const related = [...others.filter((a) => a.category === article.category), ...others.filter((a) => a.category !== article.category)].slice(0, 3);
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background pt-16">

@@ -14,10 +14,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TopupHistory } from "@/components/account/topup-history";
-import { customerIdFor, formatRupiah } from "@/lib/format";
+import { customerIdFor } from "@/lib/format";
 import { requireUser } from "@/lib/auth";
 import { getMyTransactions } from "@/lib/data/me";
-import { getAffiliate, getLoyaltyPoints } from "@/lib/data/buyer";
+
 
 export const metadata: Metadata = {
   title: "Dashboard Akun — valostock.id",
@@ -48,7 +48,7 @@ function OverviewRow({
 export default async function AccountDashboardPage() {
   const user = await requireUser("/account");
   const recent = (await getMyTransactions()).slice(0, 5);
-  const [loyaltyPoints, affiliate] = await Promise.all([getLoyaltyPoints(user.id), getAffiliate(user.id)]);
+  const loyaltyPoints = user.loyaltyPoints;
 
   return (
     <div>
@@ -69,7 +69,7 @@ export default async function AccountDashboardPage() {
         </OverviewRow>
         <OverviewRow icon={Phone} label="Nomor HP">
           <span className="num">{user.phone ?? "—"}</span>
-          <Badge variant="secondary">Belum verifikasi OTP</Badge>
+          <Link href="/account/profile" className="text-xs font-medium text-primary">Ubah</Link>
         </OverviewRow>
         <OverviewRow icon={Wallet} label="Balance (BLC)">
           <span className="num font-semibold">
@@ -96,18 +96,10 @@ export default async function AccountDashboardPage() {
           </Link>
         </OverviewRow>
         <OverviewRow icon={BadgePercent} label="Kode Affiliate">
-          {affiliate ? (
-            <>
-              <span className="num rounded-md bg-surface-elevated px-2 py-0.5 text-xs font-semibold tracking-wider">
-                {affiliate.code}
-              </span>
-              <span className="text-xs text-text-secondary">
-                reward masuk Balance ({formatRupiah(affiliate.earnedToBalance)})
-              </span>
-            </>
-          ) : (
-            <span className="text-xs text-text-secondary">Belum ada</span>
-          )}
+          <span className="num rounded-md bg-surface-elevated px-2 py-0.5 text-xs font-semibold tracking-wider">{user.referralCode}</span>
+          <Link href="/account/affiliate" className="text-xs font-medium text-primary hover:text-primary-hover">
+            Ajak teman, dapat Rp10.000 Balance →
+          </Link>
         </OverviewRow>
       </dl>
 
@@ -123,8 +115,8 @@ export default async function AccountDashboardPage() {
             Room, dan payout 5 jam.
           </p>
         </div>
-        <Button href="/help/cara-membuka-toko" variant="primary" size="md">
-          Pelajari
+        <Button href={user.store ? "/store-dashboard" : "/sell"} variant="primary" size="md">
+          {user.store ? "Dashboard Toko" : "Buka Toko"}
         </Button>
       </div>
 

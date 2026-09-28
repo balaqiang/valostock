@@ -7,16 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ListingCard } from "@/components/listings/listing-card";
 import { cn } from "@/lib/utils";
-import type { MockGame } from "@/lib/mock/games";
-import type { StoreLevel } from "@/lib/mock/stores";
-import type { MockListing } from "@/lib/mock/listings";
+import type { Game as MockGame } from "@/types/domain";
+import type { StoreLevel } from "@/types/domain";
+import type { Listing as MockListing } from "@/types/domain";
 import { storeLevelLabel } from "@/lib/labels";
 
 const PAGE_SIZE = 8;
 
 // SITEMAP §1 /search sidebar: game, rank, price range, skins/VP, region,
-// badges, store level. Filtering is client-side on mock data for now —
-// the real page queries the API.
+// badges, store level. Filtering is client-side over the listings the API returned —
+// (the per-game pages filter server-side through the field templates).
 const rankGroups = [
   "Radiant",
   "Immortal",

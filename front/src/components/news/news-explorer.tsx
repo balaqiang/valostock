@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { FeaturedNewsCard, NewsCard } from "@/components/news/news-card";
 import {
   newsCategories,
-  type MockNewsArticle,
+  type NewsArticle as MockNewsArticle,
   type NewsCategory,
-} from "@/app/(marketplace)/news/mock-data";
+} from "@/types/domain";
 
 const PAGE_SIZE = 9;
 

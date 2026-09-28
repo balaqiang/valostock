@@ -1,176 +1,124 @@
 import type { Metadata } from "next";
-import { storeOrderStatusLabel } from "@/lib/labels";
-import { storeReceives as receivesAt } from "@/lib/fees";
-import {
-  getAnalytics,
-  getIncomingOffers,
-  getStoreOrders,
-  getStoreBalance,
-  getSubscription,
-  requireStore,
-} from "@/lib/data/store";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  HandCoins,
-  Package,
-  Timer,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/account/bits";
-import { formatDateShort, formatRupiah } from "@/lib/format";
+import { AlertTriangle, ArrowRight, Clock, HandCoins, Package, Timer, TrendingUp, Wallet } from "lucide-react";
+import { DashHeader, Panel, StatCard, Tone } from "@/components/dashboard/ui";
+import { catalogStatusLabel, orderStatusTone, storeOrderStatusLabel } from "@/lib/labels";
+import { getDashboard, getMyCatalogs, getStoreOrders, requireStore } from "@/lib/data/store";
+import { formatDbDateTime, formatRupiah } from "@/lib/format";
+import type { CatalogStatus } from "@/types/domain";
 
-export const metadata: Metadata = {
-  title: "Dashboard Toko — valostock.id",
-};
+export const metadata: Metadata = { title: "Dashboard Toko — valostock.id" };
+
+const ACTION_STATUSES = new Set(["PAID", "IN_REKBER", "SAFE", "DISPUTED"]);
 
 export default async function StoreOverviewPage() {
   const store = await requireStore("/store-dashboard");
-  const [analytics, incomingOffers, storeOrders, balance, subscription] = await Promise.all([
-    getAnalytics(store.slug),
-    getIncomingOffers(store.slug),
-    getStoreOrders(store.slug),
-    getStoreBalance(store.slug),
-    getSubscription(store.slug),
-  ]);
-  const { available, escrow } = balance;
-  const storeReceives = (itemPrice: number) => receivesAt(itemPrice, subscription.commissionRate);
-
-  const stats = [
-  {
-    label: "Pendapatan 30 hari",
-    value: formatRupiah(analytics.revenue30d),
-    icon: TrendingUp,
-    href: "/store-dashboard/analytics",
-  },
-  {
-    label: "Saldo tersedia",
-    value: formatRupiah(available),
-    icon: Wallet,
-    href: "/store-dashboard/balance",
-  },
-  {
-    label: "Ditahan escrow",
-    value: formatRupiah(escrow),
-    icon: Timer,
-    href: "/store-dashboard/balance",
-  },
-  {
-    label: "Penawaran masuk",
-    value: `${incomingOffers.length}`,
-    icon: HandCoins,
-    href: "/store-dashboard/offers",
-  },
-];
-
-  const needsAction = storeOrders.filter(
-    (order) => order.status === "IN_REKBER" || order.status === "DISPUTED",
-  );
+  const [dashboard, orders, rejected] = await Promise.all([getDashboard(), getStoreOrders(), getMyCatalogs("REJECTED")]);
+  const catalogs = dashboard?.catalogs ?? {};
+  const active = orders.filter((o) => ACTION_STATUSES.has(o.status)).slice(0, 6);
+  const sub = store.subscription;
 
   return (
-    <div>
-      <PageHeader
-        title="Overview"
-        description="Ringkasan penjualan, saldo, dan hal yang butuh tindakanmu."
+    <div className="space-y-6">
+      <DashHeader
+        title={`Halo, ${store.name}`}
+        description="Ringkasan toko: pesanan yang perlu ditindak, status verifikasi katalog, dan saldo."
       />
 
-      {/* Alerts */}
-      {needsAction.length > 0 && (
-        <div className="mt-6 space-y-2">
-          {needsAction.map((order) => (
-            <Link
-              key={order.id}
-              href={`/store-dashboard/orders/${order.id}`}
-              className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 transition-colors duration-200 hover:border-amber-500/60"
-            >
-              <AlertTriangle className="h-4 w-4 flex-none text-amber-500" />
-              <span className="min-w-0 flex-1 text-sm text-text">
-                {order.status === "DISPUTED"
-                  ? `Sengketa aktif di ${order.orderNumber} — tanggapi sebelum tenggat 72 jam.`
-                  : `${order.buyer} menunggu pengiriman akun di Rekber Room ${order.roomCode}.`}
-              </span>
-              <ArrowRight className="h-4 w-4 flex-none text-text-secondary" />
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <Link
-            key={stat.label}
-            href={stat.href}
-            className="group rounded-2xl border border-border bg-surface p-5 transition-colors duration-200 hover:border-primary/40"
-          >
-            <stat.icon className="h-5 w-5 text-primary" />
-            <p className="num mt-3 truncate font-display text-lg font-bold text-text">
-              {stat.value}
-            </p>
-            <p className="mt-0.5 text-xs text-text-secondary">{stat.label}</p>
-          </Link>
-        ))}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Pendapatan bersih 30 hari"
+          value={formatRupiah(dashboard?.last30Days?.net ?? 0)}
+          hint={`${dashboard?.last30Days?.n ?? 0} pesanan selesai`}
+          icon={TrendingUp}
+          href="/store-dashboard/analytics"
+        />
+        <StatCard label="Saldo tersedia" value={formatRupiah(dashboard?.balance.available ?? 0)} icon={Wallet} href="/store-dashboard/balance" />
+        <StatCard label="Ditahan escrow" value={formatRupiah(dashboard?.balance.escrow ?? 0)} icon={Timer} href="/store-dashboard/balance" />
+        <StatCard
+          label="Tawaran menunggu"
+          value={dashboard?.pendingOffers ?? 0}
+          icon={HandCoins}
+          href="/store-dashboard/offers"
+          tone={(dashboard?.pendingOffers ?? 0) > 0 ? "warning" : "default"}
+        />
       </div>
 
-      {/* Recent orders */}
-      <section className="mt-8">
-        <div className="flex items-baseline justify-between gap-4">
-          <h2 className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-text">
-            <Package className="h-4 w-4 text-primary" />
-            Pesanan Terbaru
-          </h2>
-          <Link
-            href="/store-dashboard/orders"
-            className="text-sm font-medium text-primary transition-colors duration-200 hover:text-primary-hover"
-          >
-            Lihat semua
-          </Link>
-        </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Panel
+          className="lg:col-span-2"
+          title="Pesanan yang perlu ditindak"
+          description="Kirim data akun lewat Rekber Room setelah pesanan dibayar."
+          actions={
+            <Link href="/store-dashboard/orders" className="text-xs font-medium text-primary">
+              Semua pesanan →
+            </Link>
+          }
+        >
+          {active.length === 0 ? (
+            <p className="text-sm text-text-secondary">Tidak ada pesanan aktif.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {active.map((o) => (
+                <li key={o.id}>
+                  <Link href={`/store-dashboard/orders/${o.id}`} className="flex items-center gap-3 py-3 hover:text-primary">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-text">{o.catalog.title}</span>
+                      <span className="text-xs text-text-secondary">
+                        {o.orderNumber} · {o.buyer.name} · {formatDbDateTime(o.createdAt)}
+                      </span>
+                    </span>
+                    <Tone tone={orderStatusTone[o.status]}>{storeOrderStatusLabel[o.status]}</Tone>
+                    <ArrowRight className="h-4 w-4 text-text-secondary" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
 
-        <ul className="mt-4 space-y-3">
-          {storeOrders.slice(0, 3).map((order) => (
-            <li key={order.id}>
-              <Link
-                href={`/store-dashboard/orders/${order.id}`}
-                className="group flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 transition-colors duration-200 hover:border-primary/40"
-              >
-                <span className="min-w-0">
-                  <span className="num block text-xs text-text-secondary">
-                    {order.orderNumber} · {formatDateShort(order.createdAt)} · pembeli:{" "}
-                    {order.buyer}
-                  </span>
-                  <span className="mt-0.5 block truncate text-sm font-medium text-text group-hover:text-primary">
-                    {order.title}
-                  </span>
+        <Panel title="Katalog" description="Setiap katalog diverifikasi admin sebelum tayang.">
+          <ul className="space-y-2 text-sm">
+            {(["PENDING_REVIEW", "LISTED", "REJECTED", "DRAFT", "IN_ORDER", "SOLD"] as CatalogStatus[]).map((s) => (
+              <li key={s} className="flex items-center justify-between">
+                <Link href={`/store-dashboard/catalogs?status=${s}`} className="text-text-secondary hover:text-primary">
+                  {catalogStatusLabel[s]}
+                </Link>
+                <span className="num font-semibold text-text">{catalogs[s] ?? 0}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 rounded-lg bg-surface-elevated px-3 py-2 text-xs text-text-secondary">
+            Paket <strong className="text-text">{sub?.tier ?? "FREE"}</strong> · batas katalog aktif{" "}
+            <strong className="num text-text">{sub?.maxListings ?? "tanpa batas"}</strong>
+          </p>
+          <Link href="/store-dashboard/catalogs/new" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+            <Package className="h-4 w-4" /> Tambah katalog
+          </Link>
+        </Panel>
+      </div>
+
+      {rejected.length > 0 && (
+        <Panel title="Katalog ditolak admin" description="Perbaiki sesuai alasan lalu ajukan ulang.">
+          <ul className="divide-y divide-border">
+            {rejected.slice(0, 5).map((c) => (
+              <li key={c.id} className="flex items-start gap-3 py-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-red-500" />
+                <span className="min-w-0 flex-1">
+                  <Link href={`/store-dashboard/catalogs/${c.id}`} className="block text-sm font-medium text-text hover:text-primary">
+                    {c.code} · {c.title}
+                  </Link>
+                  <span className="text-xs text-text-secondary">{c.reviewNote}</span>
                 </span>
-                <span className="flex items-center gap-3">
-                  <span className="num text-sm font-semibold text-text">
-                    {formatRupiah(storeReceives(order.itemPrice))}
-                  </span>
-                  <Badge
-                    variant={
-                      order.status === "COMPLETED"
-                        ? "success"
-                        : order.status === "DISPUTED"
-                          ? "destructive"
-                          : "default"
-                    }
-                  >
-                    {storeOrderStatusLabel[order.status]}
-                  </Badge>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs text-text-secondary">
-          Nominal di atas adalah bagianmu setelah komisi — estimasi tampilan;
-          angka final dihitung API.
-        </p>
-      </section>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
+      <p className="flex items-center gap-2 text-xs text-text-secondary">
+        <Clock className="h-3.5 w-3.5" /> Dana dilepas ke saldo tersedia 5 jam setelah pembeli mengonfirmasi akun aman (atau saat pembeli menekan Selesai).
+      </p>
     </div>
   );
 }

@@ -20,10 +20,9 @@ import { Reveal } from "@/components/motion/reveal";
 import { GameCard } from "@/components/games/game-card";
 import { ListingCard } from "@/components/listings/listing-card";
 import { NewsCard } from "@/components/news/news-card";
-import { getGames, getListings } from "@/lib/data/catalog";
-import { getFollowedGameSlugs } from "@/lib/data/buyer";
+import { getHome, getNewsArticles } from "@/lib/data/catalog";
+import { getRecommendations } from "@/lib/data/buyer";
 import { getCurrentUser } from "@/lib/auth";
-import { newsArticles } from "@/app/(marketplace)/news/mock-data";
 
 export const metadata: Metadata = {
   title: "valostock.id — Marketplace Akun Game & Top-Up",
@@ -66,16 +65,15 @@ const trustPoints = [
 ];
 
 export default async function Home() {
-  const [games, listings, user] = await Promise.all([getGames(), getListings(), getCurrentUser()]);
+  const [{ games, listings, featured: promoted }, news, user] = await Promise.all([getHome(), getNewsArticles(), getCurrentUser()]);
   const hotGames = games.filter((game) => game.isHot);
-  const featured = listings.slice(0, 4);
-  const newest = listings.slice(4, 12);
-  const latestNews = newsArticles.slice(0, 3);
-  // "Your Games" — games the logged-in buyer follows (hidden for guests).
-  const followed = user ? await getFollowedGameSlugs(user.id) : [];
-  const yourGames = followed
-    .map((slug) => games.find((game) => game.slug === slug))
-    .filter((game) => game !== undefined);
+  // Featured = paid/free featured listings first, topped up with the newest.
+  const featured = [...promoted, ...listings.filter((l) => !l.featured)].slice(0, 4);
+  const featuredIds = new Set(featured.map((l) => l.id));
+  const newest = listings.filter((l) => !featuredIds.has(l.id)).slice(0, 8);
+  const latestNews = news.slice(0, 3);
+  // Recommendations from the buyer's recently viewed / wishlist games (hidden for guests).
+  const recommended = user ? (await getRecommendations()).slice(0, 4) : [];
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background pt-16">
@@ -174,16 +172,16 @@ export default async function Home() {
             </div>
           </Reveal>
 
-          {/* ── Your Games (followed) ─────────────────────────────── */}
-          {yourGames.length > 0 && (
+          {/* ── Recommendations (recently viewed / wishlist games) ─── */}
+          {recommended.length > 0 && (
             <Reveal className="mt-14">
-              <SectionHeading title="Game Kamu" href="/account/following" linkLabel="Kelola" />
+              <SectionHeading title="Rekomendasi Untukmu" href="/search" />
               <p className="mt-1 text-sm text-text-secondary">
-                Berdasarkan game dan toko yang kamu ikuti.
+                Berdasarkan akun yang kamu lihat dan simpan.
               </p>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {yourGames.map((game) => (
-                  <GameCard key={game.slug} game={game} />
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+                {recommended.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
             </Reveal>

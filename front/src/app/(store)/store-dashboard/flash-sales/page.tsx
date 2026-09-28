@@ -1,72 +1,73 @@
 import type { Metadata } from "next";
-import { requireStore, getFlashSales } from "@/lib/data/store";
-import { Zap } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState, PageHeader } from "@/components/account/bits";
-import { formatDateShort, formatRupiah } from "@/lib/format";
+import { ActionButton } from "@/components/dashboard/action-button";
+import { ApiForm } from "@/components/dashboard/api-form";
+import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
+import { getFlashSales, getMyCatalogs, requireStore } from "@/lib/data/store";
+import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = {
-  title: "Flash Sale — valostock.id",
-};
+export const metadata: Metadata = { title: "Flash Sale — valostock.id" };
+
+const STATE = { SCHEDULED: ["Terjadwal", "warning"], RUNNING: ["Berjalan", "success"], ENDED: ["Selesai", "secondary"] } as const;
 
 export default async function FlashSalesPage() {
   const store = await requireStore("/store-dashboard/flash-sales");
-  const myFlashSales = await getFlashSales(store.slug);
-  return (
-    <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="Flash Sale"
-          description="Diskon berbatas waktu untuk mendorong urgensi — harga otomatis kembali saat periode berakhir."
-        />
-        <Button variant="primary" size="md">
-          <Zap className="h-4 w-4" />
-          Jadwalkan Flash Sale
-        </Button>
-      </div>
+  const [sales, listed] = await Promise.all([getFlashSales(), getMyCatalogs("LISTED")]);
 
-      {myFlashSales.length > 0 ? (
-        <ul className="mt-6 space-y-3">
-          {myFlashSales.map((sale) => {
-            const discount = Math.round(
-              (1 - sale.salePrice / sale.listPrice) * 100,
-            );
-            return (
-              <li
-                key={sale.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-text">
-                    {sale.title}
-                  </span>
-                  <span className="num mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-                    <span className="line-through">
-                      {formatRupiah(sale.listPrice)}
-                    </span>
-                    <span className="font-semibold text-primary">
-                      {formatRupiah(sale.salePrice)}
-                    </span>
-                    <Badge>-{discount}%</Badge>
-                  </span>
-                </span>
-                <span className="num text-xs text-text-secondary">
-                  {formatDateShort(sale.startsAt)} → {formatDateShort(sale.endsAt)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      ) : (
-        <div className="mt-6">
-          <EmptyState
-            icon={Zap}
-            title="Belum ada flash sale"
-            body="Jadwalkan diskon singkat untuk listing pilihanmu."
-          />
-        </div>
+  return (
+    <div className="space-y-6">
+      <DashHeader
+        title="Flash Sale"
+        description="Harga khusus dalam rentang waktu tertentu (maks. 7 hari). Selama berjalan, harga flash sale dipakai di marketplace dan saat checkout."
+      />
+      {store.status === "ACTIVE" && (
+        <Panel title="Buat flash sale">
+          {listed.length === 0 ? (
+            <p className="text-sm text-text-secondary">Belum ada katalog yang tayang.</p>
+          ) : (
+            <ApiForm
+              endpoint="/api/stores/me/flash-sales"
+              submitLabel="Jadwalkan"
+              fields={[
+                {
+                  name: "catalogId",
+                  label: "Katalog",
+                  type: "select",
+                  required: true,
+                  defaultValue: listed[0]?.id,
+                  options: listed.map((c) => ({ value: c.id, label: `${c.code} · ${c.title} (${formatRupiah(c.basePrice)})` })),
+                },
+                { name: "salePrice", label: "Harga flash sale (Rp)", type: "money", required: true, min: 10000 },
+                { name: "startsAt", label: "Mulai", type: "datetime", required: true },
+                { name: "endsAt", label: "Berakhir", type: "datetime", required: true },
+              ]}
+            />
+          )}
+        </Panel>
       )}
+      <Table head={["Katalog", "Harga normal", "Harga flash", "Periode", "Status", ""]} empty="Belum ada flash sale.">
+        {sales.map((s) => (
+          <tr key={s.id}>
+            <Td className="max-w-xs truncate">
+              {s.catalog.vsCode} · {s.catalog.title}
+            </Td>
+            <Td className="num text-text-secondary line-through">{formatRupiah(s.catalog.price)}</Td>
+            <Td className="num font-semibold">{formatRupiah(s.salePrice)}</Td>
+            <Td className="text-xs text-text-secondary">
+              {formatDbDateTime(s.startsAt)} – {formatDbDateTime(s.endsAt)}
+            </Td>
+            <Td>
+              <Tone tone={STATE[s.state][1]}>{STATE[s.state][0]}</Tone>
+            </Td>
+            <Td>
+              {s.state !== "ENDED" && (
+                <ActionButton variant="ghost" method="DELETE" endpoint={`/api/stores/me/flash-sales/${s.id}`} confirm={s.state === "RUNNING" ? "Akhiri flash sale sekarang?" : "Hapus jadwal flash sale?"}>
+                  {s.state === "RUNNING" ? "Akhiri" : "Hapus"}
+                </ActionButton>
+              )}
+            </Td>
+          </tr>
+        ))}
+      </Table>
     </div>
   );
 }

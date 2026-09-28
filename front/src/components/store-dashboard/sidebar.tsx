@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
+  Gavel,
   BadgePercent,
   BarChart3,
   Gem,
@@ -30,7 +32,9 @@ const sections: {
     label: string;
     href: string;
     icon: React.ComponentType<{ className?: string }>;
+    badge?: "offers" | "orders" | "chat";
   }[];
+  resellerOnly?: boolean;
 }[] = [
   {
     items: [
@@ -42,12 +46,14 @@ const sections: {
     items: [
       { label: "Katalog", href: "/store-dashboard/catalogs", icon: Package },
       { label: "Listing Baru", href: "/store-dashboard/catalogs/new", icon: PackagePlus },
-      { label: "Penawaran Masuk", href: "/store-dashboard/offers", icon: HandCoins },
-      { label: "Pesanan & Rekber", href: "/store-dashboard/orders", icon: Timer },
+      { label: "Penawaran Masuk", href: "/store-dashboard/offers", icon: HandCoins, badge: "offers" },
+      { label: "Pesanan & Rekber", href: "/store-dashboard/orders", icon: Timer, badge: "orders" },
+      { label: "Sengketa", href: "/store-dashboard/disputes", icon: Gavel },
     ],
   },
   {
     title: "Reseller",
+    resellerOnly: true,
     items: [
       {
         label: "Penjual Eksternal",
@@ -82,7 +88,8 @@ const sections: {
       },
       { label: "Analytics", href: "/store-dashboard/analytics", icon: BarChart3 },
       { label: "Ulasan", href: "/store-dashboard/ratings", icon: Star },
-      { label: "Chat Pembeli", href: "/store-dashboard/chat", icon: MessageSquare },
+      { label: "Chat Pembeli", href: "/store-dashboard/chat", icon: MessageSquare, badge: "chat" },
+      { label: "Notifikasi", href: "/store-dashboard/notifications", icon: Bell },
       { label: "Pengaturan", href: "/store-dashboard/settings", icon: Settings },
     ],
   },
@@ -102,13 +109,21 @@ function activeHref(pathname: string): string | undefined {
     .sort((a, b) => b.length - a.length)[0];
 }
 
-export function StoreSidebar() {
+export function StoreSidebar({
+  type,
+  badges,
+}: {
+  type: "OWNER" | "RESELLER";
+  badges: Record<"offers" | "orders" | "chat", number>;
+}) {
   const pathname = usePathname();
   const current = activeHref(pathname);
 
   return (
     <nav aria-label="Menu toko" className="space-y-5">
-      {sections.map((section, index) => (
+      {sections
+        .filter((section) => !section.resellerOnly || type === "RESELLER")
+        .map((section, index) => (
         <div key={section.title ?? index}>
           {section.title && (
             <p className="eyebrow mb-2 px-3 text-text-secondary">
@@ -131,7 +146,12 @@ export function StoreSidebar() {
                     )}
                   >
                     <item.icon className="h-4 w-4 flex-none" />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge && badges[item.badge] > 0 && (
+                      <span className="num rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
+                        {badges[item.badge]}
+                      </span>
+                    )}
                   </Link>
                 </li>
               );

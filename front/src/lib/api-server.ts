@@ -4,10 +4,17 @@ import { headers } from "next/headers";
 import { connection } from "next/server";
 import { API_URL } from "@/lib/api";
 
+/**
+ * Marks server-side requests: the API then never rotates the refresh token on
+ * them (the new cookies would reach this server, not the browser, and the
+ * visitor would be logged out). The browser refreshes on its own calls.
+ */
+const SSR_HEADER = { "x-valostock-ssr": "1" };
+
 async function getJson<T>(path: string, cookie: string | null): Promise<T | null> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
-      headers: { Accept: "application/json", ...(cookie ? { Cookie: cookie } : {}) },
+      headers: { Accept: "application/json", ...SSR_HEADER, ...(cookie ? { Cookie: cookie } : {}) },
       cache: "no-store",
     });
     if (!res.ok) return null;

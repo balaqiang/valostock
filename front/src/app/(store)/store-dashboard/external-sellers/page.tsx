@@ -1,75 +1,100 @@
 import type { Metadata } from "next";
-import { requireStore, getExternalSellers } from "@/lib/data/store";
 import Link from "next/link";
-import { ChevronRight, Info, UserPlus, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { EmptyState, PageHeader } from "@/components/account/bits";
-import { formatDateShort } from "@/lib/format";
+import { redirect } from "next/navigation";
+import { Info } from "lucide-react";
+import { ActionButton } from "@/components/dashboard/action-button";
+import { ApiForm } from "@/components/dashboard/api-form";
+import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
+import { getExternalSellers, getTransfers, requireStore } from "@/lib/data/store";
+import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = {
-  title: "Penjual Eksternal — valostock.id",
-};
+export const metadata: Metadata = { title: "Penjual Eksternal — valostock.id" };
+
+const PAYOUT = { PENDING: ["Menunggu admin", "warning"], COMPLETED: ["Terkirim", "success"], REJECTED: ["Ditolak — dana kembali", "destructive"] } as const;
 
 export default async function ExternalSellersPage() {
   const store = await requireStore("/store-dashboard/external-sellers");
-  const externalSellers = await getExternalSellers(store.slug);
-  return (
-    <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          title="Penjual Eksternal"
-          description="Penjual titipan yang kamu kelola — identitas (KTP) dipegang tokomu, dan tokomu bertanggung jawab penuh atas mereka."
-        />
-        <Button variant="primary" size="md">
-          <UserPlus className="h-4 w-4" />
-          Tambah Penjual
-        </Button>
-      </div>
+  if (store.type !== "RESELLER") redirect("/store-dashboard");
+  const [sellers, { transfers }] = await Promise.all([getExternalSellers(), getTransfers()]);
 
-      <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-xs text-text-secondary">
+  return (
+    <div className="space-y-6">
+      <DashHeader
+        title="Penjual Eksternal & Transfer"
+        description="Penjual titipan yang kamu kelola. Setelah pesanan selesai, bayar mereka dari saldo tersedia tokomu lewat Transfer Request (disetujui admin, biaya Rp4.000)."
+      />
+      <p className="flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-xs text-text-secondary">
         <Info className="mt-0.5 h-3.5 w-3.5 flex-none text-primary" />
-        Jika penjual eksternal merugikan pembeli, tokomu yang ditindak
-        (rating, potongan deposit, suspensi). Platform hanya mengenal tokomu —
-        pastikan identitas dan keaslian akun titipan sebelum listing.
+        Tokomu bertanggung jawab penuh atas penjual eksternal: identitas (KTP), keaslian akun, dan kerugian pembeli. Platform hanya mengenal tokomu.
       </p>
 
-      {externalSellers.length > 0 ? (
-        <ul className="mt-5 space-y-3">
-          {externalSellers.map((seller) => (
-            <li key={seller.id}>
-              <Link
-                href={`/store-dashboard/external-sellers/${seller.id}`}
-                className="group flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface p-4 transition-colors duration-200 hover:border-primary/40"
-              >
-                <span className="min-w-0">
-                  <span className="block text-sm font-medium text-text group-hover:text-primary">
-                    {seller.alias}
-                  </span>
-                  <span className="num mt-0.5 block text-xs text-text-secondary">
-                    {seller.payoutChannel} {seller.payoutAccount} a.n.{" "}
-                    {seller.payoutName} · sejak {formatDateShort(seller.createdAt)}
-                  </span>
-                </span>
-                <span className="flex items-center gap-2">
-                  <Badge variant="secondary">
-                    <span className="num">{seller.consignedCount}</span> akun titipan
-                  </Badge>
-                  <ChevronRight className="h-4 w-4 text-text-secondary group-hover:text-primary" />
-                </span>
+      <Panel title="Tambah penjual eksternal">
+        <ApiForm
+          endpoint="/api/stores/me/external-sellers"
+          columns={2}
+          submitLabel="Simpan penjual"
+          fields={[
+            { name: "alias", label: "Nama / alias", type: "text", required: true },
+            { name: "payoutBank", label: "Bank / e-wallet", type: "text", required: true, placeholder: "BCA" },
+            { name: "payoutAccount", label: "Nomor rekening", type: "text", required: true, hint: "6–20 digit" },
+            { name: "payoutName", label: "Nama pemilik rekening", type: "text", required: true },
+            { name: "note", label: "Catatan internal", type: "textarea" },
+          ]}
+        />
+      </Panel>
+
+      <Table head={["Penjual", "Rekening", "Transfer", "Total terkirim", ""]} empty="Belum ada penjual eksternal.">
+        {sellers.map((s) => (
+          <tr key={s.id}>
+            <Td>
+              <Link href={`/store-dashboard/external-sellers/${s.id}`} className="font-medium text-text hover:text-primary">
+                {s.alias}
               </Link>
-            </li>
+              <span className="block text-xs text-text-secondary">sejak {formatDbDateTime(s.createdAt)}</span>
+            </Td>
+            <Td className="text-xs">
+              {s.payoutBank} {s.payoutAccount} a.n. {s.payoutName}
+            </Td>
+            <Td className="num">{s.transfers}</Td>
+            <Td className="num">{formatRupiah(s.paidTotal)}</Td>
+            <Td>
+              <span className="flex gap-1">
+                <Link href={`/store-dashboard/external-sellers/${s.id}`} className="text-xs font-medium text-primary">
+                  Transfer →
+                </Link>
+                {s.transfers === 0 && (
+                  <ActionButton variant="ghost" method="DELETE" endpoint={`/api/stores/me/external-sellers/${s.id}`} confirm={`Hapus ${s.alias}?`}>
+                    Hapus
+                  </ActionButton>
+                )}
+              </span>
+            </Td>
+          </tr>
+        ))}
+      </Table>
+
+      <Panel title="Riwayat transfer">
+        <Table head={["No.", "Penjual", "Pesanan", "Jumlah", "Nama", "Status"]} empty="Belum ada transfer.">
+          {transfers.map((t) => (
+            <tr key={t.id}>
+              <Td className="num text-xs">{t.id}</Td>
+              <Td>{t.seller.alias}</Td>
+              <Td className="num text-xs">{t.order.number}</Td>
+              <Td className="num">
+                {formatRupiah(t.amount)}
+                <span className="block text-xs text-text-secondary">diterima {formatRupiah(t.amount - t.fee)}</span>
+              </Td>
+              <Td>
+                <Tone tone={t.nameMatch === "MATCH" ? "success" : "warning"}>{t.nameMatch}</Tone>
+              </Td>
+              <Td>
+                <Tone tone={PAYOUT[t.status][1]}>{PAYOUT[t.status][0]}</Tone>
+                {t.reviewNote && <p className="mt-1 text-xs text-text-secondary">{t.reviewNote}</p>}
+              </Td>
+            </tr>
           ))}
-        </ul>
-      ) : (
-        <div className="mt-5">
-          <EmptyState
-            icon={Users}
-            title="Belum ada penjual eksternal"
-            body="Tambahkan penjual titipan untuk mulai me-reseller akun mereka."
-          />
-        </div>
-      )}
+        </Table>
+      </Panel>
     </div>
   );
 }

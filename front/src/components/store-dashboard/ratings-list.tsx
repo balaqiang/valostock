@@ -1,119 +1,91 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { MessageSquareReply, ThumbsDown, ThumbsUp } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, MessageSquareReply, Minus, ThumbsDown, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatDateShort } from "@/lib/format";
-import type { MockStoreRating } from "@/lib/mock/store-dashboard";
+import { apiFetch } from "@/lib/api";
+import { formatDbDateTime } from "@/lib/format";
+import type { StoreRatingView } from "@/types/api";
 
-/** Review list with one professional reply per review (STORE_RULES §5). */
-export function RatingsList({ ratings: storeRatings }: { ratings: MockStoreRating[] }) {
-  const [replies, setReplies] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      storeRatings
-        .filter((rating) => rating.reply)
-        .map((rating) => [rating.id, rating.reply as string]),
-    ),
-  );
+/** Reviews with one professional reply per review (STORE_RULES §5), saved by the API. */
+export function RatingsList({ ratings }: { ratings: StoreRatingView[] }) {
+  const router = useRouter();
   const [replying, setReplying] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const send = (id: string) => {
-    setReplies((current) => ({ ...current, [id]: draft.trim() }));
-    setReplying(null);
-    setDraft("");
+  const send = async (id: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiFetch(`/api/stores/me/ratings/${id}/reply`, { method: "POST", body: JSON.stringify({ reply: draft.trim() }) });
+      setReplying(null);
+      setDraft("");
+      router.refresh();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal mengirim balasan.");
+    } finally {
+      setBusy(false);
+    }
   };
+
+  if (ratings.length === 0) return <p className="text-sm text-text-secondary">Belum ada ulasan.</p>;
 
   return (
     <ul className="space-y-3">
-      {storeRatings.map((rating) => {
-        const reply = replies[rating.id];
-        return (
-          <li
-            key={rating.id}
-            className="rounded-xl border border-border bg-surface p-5"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-2 text-sm font-medium text-text">
-                {rating.overall === 1 ? (
-                  <ThumbsUp className="h-4 w-4 text-emerald-500" />
-                ) : (
-                  <ThumbsDown className="h-4 w-4 text-red-500" />
-                )}
-                {rating.buyer}
-                <span className="num text-xs font-normal text-text-secondary">
-                  · {rating.orderId} · {formatDateShort(rating.date)}
-                </span>
-              </p>
-              <p className="num text-xs text-text-secondary">
-                Deskripsi {rating.descAccuracy} · Sikap {rating.attitude} ·
-                Kecepatan {rating.deliverySpeed}
-              </p>
-            </div>
-
-            <p className="mt-2 text-sm text-text-secondary">
-              &ldquo;{rating.comment}&rdquo;
+      {ratings.map((r) => (
+        <li key={r.id} className="rounded-xl border border-border bg-surface p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-2 text-sm font-medium text-text">
+              {r.overall === 1 ? (
+                <ThumbsUp className="h-4 w-4 text-emerald-500" />
+              ) : r.overall === -1 ? (
+                <ThumbsDown className="h-4 w-4 text-red-500" />
+              ) : (
+                <Minus className="h-4 w-4 text-text-secondary" />
+              )}
+              {r.buyer}
+              <span className="num text-xs font-normal text-text-secondary">· {r.orderNumber}</span>
             </p>
-
-            {reply ? (
-              <motion.div
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-3 rounded-lg bg-surface-elevated px-4 py-3"
-              >
-                <p className="text-xs font-semibold text-text">
-                  Balasan toko{" "}
-                  <span className="font-normal text-text-secondary">
-                    (satu kali per ulasan)
-                  </span>
-                </p>
-                <p className="mt-1 text-sm text-text-secondary">{reply}</p>
-              </motion.div>
-            ) : replying === rating.id ? (
-              <div className="mt-3">
-                <textarea
-                  rows={2}
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Balas secara profesional — balasan tidak bisa diubah."
-                  className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-text placeholder:text-text-secondary transition-colors duration-200 focus:border-primary focus:outline-none"
-                />
-                <div className="mt-2 flex gap-2">
-                  <Button
-                    variant="primary"
-                    size="md"
-                    disabled={!draft.trim()}
-                    onClick={() => send(rating.id)}
-                  >
-                    Kirim Balasan
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="md"
-                    onClick={() => setReplying(null)}
-                  >
-                    Batal
-                  </Button>
-                </div>
+            <span className="text-xs text-text-secondary">{formatDbDateTime(r.date)}</span>
+          </div>
+          <p className="num mt-1 text-xs text-text-secondary">
+            Akurasi {r.descAccuracy}/5 · Sikap {r.attitude}/5 · Kecepatan {r.deliverySpeed}/5
+          </p>
+          {r.comment && <p className="mt-2 text-sm text-text">{r.comment}</p>}
+          {r.reply ? (
+            <p className="mt-3 rounded-lg bg-surface-elevated px-3 py-2 text-sm text-text-secondary">
+              <span className="font-medium text-text">Balasan toko:</span> {r.reply}
+            </p>
+          ) : replying === r.id ? (
+            <div className="mt-3 space-y-2">
+              <textarea
+                rows={2}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                maxLength={1000}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text focus:border-primary focus:outline-none"
+                placeholder="Balas dengan sopan dan profesional…"
+              />
+              <div className="flex gap-2">
+                <Button size="md" onClick={() => send(r.id)} disabled={busy || draft.trim().length < 2}>
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />} Kirim balasan
+                </Button>
+                <Button size="md" variant="ghost" onClick={() => setReplying(null)}>
+                  Batal
+                </Button>
               </div>
-            ) : (
-              <Button
-                variant="secondary"
-                size="md"
-                className="mt-3"
-                onClick={() => {
-                  setReplying(rating.id);
-                  setDraft("");
-                }}
-              >
-                <MessageSquareReply className="h-4 w-4" />
-                Balas (1×)
-              </Button>
-            )}
-          </li>
-        );
-      })}
+              {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+            </div>
+          ) : (
+            <Button size="md" variant="ghost" className="mt-2" onClick={() => setReplying(r.id)}>
+              <MessageSquareReply className="h-4 w-4" /> Balas
+            </Button>
+          )}
+        </li>
+      ))}
     </ul>
   );
 }

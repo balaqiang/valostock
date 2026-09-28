@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BadgeCheck, Star, Zap } from "lucide-react";
 import { formatCompact, formatRupiah } from "@/lib/format";
-import type { MockListing } from "@/lib/mock/listings";
+import type { Listing as MockListing } from "@/types/domain";
 
 export function ListingCard({
   listing,
@@ -47,7 +47,11 @@ export function ListingCard({
           <p className="mt-1.5 text-xs text-text-secondary">
             {listing.skins} skin ·{" "}
             <span className="num">
-              TOTAL VP {listing.totalVp.toLocaleString("id-ID")}
+              {listing.game === "valorant"
+                ? `TOTAL VP ${listing.totalVp.toLocaleString("id-ID")}`
+                : listing.heroCount
+                  ? `${listing.heroCount} hero`
+                  : `Level ${listing.level}`}
             </span>
           </p>
 

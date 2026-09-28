@@ -1,9 +1,6 @@
 // UI labels for status enums (code, not data). Enum values mirror docs/ERD.md.
-import type { OrderStatus } from "@/types/api";
-import type { MockOffer } from "@/lib/mock/buyer";
-import type { HelpCategory } from "@/lib/mock/help";
-import type { StoreLevel, StoreType } from "@/lib/mock/stores";
-import type { CatalogStatus, StoreOrderStatus } from "@/lib/mock/store-dashboard";
+import type { DisputeReason, DisputeStatus, OfferStatus, OrderStatus, PaymentPurpose, StoreStatus } from "@/types/api";
+import type { CatalogStatus, HelpCategory, StoreLevel, StoreType } from "@/types/domain";
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Menunggu Pembayaran",
@@ -40,12 +37,14 @@ export function stepIndexOf(status: OrderStatus): number {
   return stepOrder[status];
 }
 
-export const offerStatusLabel: Record<MockOffer["status"], string> = {
+export const offerStatusLabel: Record<OfferStatus, string> = {
   PENDING: "Menunggu Toko",
   ACCEPTED: "Diterima",
   COUNTERED: "Ditawar Balik",
   REJECTED: "Ditolak",
   EXPIRED: "Kedaluwarsa",
+  CANCELLED: "Dibatalkan",
+  USED: "Sudah Dibeli",
 };
 
 export const helpCategoryLabel: Record<HelpCategory, string> = {
@@ -73,7 +72,9 @@ export const storeTypeLabel: Record<StoreType, string> = {
 };
 
 export const catalogStatusLabel: Record<CatalogStatus, string> = {
-  DRAFT: "Draft",
+  DRAFT: "Draf",
+  PENDING_REVIEW: "Menunggu Verifikasi",
+  REJECTED: "Ditolak",
   LISTED: "Tayang",
   LOCKED: "Terkunci",
   IN_ORDER: "Dalam Pesanan",
@@ -81,10 +82,78 @@ export const catalogStatusLabel: Record<CatalogStatus, string> = {
   DELISTED: "Diturunkan",
 };
 
-export const storeOrderStatusLabel: Record<StoreOrderStatus, string> = {
-  PAID: "Dibayar — Buka Rekber",
+/** Badge colours for catalog statuses. */
+export const catalogStatusTone: Record<CatalogStatus, "default" | "secondary" | "success" | "warning" | "destructive"> = {
+  DRAFT: "secondary",
+  PENDING_REVIEW: "warning",
+  REJECTED: "destructive",
+  LISTED: "success",
+  LOCKED: "default",
+  IN_ORDER: "default",
+  SOLD: "secondary",
+  DELISTED: "destructive",
+};
+
+export const storeOrderStatusLabel: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: "Menunggu Pembayaran Pembeli",
+  PAID: "Dibayar — Kirim Akun di Rekber",
   IN_REKBER: "Di Rekber Room",
-  SAFE: "Akun Aman",
+  SAFE: "Akun Aman — Menunggu Selesai",
   COMPLETED: "Selesai",
   DISPUTED: "Sengketa",
+  REFUNDED: "Direfund",
+  CANCELLED: "Dibatalkan",
+};
+
+export const orderStatusTone: Record<OrderStatus, "default" | "secondary" | "success" | "warning" | "destructive"> = {
+  PENDING_PAYMENT: "warning",
+  PAID: "default",
+  IN_REKBER: "default",
+  SAFE: "default",
+  COMPLETED: "success",
+  DISPUTED: "destructive",
+  REFUNDED: "secondary",
+  CANCELLED: "secondary",
+};
+
+export const storeStatusLabel: Record<StoreStatus, string> = {
+  PENDING_DEPOSIT: "Menunggu Deposit",
+  PENDING_REVIEW: "Menunggu Verifikasi",
+  ACTIVE: "Aktif",
+  REJECTED: "Ditolak",
+  SUSPENDED: "Ditangguhkan",
+};
+
+export const disputeStatusLabel: Record<DisputeStatus, string> = {
+  OPEN: "Menunggu Tanggapan Toko",
+  STORE_RESPONDED: "Toko Menanggapi",
+  IN_REVIEW: "Ditinjau Admin",
+  RESOLVED_BUYER: "Dimenangkan Pembeli",
+  RESOLVED_STORE: "Dimenangkan Toko",
+  CANCELLED: "Dibatalkan",
+};
+
+export const disputeReasonLabel: Record<DisputeReason, string> = {
+  NOT_DELIVERED: "Akun tidak dikirim",
+  NOT_AS_DESCRIBED: "Akun tidak sesuai deskripsi",
+  RECALLED: "Akun ditarik kembali (recall)",
+  OTHER: "Lainnya",
+};
+
+export const paymentPurposeLabel: Record<PaymentPurpose, string> = {
+  TOPUP: "Top-up game",
+  BALANCE_FILL: "Isi Balance",
+  ORDER: "Pesanan akun",
+  STORE_DEPOSIT: "Deposit toko",
+  SUBSCRIPTION: "Langganan toko",
+  AD: "Iklan featured",
+  LOCK: "Lock akun",
+};
+
+export const reportReasonLabel: Record<"SCAM" | "FAKE" | "OFF_PLATFORM" | "ABUSE" | "OTHER", string> = {
+  SCAM: "Penipuan",
+  FAKE: "Data/foto palsu",
+  OFF_PLATFORM: "Mengajak transaksi di luar platform",
+  ABUSE: "Perilaku kasar",
+  OTHER: "Lainnya",
 };

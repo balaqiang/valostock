@@ -61,6 +61,7 @@ export function RegisterForm() {
           phone: String(form.get("phone") ?? ""),
           email: String(form.get("email") ?? ""),
           password: String(form.get("password") ?? ""),
+          ref: String(form.get("ref") ?? "").trim() || undefined,
           acceptTerms: form.get("acceptTerms") === "on",
         }),
       });
@@ -87,13 +88,20 @@ export function RegisterForm() {
             id={field.id}
             name={field.id}
             type={field.type}
-            required
+            required={field.id !== "phone"}
             minLength={field.id === "password" ? 8 : undefined}
             placeholder={field.placeholder}
             autoComplete={field.autoComplete}
           />
         </div>
       ))}
+
+      <div>
+        <label htmlFor="ref" className="mb-1.5 block text-xs font-medium text-text-secondary">
+          Kode referral (opsional)
+        </label>
+        <Input id="ref" name="ref" defaultValue={searchParams.get("ref") ?? ""} placeholder="mis. NIGHTFALL10" className="num uppercase" />
+      </div>
 
       <label className="flex items-start gap-2.5 text-xs text-text-secondary">
         <input

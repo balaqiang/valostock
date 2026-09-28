@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import { Coins, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/account/bits";
-import { formatDateShort, formatDbDateTime } from "@/lib/format";
+import { formatDbDateTime } from "@/lib/format";
 import { requireUser } from "@/lib/auth";
 import { getMyBalanceLedger } from "@/lib/data/me";
 import { balanceLedgerTypeLabel } from "@/lib/topup-status";
-import { getPointsLedger } from "@/lib/data/buyer";
+import { getPoints } from "@/lib/data/buyer";
 
 export const metadata: Metadata = {
   title: "Mutasi — valostock.id",
 };
 
 export default async function MutationPage() {
-  const user = await requireUser("/account/mutation");
+  await requireUser("/account/mutation");
   const balanceLedger = (await getMyBalanceLedger()).slice(0, 20);
-  const pointsLedger = await getPointsLedger(user.id);
+  const pointsLedger = (await getPoints()).ledger;
 
   return (
     <div>
@@ -76,10 +76,10 @@ export default async function MutationPage() {
               >
                 <span className="min-w-0">
                   <span className="block text-sm text-text">
-                    {entry.type === "EARN" ? "Dapat poin" : "Tukar poin"}
+                    {entry.type === "EARN" ? "Dapat poin" : entry.type === "REDEEM" ? "Tukar poin" : "Penyesuaian"}
                   </span>
                   <span className="num block text-xs text-text-secondary">
-                    {entry.ref} · {formatDateShort(entry.date)}
+                    {entry.reference} · {formatDbDateTime(entry.createdAt)}
                   </span>
                 </span>
                 <span

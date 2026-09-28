@@ -4,7 +4,9 @@ import { Timer, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/account/bits";
 import { WithdrawForm } from "@/components/store-dashboard/withdraw-form";
-import { formatDateShort, formatRupiah } from "@/lib/format";
+import { formatDateShort, formatDbDateTime, formatRupiah } from "@/lib/format";
+import { Table, Td } from "@/components/dashboard/ui";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Saldo & Penarikan — valostock.id",
@@ -12,13 +14,13 @@ export const metadata: Metadata = {
 
 export default async function StoreBalancePage() {
   const store = await requireStore("/store-dashboard/balance");
-  const [balance, withdrawals] = await Promise.all([getStoreBalance(store.slug), getWithdrawals(store.slug)]);
-  const { available, escrow } = balance;
+  const [balance, withdrawals] = await Promise.all([getStoreBalance(), getWithdrawals()]);
+  const { available, escrow, ledger } = balance;
   return (
     <div>
       <PageHeader
         title="Saldo & Penarikan"
-        description="Dana hasil penjualan tercatat di saldo tokomu: ditahan (escrow) sampai pembeli menekan Selesai, lalu masuk ke saldo tersedia (dikurangi komisi 5%). Penarikan disetujui admin."
+        description="Dana hasil penjualan tercatat di saldo tokomu: ditahan (escrow) sampai pembeli menekan Selesai, lalu masuk ke saldo tersedia (dikurangi komisi sesuai paket langganan). Penarikan disetujui admin."
       />
 
       {/* Balance cards */}
@@ -122,6 +124,28 @@ export default async function StoreBalancePage() {
           Penarikan yang ditolak admin otomatis kembali ke saldo tersedia —
           perbaiki data rekening lalu ajukan ulang. (Transfer bank disimulasikan di prototype.)
         </p>
+      </section>
+
+      <section className="mt-8">
+        <h2 className="font-display text-lg font-bold tracking-tight text-text">Buku Besar Saldo</h2>
+        <p className="mt-1 text-xs text-text-secondary">Setiap perubahan saldo tercatat di sini (append-only) dengan saldo setelah transaksi.</p>
+        <div className="mt-4">
+          <Table head={["Waktu", "Jenis", "Kantong", "Jumlah", "Saldo setelah", "Catatan"]} empty="Belum ada mutasi.">
+            {ledger.map((l) => (
+              <tr key={l.id}>
+                <Td className="whitespace-nowrap text-xs text-text-secondary">{formatDbDateTime(l.createdAt)}</Td>
+                <Td className="text-xs font-medium">{l.type}</Td>
+                <Td className="text-xs">{l.bucket === "ESCROW" ? "Escrow" : "Tersedia"}</Td>
+                <Td className={cn("num whitespace-nowrap font-medium", l.amount < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
+                  {l.amount > 0 ? "+" : ""}
+                  {formatRupiah(l.amount)}
+                </Td>
+                <Td className="num whitespace-nowrap">{formatRupiah(l.balanceAfter)}</Td>
+                <Td className="text-xs text-text-secondary">{l.note ?? "-"}</Td>
+              </tr>
+            ))}
+          </Table>
+        </div>
       </section>
     </div>
   );

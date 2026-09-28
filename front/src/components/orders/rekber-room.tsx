@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, MessageSquare, Send } from "lucide-react";
+import { Loader2, MessageSquare, Paperclip, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatDbDateTime } from "@/lib/format";
@@ -37,6 +37,8 @@ export function RekberRoom({
   const router = useRouter();
   const [messages, setMessages] = useState<RekberMessage[]>([]);
   const [draft, setDraft] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -62,12 +64,18 @@ export function RekberRoom({
   const send = async (event: React.FormEvent) => {
     event.preventDefault();
     const body = draft.trim();
-    if (!body) return;
+    if (!body && files.length === 0) return;
     setSending(true);
     setError(null);
     try {
-      await apiFetch(`/api/orders/${orderId}/messages`, { method: "POST", body: JSON.stringify({ body }) });
+      // Attachments go to private storage; everyone in the room gets short-lived signed links.
+      const form = new FormData();
+      if (body) form.append("body", body);
+      for (const file of files) form.append("files", file);
+      await apiFetch(`/api/orders/${orderId}/messages`, { method: "POST", body: form });
       setDraft("");
+      setFiles([]);
+      if (fileInput.current) fileInput.current.value = "";
       await load();
       // The store's first message moves the order to IN_REKBER — refresh the page status.
       router.refresh();
@@ -111,6 +119,19 @@ export function RekberRoom({
                   </p>
                 )}
                 <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                {message.attachments.length > 0 && (
+                  <ul className="mt-1 flex flex-wrap gap-2 text-[11px]">
+                    {message.attachments.map((a, i) =>
+                      a.url ? (
+                        <li key={a.path}>
+                          <a href={a.url} target="_blank" rel="noreferrer" className="underline">
+                            Lampiran {i + 1}
+                          </a>
+                        </li>
+                      ) : null,
+                    )}
+                  </ul>
+                )}
                 <p className={cn("mt-0.5 text-[10px]", mine ? "text-white/70" : "text-text-secondary")}>
                   {formatDbDateTime(message.createdAt)}
                 </p>
@@ -131,7 +152,19 @@ export function RekberRoom({
             placeholder={viewerRole === "STORE" ? "Kirim data akses akun di sini…" : "Tulis pesan ke toko…"}
             className="min-h-[44px] flex-1 resize-y rounded-xl border border-border bg-background px-3 py-2 text-sm text-text outline-none focus:border-primary"
           />
-          <Button type="submit" variant="primary" size="md" disabled={sending || !draft.trim()} aria-label="Kirim">
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            accept="image/png,image/jpeg,image/webp,video/mp4,application/pdf"
+            className="hidden"
+            onChange={(event) => setFiles(Array.from(event.target.files ?? []).slice(0, 5))}
+          />
+          <Button type="button" variant="secondary" size="md" onClick={() => fileInput.current?.click()} aria-label="Lampirkan bukti">
+            <Paperclip className="h-4 w-4" />
+            {files.length > 0 && <span className="num text-xs">{files.length}</span>}
+          </Button>
+          <Button type="submit" variant="primary" size="md" disabled={sending || (!draft.trim() && files.length === 0)} aria-label="Kirim">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </form>

@@ -8,9 +8,6 @@ import {
   ChevronRight,
   ClipboardCheck,
   FileCheck,
-  Flag,
-  HandCoins,
-  Heart,
   MessageSquare,
   ShieldCheck,
   Star,
@@ -31,10 +28,37 @@ import { ReviewsSection } from "@/components/listings/reviews-section";
 import { FaqSection } from "@/components/listings/faq-section";
 import { StoreBadges } from "@/components/store/store-badges";
 import { formatCompact, formatRupiah } from "@/lib/format";
-import type { MockListing } from "@/lib/mock/listings";
+import type { Listing as MockListing } from "@/types/domain";
 import { handlingFeeFor, PROTECTION_FEE, protectionDaysFor } from "@/lib/fees";
-import { getGame, getListing, getStore } from "@/lib/data/catalog";
+import { getBuyContext, getGame, getGameFields, getListing, getListingDetail, getStorePage } from "@/lib/data/catalog";
+import { getCurrentUser } from "@/lib/auth";
+import { BuyPanel } from "@/components/listings/buy-panel";
+import { formatDbDateTime } from "@/lib/format";
+import type { FieldTemplate } from "@/types/domain";
 import { buildCollection } from "./collection";
+
+/** Any game: every catalog column (from the admin-managed templates) with its value. */
+function AttributeSheet({ listing, fields }: { listing: MockListing; fields: FieldTemplate[] }) {
+  const value = (f: FieldTemplate) => {
+    const v = listing.attributes[f.key];
+    if (v === undefined || v === null || v === "") return "—";
+    if (Array.isArray(v)) return v.length ? v.join(", ") : "—";
+    return typeof v === "number" ? v.toLocaleString("id-ID") : String(v);
+  };
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-6">
+      <dl className="divide-y divide-border">
+        {fields.map((f) => (
+          <SheetRow key={f.key} label={f.label} value={value(f)} />
+        ))}
+      </dl>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface-elevated px-4 py-3">
+        <span className="num font-display text-lg font-bold text-text">{formatRupiah(listing.price)}</span>
+        <span className="num rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold tracking-wider text-text">CODE: {listing.code}</span>
+      </div>
+    </div>
+  );
+}
 
 export async function generateMetadata({
   params,
@@ -190,20 +214,23 @@ export default async function CatalogDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const listing = await getListing(id);
-  if (!listing) notFound();
+  const detail = await getListingDetail(id);
+  if (!detail) notFound();
+  const { listing, store, inspection, bundles } = detail;
 
-  const game = await getGame(listing.game);
-  const store = await getStore(listing.storeSlug);
+  const [game, fields, storePage, context, user] = await Promise.all([
+    getGame(listing.game),
+    getGameFields(listing.game),
+    getStorePage(listing.storeSlug),
+    getBuyContext(listing.id),
+    getCurrentUser(),
+  ]);
+  const isValorant = listing.game === "valorant";
 
-  const collection = await buildCollection(
-    listing.id,
-    listing.skins,
-    listing.skinsList,
-  );
+  const collection = isValorant ? await buildCollection(listing.id, listing.skins, listing.skinsList) : null;
   // If the skin API is unreachable the collection is empty — fall back
   // to the listing's own count so the page stays truthful.
-  const skinsCount = collection.total > 0 ? collection.total : listing.skins;
+  const skinsCount = collection && collection.total > 0 ? collection.total : listing.skins;
   const agentCount = ownedAgents(listing.agents);
 
   const hotWeapons = [...new Set(listing.skinsList.map(weaponOf))]
@@ -246,31 +273,38 @@ export default async function CatalogDetailPage({
           <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_360px]">
             {/* ── Left column ────────────────────────────────────── */}
             <div className="min-w-0">
-              {/* Account Checked banner — inspection by the store, per docs */}
-              <div className="mb-5 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
-                <ClipboardCheck className="h-5 w-5 flex-none text-primary" />
-                <p className="min-w-0 flex-1 text-sm text-text">
-                  <span className="font-semibold">Account Checked</span>{" "}
-                  <span className="text-text-secondary">
-                    — diinspeksi oleh {listing.store} · {listing.verifiedAt}
+              {/* Account Checked banner — only when the store's inspection passed */}
+              {listing.accountChecked && inspection?.result === "PASSED" && (
+                <div className="mb-5 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+                  <ClipboardCheck className="h-5 w-5 flex-none text-primary" />
+                  <p className="min-w-0 flex-1 text-sm text-text">
+                    <span className="font-semibold">Account Checked</span>{" "}
+                    <span className="text-text-secondary">
+                      — diinspeksi oleh {listing.store} · {formatDbDateTime(inspection.date)}
+                    </span>
+                  </p>
+                  <span className="flex-none -rotate-3 rounded border border-primary/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
+                    Checked
                   </span>
-                </p>
-                <span className="flex-none -rotate-3 rounded border border-primary/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
-                  Checked
-                </span>
-              </div>
+                </div>
+              )}
+              {listing.status !== "LISTED" && (
+                <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                  Akun ini sedang dalam transaksi pembeli lain. Simpan ke wishlist — jika transaksinya batal, akun kembali dijual.
+                </div>
+              )}
 
               <ImageSlider images={listing.images} alt={listing.title} />
 
               {/* Rank + delivery chips */}
               <div className="mt-6 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-text">
-                  <Image
+                  {isValorant && <Image
                     src={rankIcon(listing.rank)}
                     alt=""
                     width={16}
                     height={16}
-                  />
+                  />}
                   {listing.rank}
                 </span>
                 {listing.instant && (
@@ -296,7 +330,12 @@ export default async function CatalogDetailPage({
                   className="mt-4"
                 />
               )}
+              {listing.description && (
+                <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-text-secondary">{listing.description}</p>
+              )}
 
+              {isValorant ? (
+              <>
               {/* Spec tiles (iGV-style) */}
               <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 <SpecTile label="Server" value={listing.server} />
@@ -402,7 +441,7 @@ export default async function CatalogDetailPage({
                             {
                               label: `Collection (${skinsCount})`,
                               content: (
-                                <CollectionView collection={collection} />
+                                collection ? <CollectionView collection={collection} /> : null
                               ),
                             },
                             {
@@ -416,8 +455,45 @@ export default async function CatalogDetailPage({
                   ]}
                 />
               </div>
+              </>
+              ) : (
+                <div className="mt-8">
+                  <h2 className="mb-3 font-display text-lg font-bold text-text">Data akun</h2>
+                  <AttributeSheet listing={listing} fields={fields} />
+                </div>
+              )}
 
-              <ReviewsSection store={listing.store} rating={listing.rating} />
+
+              {bundles.length > 0 && (
+                <section className="mt-10">
+                  <h2 className="font-display text-xl font-bold tracking-tight text-text">Beli sekaligus (bundle)</h2>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {bundles.map((bundle) => (
+                      <div key={bundle.id} className="rounded-2xl border border-border bg-surface p-5">
+                        <p className="font-semibold text-text">{bundle.title}</p>
+                        <p className="mt-1 text-sm text-text-secondary">
+                          <span className="num font-semibold text-text">{formatRupiah(bundle.bundlePrice)}</span>{" "}
+                          <span className="num line-through">{formatRupiah(bundle.itemsTotal)}</span>
+                        </p>
+                        <ul className="mt-2 space-y-0.5 text-xs text-text-secondary">
+                          {bundle.items.map((item) => (
+                            <li key={item.id}>
+                              • <Link href={`/catalog/${item.id}`} className="hover:text-primary">{item.title}</Link>
+                            </li>
+                          ))}
+                        </ul>
+                        {!context?.isOwner && (
+                          <div className="mt-4 w-48">
+                            <BuyButton bundleId={bundle.id} size="md" label="Beli bundle" returnTo={`/catalog/${listing.id}`} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <ReviewsSection store={listing.store} rating={store?.rating ?? 0} reviews={store?.reviews ?? 0} ratings={storePage?.ratings ?? []} />
               <FaqSection />
             </div>
 
@@ -493,40 +569,20 @@ export default async function CatalogDetailPage({
                   </div>
                 </dl>
 
-                <div className="mt-4 flex flex-col gap-2.5">
-                  <BuyButton catalogId={listing.id} available={listing.status === "LISTED"} />
-                  {/* Offers and store chat are future work (not in the prototype). */}
-                  <Button variant="secondary" size="lg" className="w-full" disabled title="Segera hadir">
-                    <HandCoins className="h-4 w-4" />
-                    Tawar Harga (segera)
-                  </Button>
-                  <Button variant="ghost" size="md" className="w-full" disabled title="Segera hadir">
-                    <MessageSquare className="h-4 w-4" />
-                    Chat Toko (segera)
-                  </Button>
+                <div className="mt-4">
+                  <BuyPanel
+                    catalogId={listing.id}
+                    price={listing.price}
+                    status={listing.status}
+                    storeSlug={listing.storeSlug}
+                    context={context}
+                    loggedIn={Boolean(user)}
+                  />
                 </div>
 
                 <p className="mt-3 text-center text-xs text-text-secondary">
-                  Akun dikunci otomatis untukmu selama menunggu pembayaran — tidak bisa dibeli orang lain.
+                  Akun dikunci otomatis untukmu selama menunggu pembayaran (60 menit) — tidak bisa dibeli orang lain.
                 </p>
-
-                <div className="mt-4 flex items-center justify-center gap-4 border-t border-border pt-4 text-xs text-text-secondary">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-primary"
-                  >
-                    <Heart className="h-3.5 w-3.5" />
-                    Wishlist
-                  </button>
-                  <span aria-hidden>·</span>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 transition-colors duration-200 hover:text-red-500"
-                  >
-                    <Flag className="h-3.5 w-3.5" />
-                    Laporkan
-                  </button>
-                </div>
 
                 <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-4">
                   {paymentMethods.map((method) => (
@@ -569,7 +625,7 @@ export default async function CatalogDetailPage({
                     </dt>
                     <dd className="mt-0.5 flex items-center gap-1 text-sm font-medium text-text">
                       <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      <span className="num">{listing.rating}</span>
+                      <span className="num">{store?.rating ?? 0}</span>
                       <span className="num text-xs font-normal text-text-secondary">
                         · {store?.reviews ?? 0} ulasan
                       </span>
@@ -580,7 +636,7 @@ export default async function CatalogDetailPage({
                       Total pesanan
                     </dt>
                     <dd className="num mt-0.5 text-sm font-medium text-text">
-                      {formatCompact(listing.sold)} terjual
+                      {formatCompact(store?.sold ?? 0)} terjual
                     </dd>
                   </div>
                 </dl>
