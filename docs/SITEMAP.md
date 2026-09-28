@@ -3,6 +3,9 @@
 **Complete page map, route tree, per-page contents, guards & RBAC**
 Version 3.0 · Store-only marketplace + top-up + closed-loop balance · Express.js API + Midtrans
 
+> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach). Prototype-only routes: `/payment/finish` (return from Midtrans → status check), `/payment/simulate` (simulation mode), `/sell` (store form + deposit, no KYC step), `/admin/stores` and `/admin/withdrawals` (manual approvals).
+
+
 > Guard legend: `public` · `auth` (logged-in buyer) · `store` (store admin) · `admin:PERM` (permission-gated). Every money/data page is checked **server-side** (Express middleware: `auth` → `require-permission` → `require-ownership`), never UI-only. The Next.js page guard is only a redirect convenience.
 
 ---
@@ -41,9 +44,9 @@ Version 3.0 · Store-only marketplace + top-up + closed-loop balance · Express.
 │   ├── reports                    My reports
 │   ├── offers                     My offers
 │   ├── wishlist  following  points
-│   └── profile                    Basic/KYC/Security/Lang/Avatar
+│   └── profile                    Basic/Security/Lang/Avatar
 │
-├── sell/ start profile kyc deposit   STORE ONBOARDING (wizard) auth
+├── sell                          STORE ONBOARDING (profile → deposit → admin review) auth
 │
 ├── store-dashboard/               STORE SHELL                  store
 │   ├── (overview)                 Revenue, orders, balance
@@ -60,7 +63,7 @@ Version 3.0 · Store-only marketplace + top-up + closed-loop balance · Express.
 └── admin/                         ADMIN SHELL                  admin:*
     ├── (dashboard)                KPIs
     ├── finance/ revenue payouts transfers float reconcile
-    ├── stores/ kyc [id] deposit levels
+    ├── stores/ [id] deposit levels   (manual verification queue)
     ├── users/ [id]
     ├── catalogs                   moderation
     ├── inspections                audit
@@ -179,7 +182,6 @@ Sidebar shell: **Orders · Messages · [wallet items] · My Profile · Help Cent
 
 ### 5.4 My Profile (`/account/profile`) — each block has Edit
 - **Basic Information:** Nickname, Customer ID (read-only), Country/Region, Phone Number
-- **Identity Verification (KYC):** First/Last Name, Date of Birth — *optional for buyers (never required)*
 - **Account Security:** Email, Password, 2FA
 - **Notification Language:** push/email language
 - **Avatar:** image upload
@@ -194,10 +196,9 @@ Multi-step wizard (iGV-style 4 steps). Route shell `/sell/...`. Guard: `auth` (l
 |---|---|---|---|
 | **Step 1 — Create Account** | `/sell/start` | Uses existing user account (OTP/email already done) or prompts register | Continue |
 | **Step 2 — Complete Profile** | `/sell/profile` | **Store Name** (note: no personal contact info), **Product Categories** (multi-select: Accounts, Top-Up — Phase 1; more later), **Estimated Monthly Revenue** (select), **Online Contact Information**, **"Operate external business website?"** (Yes/No → if Yes, this store is likely a **Reseller Store**), **accept Seller Policies & Rules** | Save & continue |
-| **Step 3 — Verify Identity (KYC)** | `/sell/kyc` | **Sumsub KYC (free)** — ID + selfie/liveness | Submit → pending/approved |
-| **Step 4 — Pay Security Deposit** | `/sell/deposit` | **Rp500.000** deposit via Midtrans Snap; explains refundable/deductible terms; activation ~15 min | Pay → webhook PAID → store ACTIVE + store balance (escrow/available ledger) opened |
+| **Step 3 — Pay Security Deposit** | `/sell` (same page) | **Rp500.000** deposit via Midtrans Snap; explains refundable/deductible terms; activation ~15 min | Pay → webhook PAID → store ACTIVE + store balance (escrow/available ledger) opened |
 
-**Store onboarding flow:** `/sell/start` → `/sell/profile` (name, categories, revenue, contact, external-site → type) → `/sell/kyc` (Sumsub) → `/sell/deposit` (Rp500K) → **Store ACTIVE** → redirect to `/store-dashboard`. Store **type** (Owner/Reseller) is set from the "external website / resell" answer and editable later in settings.
+**Store onboarding flow:** `/sell` → store profile (name, type, **owner legal name**, description) → deposit Rp500K via Midtrans → status **PENDING_REVIEW** → admin approves in `/admin/stores` → **Store ACTIVE** → `/store-dashboard`. Store **type** (Owner/Reseller) is set from the "external website / resell" answer and editable later in settings.
 
 > Product categories drive what the store can list. Phase 1: Accounts + Top-Up. The "external business website" question flags reseller stores (which manage external sellers and carry full responsibility for them).
 
@@ -221,7 +222,7 @@ Multi-step wizard (iGV-style 4 steps). Route shell `/sell/...`. Guard: `auth` (l
 | Analytics | `/store-dashboard/analytics` | Views, conversion, best-sellers (Premium) | Export |
 | Ratings | `/store-dashboard/ratings` | Reviews + service scores | Reply once |
 | Chat | `/store-dashboard/chat` | Buyer conversations | — |
-| Settings | `/store-dashboard/settings` | Store profile, type, KYC status, deposit, notifications (WA/Discord/Telegram) | Edit, connect channels |
+| Settings | `/store-dashboard/settings` | Store profile, type, verification status, deposit, notifications (WA/Discord/Telegram) | Edit, connect channels |
 
 ---
 
@@ -241,14 +242,14 @@ Each row is permission-gated (see §9).
 **Marketplace & Trust**
 | Page | Route | Contents | Perm |
 |---|---|---|---|
-| Stores | `/admin/stores` `/[id]` | KYC review, verify, levels, deposit, suspend | `stores:*` |
+| Stores | `/admin/stores` `/[id]` | Manual verification (approve/reject + note), levels, deposit, suspend | `stores:*` |
 | Users | `/admin/users` `/[id]` | Ban, trust, reports | `users:manage` |
 | Catalog moderation | `/admin/catalogs` | Review/remove/flag | `catalogs:moderate` |
 | Inspection audit | `/admin/inspections` | Review store inspections | `inspections:view` |
 | Orders | `/admin/orders` `/[id]` | Lookup, intervene, refund | `orders:view` |
 | Rekber supervision | `/admin/rekber` | Monitor rooms | `rekber:view` |
 | Disputes | `/admin/disputes` `/[id]` | Resolve 72h, arbitrate, deposit deduction | `disputes:resolve` |
-| Fraud/Sanctions | `/admin/fraud` | Tiered sanctions, blacklists (device/KYC/bank) | `fraud:manage` |
+| Fraud/Sanctions | `/admin/fraud` | Tiered sanctions, blacklists (device/identity/bank) | `fraud:manage` |
 
 **Commerce Config**
 | Page | Route | Contents | Perm |
@@ -280,7 +281,7 @@ Each row is permission-gated (see §9).
 |---|---|---|---|
 | RBAC | `/admin/rbac/roles` `/permissions` `/admins` | Roles, permission matrix, admin users | `rbac:manage` |
 | Settings | `/admin/settings` | Fees/constants (commission, handling, protection, deposit), gateway keys | `settings:manage` |
-| Webhook logs | `/admin/logs/webhooks` | Midtrans/Iris/Digiflazz/Sumsub events, retries | `logs:view` |
+| Webhook logs | `/admin/logs/webhooks` | Midtrans (and future Iris/Digiflazz) events, retries | `logs:view` |
 | Audit logs | `/admin/logs/audit` | Every sensitive action + actor + IP | `logs:view` |
 
 ---
@@ -296,7 +297,7 @@ Each row is permission-gated (see §9).
 |---|---|
 | **Super Admin** | `*` (incl. `rbac:manage`) |
 | **Finance Admin** | `finance:* · payouts:manage · balance:view · logs:view` |
-| **Store/KYC Admin** | `stores:* · kyc:review · deposit:manage · inspections:view` |
+| **Store Verification Admin** | `stores:* · stores:verify · deposit:manage · inspections:view` |
 | **Dispute/Support Admin** | `disputes:resolve · rekber:view · support:manage · reports:manage · orders:view` |
 | **Fraud Admin** | `fraud:manage · sanctions:* · blacklists:* · users:manage` |
 | **Catalog Moderator** | `catalogs:moderate · catalogs:delete · catalogs:view` |
@@ -319,8 +320,8 @@ Each row is permission-gated (see §9).
 ## 10. SHARED COMPONENTS
 
 - **Nav shell** (public) · **Account sidebar** · **Store sidebar** · **Admin sidebar** — role-aware.
-- **Chat panel** (Socket.IO) — normal chat (rules: no txn/email/phone) + offer modal.
-- **Rekber Room** (Socket.IO, admin-supervised, code = VS id) — delivery + evidence.
+- **Chat panel** (future: Socket.IO) — normal chat (rules: no txn/email/phone) + offer modal.
+- **Rekber Room** (prototype: stored messages + polling; future: Socket.IO; code = VS id) — delivery + evidence.
 - **Payment method selector** — reused by checkout, top-up, balance top-up.
 - **Notification bell** — in-app alerts (order/system).
 - **Badge components** — store type + trust badges.

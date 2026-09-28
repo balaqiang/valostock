@@ -3,13 +3,16 @@
 **Store-Only Marketplace (Shopee-style) · Seller/Store Handbook**
 Version 1.0 · Modeled ~90% on iGV, adapted to valostock.id features
 
-> On valostock.id, only **verified Stores** sell. Buyers browse and buy freely (no KYC). This document is the complete rulebook for stores: fees, onboarding, membership, reputation, selling, disputes, withdrawal, deposit, penalties, and notifications.
+> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach).
+
+
+> On valostock.id, only **verified Stores** sell. Buyers browse and buy freely (no identity check). This document is the complete rulebook for stores: fees, onboarding, membership, reputation, selling, disputes, withdrawal, deposit, penalties, and notifications.
 
 ---
 
 ## 1. THE MODEL IN ONE LINE
 
-valostock.id is a marketplace where **KYC-verified Stores** list and sell game accounts (and top-up). The platform provides escrow, in-app chat, a direct-offer/negotiation system, a supervised "rekber" (escrow) room, dispute arbitration, and notifications. The platform is a **service provider**, not the seller — like Shopee.
+valostock.id is a marketplace where **admin-verified Stores** list and sell game accounts (and top-up). The platform provides escrow, in-app chat, a direct-offer/negotiation system, a supervised "rekber" (escrow) room, dispute arbitration, and notifications. The platform is a **service provider**, not the seller — like Shopee.
 
 ---
 
@@ -22,7 +25,7 @@ Three simple, transparent charges. No posting fees, no hidden tiers.
 | **Platform commission** | **5%** of item price | Store (deducted) | Automatically on order completion |
 | **Handling fee (payment channel)** | **~3.5%** of item price | Buyer (added) | Shown at checkout as "biaya penanganan" |
 | **Store deposit** | **Rp 500.000** | Store (once) | Security guarantee, refundable (see §10) |
-| Store KYC | **Free** | — | Sumsub, paid by platform |
+| Store verification | **Free** | — | Manual review by a platform admin |
 | Withdraw fee | Rp 4.000 | Store | On each withdrawal |
 | Bank transfer tax | Rp 2.500 | Store | If withdrawing to bank |
 
@@ -42,13 +45,13 @@ The commission is always a % of the **final** price — so negotiation (offers) 
 ## 3. BECOMING A STORE
 
 1. **Register** with a valid, active email (used for verification, order alerts, withdrawals).
-2. **Complete KYC** (Sumsub) — identity verification. **Free.**
-3. **Pay the security deposit** (Rp 500.000) — unlocks listing rights (activation ~15 min).
+2. **Enter the owner's legal name** (as on the ID card) — used for manual verification and to match withdrawal accounts. **Free.**
+3. **Pay the security deposit** (Rp 500.000) via Midtrans — the store then waits for **admin verification**.
 4. **Fill store info** — store name (no personal contact info), **product categories** (Accounts, Top-Up — Phase 1), estimated monthly revenue, online contact, and whether you **operate an external business website** (this flags a **Reseller Store**).
 5. **Accept** the Transaction Agreement + Privacy Policy.
-6. **Approved → start listing.**
+6. **Admin approves → store ACTIVE → start listing.** (Rejected stores see the admin's note.)
 
-> Age/eligibility: stores must be operated by an adult with valid ID. The deposit + KYC filter out non-serious sellers and scammers.
+> Age/eligibility: stores must be operated by an adult with valid ID. The deposit + manual identity verification filter out non-serious sellers and scammers.
 
 ---
 
@@ -150,7 +153,7 @@ Violations → penalties up to permanent ban. Stores may **reply once** to each 
 
 ## 9. WITHDRAWAL
 
-- Stores withdraw only to an account belonging to the **same verified identity** (**Account Validation**: bank name must match KYC name).
+- Stores withdraw only to an account belonging to the **same verified identity** (**Account Validation**: account holder name must match the verified owner legal name).
 - Add/select a payout account, enter amount, review, submit → get a request number.
 - Withdraw fee Rp 4.000 (+ Rp 2.500 bank tax if bank). After a platform admin approves the request, Midtrans Iris executes the transfer.
 - **Delays/cancellations:** gateway issues, wrong account details, insufficient balance, holidays, or maintenance. Failed withdrawals return to available balance — fix account info and resubmit.
@@ -189,7 +192,7 @@ Violations may trigger one or more, scaling with severity:
 - Listing restrictions.
 - Account suspension (e.g. 30 days) or **permanent termination**.
 - Confiscation of payment, returned to buyer.
-- Blacklist (device / KYC / bank) for repeat offenders.
+- Blacklist (device / identity / bank) for repeat offenders.
 - Prosecution for fraud; data provided to authorities per due process.
 
 If a buyer refund results from a **store error**, the store may incur a fine (e.g. 10% of the refund) per the agreement.
@@ -233,7 +236,7 @@ Buyers must be able to tell how a store operates, so every store carries a **typ
 - 🏷️ **Owner Store** — sells accounts it owns itself. Full control, lower risk.
 - 🔄 **Reseller Store** — sells accounts consigned by **external sellers** (people who contact the store off-platform to list their account). There is a middleman, so buyers are made aware.
 
-**Responsibility (critical):** for a Reseller Store, the **store carries full responsibility** for its external sellers — verifying their identity (KTP), checking account authenticity, and any buyer harm. The platform deals only with the **store**: buyers report and rate the **store**, and the platform sanctions the **store** (rating, deposit deduction, suspension). The platform never manages the external seller directly. This keeps accountability clean and enforceable via the store's deposit + KYC.
+**Responsibility (critical):** for a Reseller Store, the **store carries full responsibility** for its external sellers — verifying their identity (KTP), checking account authenticity, and any buyer harm. The platform deals only with the **store**: buyers report and rate the **store**, and the platform sanctions the **store** (rating, deposit deduction, suspension). The platform never manages the external seller directly. This keeps accountability clean and enforceable via the store's deposit + verified identity.
 
 ## 16. RESELLER TOOLING
 

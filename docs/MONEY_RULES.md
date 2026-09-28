@@ -3,9 +3,12 @@
 **Single Source of Truth**
 Version 6.0 · Shopee-style · All flowcharts, ERD, state machine, and code MUST follow this document.
 
+> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach). **Prototype simplifications of these rules:** escrow is released when the buyer presses *Selesai* (no 5-hour timer); withdrawals are completed by admin approval (Iris simulated); the lock fee, protection window claims, subscriptions and ads are not charged. Fee numbers themselves are unchanged and implemented in `back/src/config/money.ts`.
+
+
 > **v6.0 changes:** **Midtrans is the only payment provider** — **Snap** for every incoming payment (orders, top-up, Balance fill, deposit, subscription, ads) and **Iris** for every payout (store withdrawal, transfer to external seller) incl. Iris account validation. Xendit (and the DOKU prototype) removed. Store funds are tracked in an internal ledger (`STORE_BALANCES` + `STORE_LEDGER`). **All fee numbers are unchanged.**
 >
-> **v5.0 changes:** Store-only model. Only KYC-verified **Stores** sell; buyers are free (no KYC). Revenue = **5% commission** (store) + **~3.5% handling fee** (buyer) + store premium + ads + top-up. **Store deposit Rp500K**, store KYC free. Added **reseller stores** (manage external sellers) with a safe **transfer-request** flow, mandatory **14/30-day protection**, and full Shopee-style engagement features. Gateway fees fully covered by buyer/store — commission is pure profit.
+> **v5.0 changes:** Store-only model. Only verified **Stores** sell; buyers are free (no identity check). Revenue = **5% commission** (store) + **~3.5% handling fee** (buyer) + store premium + ads + top-up. **Store deposit Rp500K**, store verification free. Added **reseller stores** (manage external sellers) with a safe **transfer-request** flow, mandatory **14/30-day protection**, and full Shopee-style engagement features. Gateway fees fully covered by buyer/store — commission is pure profit.
 
 ---
 
@@ -36,7 +39,7 @@ Live in `back/src/config/constants.ts` (integer Rupiah, rates as decimals). The 
 | **Handling fee** | max(3.5%, Rp4.000) | Buyer (added) | At checkout ("biaya penanganan") |
 | **Store deposit** | Rp 500.000 | Store (once) | Security, refundable (§12) — paid via Midtrans Snap |
 | **Protection** | Rp 5.000 (mandatory) | Buyer (added) | Support 14/30 days (§6) |
-| Store KYC | Free | — | Sumsub, platform pays |
+| Store verification | Free | — | Manual review by admin |
 | Withdraw fee | Rp 4.000 | Store | On withdrawal |
 | Transfer fee | Rp 4.000 | Store/ext. seller | On transfer request (§11) |
 | Bank tax | Rp 2.500 | Store | Inter-bank withdrawal |
@@ -150,7 +153,7 @@ Buyers may keep a prepaid **Balance (BLC, 1:1 Rupiah)** to pay for top-ups faste
 
 ## 9. PAYOUT & ACCOUNT VALIDATION
 
-- Store withdraws from its **available ledger balance** (`STORE_BALANCES.available`). **Account Validation** (Midtrans Iris `account_validation`) required: holder name must match store KYC name (fuzzy; partial → review; mismatch → reject).
+- Store withdraws from its **available ledger balance** (`STORE_BALANCES.available`). **Account Validation** (Midtrans Iris `account_validation`) required: holder name must match the store's verified owner legal name (fuzzy; partial → review; mismatch → reject).
 - Withdraw fee Rp4.000 (+Rp2.500 bank tax if bank). The payout is created in **Iris** and **approved by a platform admin** (maker-checker) before Iris sends it. A failed payout writes a `PAYOUT_REVERSAL` ledger row that returns the funds to `available`.
 - Payout release: **5 hours** after the account is safe (buyer received email code) — `ESCROW_RELEASE` moves the store share from `escrow` to `available`. Risk-based holds only for suspicious stores.
 
@@ -181,12 +184,12 @@ For reseller stores to pay their external sellers, **safely**:
 ## 13. STORE TYPES, BADGES & REPUTATION
 
 **Type badges:** 🏷️ **Owner Store** (sells own accounts) · 🔄 **Reseller Store** (sells external sellers' accounts).
-**Trust badges:** Identity Verified (KYC) · Verified Store (reputation) · Platinum Store (top) · Account Checked (this account inspected) · Deposit Secured (active deposit).
+**Trust badges:** Identity Verified (admin-verified owner) · Verified Store (reputation) · Platinum Store (top) · Account Checked (this account inspected) · Deposit Secured (active deposit).
 **Reputation:** Seller Rating (±1 per review) + Service Score (description accuracy, attitude, delivery speed). Earned, not bought. Review manipulation forbidden.
 
 ## 14. SANCTIONS & PENALTIES
 
-Tiered (scaling with severity): warning → listing restriction → **fine from deposit** → suspension (30d) → permanent ban → blacklist (device/KYC/bank) → legal action. Store-error buyer refund may incur a fine (e.g. 10% of refund). Off-platform trading, fake delivery, false listings → deposit fine + ban.
+Tiered (scaling with severity): warning → listing restriction → **fine from deposit** → suspension (30d) → permanent ban → blacklist (device/identity/bank) → legal action. Store-error buyer refund may incur a fine (e.g. 10% of refund). Off-platform trading, fake delivery, false listings → deposit fine + ban.
 
 ## 15. COSTS (Year-1 Baseline)
 
@@ -199,7 +202,6 @@ Tiered (scaling with severity): warning → listing restriction → **fine from 
 | Backup | Rp 1.800.000 / year |
 | Domain | Rp 300.000 / year |
 | **Fixed total (production)** | **Rp 19.860.000 / year** |
-| Sumsub | ~Rp 24.000 / store (fewer stores than sellers → small) |
 | Midtrans | Snap in per method (§3/§8) + Iris out per payout (covered by buyer/store) |
 
 ## 16. NUMBER SUMMARY
@@ -210,7 +212,7 @@ Tiered (scaling with severity): warning → listing restriction → **fine from 
 | Handling fee | max(3.5%, Rp4.000) — buyer |
 | Protection | Rp5.000 mandatory, 14/30 days — buyer |
 | Store deposit | Rp500.000 (refundable, deductible) |
-| Store KYC | Free (Sumsub) |
+| Store verification | Free (manual admin review) |
 | Withdraw / Transfer fee | Rp4.000 each (cover Iris payout) |
 | Lock | Rp5.000 optional (30 min) |
 | Payout release | 5 hours after account safe |

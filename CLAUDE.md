@@ -1,9 +1,9 @@
 # CLAUDE.md — valostock.id
 
-Trust-based marketplace for game accounts (Valorant, MLBB, etc.) + game top-up. Verified stores, Midtrans payments (Snap in, Iris out) with a per-store escrow ledger, evidence-based trust, in-app chat.
-**Goal:** Indonesia's most trusted game-account marketplace — safety from accountability & transparency, not absolute guarantees.
+Trust-based marketplace for game accounts (Valorant, MLBB, etc.) + game top-up. Admin-verified stores, Midtrans payments with a per-store escrow ledger, in-app rekber room.
+**This repository is a college-assignment PROTOTYPE**, running locally on XAMPP. Keep solutions simple and demonstrable; do not add production infrastructure.
 
-**Two services:** `front/` (Next.js 16 frontend) + `back/` (Express.js API) on **MySQL via XAMPP** (local). All domain logic lives in the API. This file is the entry point for any developer or AI on the project.
+**Two services:** `front/` (Next.js 16) + `back/` (Express.js + mysql2, **no ORM**) on **MySQL via XAMPP** (schema imported with phpMyAdmin). All domain logic lives in the API. This file is the entry point for any developer or AI on the project.
 
 ---
 
@@ -13,14 +13,18 @@ The docs in `/docs` are the **primary source of truth**. Do not assume when the 
 
 | Document | Contents |
 |---|---|
-| `docs/PRD.md` | Requirements, actors, user stories, phases, risks |
-| `docs/MONEY_RULES.md` | All money numbers & rules (commission, fees, protection, Midtrans cost coverage, sanctions) |
-| `docs/STORE_RULES.md` | Store handbook (onboarding, premium, disputes, deposit, penalties) |
-| `docs/ERD.md` | Data structure & relations + MySQL type mapping (Prisma follows this) |
-| `docs/SITEMAP.md` | All pages, route tree, per-page contents, guards & RBAC roles |
-| `docs/ARCHITECTURE.md` | Two-service code structure, Express layering, MySQL/XAMPP setup, Midtrans flows, security principles |
+| `docs/modeling/` | **Assignment model (Data Flow approach):** Diagram Konteks, DFD Level 1/2, ERD, Basis Data Konseptual, Struktur Tabel — in Indonesian |
+| `back/database/schema.sql` | Executable schema (19 tables). Must equal `docs/modeling/05-struktur-tabel.md` |
+| `docs/ARCHITECTURE.md` | Prototype architecture, API contract, payment flow, store verification, local setup |
+| `docs/MONEY_RULES.md` | All money numbers & rules (commission, fees, protection, Balance) |
+| `docs/PRD.md` | Requirements, actors, phases, risks |
+| `docs/SITEMAP.md` | Pages, route tree, guards |
+| `docs/STORE_RULES.md` | Store handbook |
+| `docs/MEGA_FLOW.md` | End-to-end flowchart of the prototype |
 | `docs/VALOSTOCK_OVERVIEW.md` | Concept overview |
-| `docs/MEGA_FLOW.md` | End-to-end Mermaid flowchart |
+| `docs/ERD.md` | Pointer to the prototype ERD + list of future-work tables |
+
+**Modelling approach:** the assignment requires ONE approach. This project uses **Data Flow (Alur Data)**. **Do not create UML diagrams** (use case, class, sequence, activity).
 
 ---
 
@@ -30,8 +34,8 @@ Every implementation MUST follow this order (when relevant). Never skip or reord
 
 1. **Documentation** (`/docs`)
 2. **User & System Flow**
-3. **Mermaid Flowchart**
-4. **ERD / Database** (`docs/ERD.md` → `back/prisma/schema.prisma`)
+3. **Diagrams** (Diagram Konteks / DFD / flowchart — Mermaid)
+4. **ERD / Database** (`docs/modeling/03–05` → `back/database/schema.sql`)
 5. **Architecture** (`docs/ARCHITECTURE.md`)
 6. **Folder Structure**
 7. **Business Logic** (Express modules in `back/src/modules`)
@@ -51,39 +55,32 @@ Every implementation MUST follow this order (when relevant). Never skip or reord
 
 ---
 
+## Prototype Scope
+
+**Implemented:** email/password auth · games/stores/listings/help from the API · top-up (promo, Midtrans or Balance, simulated delivery, invoice check) · closed-loop Balance fill + ledger · account purchase → escrow → rekber messages → "Akun aman" → "Selesai" → escrow release with 5% commission · store onboarding (form → deposit → **manual admin verification**) · store catalogs, orders, balance, withdrawal requests · admin: verify stores, approve/reject withdrawals, analytics.
+
+**Simulated:** Midtrans Iris payouts (admin approval = completed), Digiflazz fulfilment (PAID top-up = SUCCESS), and — when `PAYMENT_MODE=simulation` — the Midtrans payment page itself.
+
+**Not in the prototype (UI shows demo data from `front/src/lib/mock`):** offers, ratings, disputes, wishlist/follow, loyalty, affiliate, subscriptions, ads, flash sales, bundles, external sellers/transfers, notifications, inspections. **No Sumsub/KYC provider, no Prisma, no Redis/queues, no Socket.IO, no Docker/VPS.**
+
+---
+
 ## Tech Stack
 
-**Frontend — `front/`**
-| Tool | Notes |
-|---|---|
-| Next.js | 16 (App Router) |
-| React | 19 |
-| TypeScript | strict |
-| Tailwind CSS | v4 |
-| lucide-react | icons |
-| Framer Motion | animation |
-| zod | form validation |
-| Socket.io-client | in-app chat / rekber (planned) |
-| shadcn/ui · Zustand · TanStack Query | planned |
-| Inter + Space Grotesk | fonts (`next/font`) |
+**Frontend — `front/`:** Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · lucide-react · Framer Motion · zod · Inter + Space Grotesk (`next/font`).
 
-**Backend — `back/`**
+**Backend — `back/`:**
 | Tool | Notes |
 |---|---|
-| Node.js 20+ · Express 5 | layered: routes → controllers → services → repositories |
-| TypeScript | strict |
-| Prisma | ORM, `provider = "mysql"` (schema = `docs/ERD.md`) |
-| MySQL (MariaDB 10.4) | via **XAMPP**, `127.0.0.1:3306`, database `valostock` |
-| zod | request validation (strict objects) + env validation |
-| jsonwebtoken + cookie-parser | short access token + rotating refresh token, both httpOnly cookies |
+| Node.js 20+ · Express 5 | layered: `*.routes.ts` → `*.service.ts` → `*.repository.ts` |
+| TypeScript | strict, run with `tsx` (dev) / compiled with `tsc` |
+| mysql2/promise | connection pool, **parameterised queries only**, `withTransaction()` helper |
+| MySQL (MariaDB 10.4) | XAMPP, `127.0.0.1:3306`, database `valostock` |
+| zod | request + `.env` validation |
+| bcryptjs · jsonwebtoken · cookie-parser | password hashing, JWT in httpOnly cookie |
 | helmet · cors · express-rate-limit | security headers, strict CORS, rate limit |
-| Socket.IO | realtime chat / rekber |
-| node-cron + `JOBS` table | background jobs (payout release, top-up fulfil, expiries, reconcile) — no Redis locally |
-| pino | structured logging |
+| fetch → Midtrans | Snap `POST /snap/v1/transactions` + Status API `GET /v2/{order_id}/status` |
 
-**Payments:** **Midtrans only** — **Snap** (all incoming: orders, top-up, Balance fill, deposit, subscription, ads) + **Iris** (all payouts: store withdrawals, transfers to external sellers, account validation). **Sandbox** locally.
-**Other integrations:** Sumsub (store KYC), Digiflazz (top-up fulfilment), Resend (email). Notifications: Baileys (WhatsApp), Discord, Telegram.
-**Local infra:** XAMPP (MySQL + phpMyAdmin), tunnel (cloudflared/ngrok) for Midtrans webhooks. **Production (later):** VPS, Nginx, PM2/Docker, MySQL server, Cloudflare, GitHub Actions — see `docs/ARCHITECTURE.md` §9.
 **Package manager:** npm.
 
 ---
@@ -91,20 +88,19 @@ Every implementation MUST follow this order (when relevant). Never skip or reord
 ## Commands
 
 ```bash
-# XAMPP: start "MySQL" in the XAMPP Control Panel first (Apache not needed)
+# XAMPP: start "MySQL" (and "Apache" for phpMyAdmin at http://localhost/phpmyadmin)
+# phpMyAdmin → Import back/database/schema.sql, then back/database/seed.sql
 
 # Backend (back/)
-npm run dev              # tsx watch src/server.ts  → http://localhost:4000
-npm run build            # tsc
-npm run start            # node dist/server.js
-npx prisma migrate dev   # apply migrations to MySQL (XAMPP)
-npx prisma generate      # Prisma client
-npx prisma db seed       # seed games, stores, catalogs, top-up products, help articles
-npx prisma studio        # browse data (or phpMyAdmin at http://localhost/phpmyadmin)
+npm run dev            # tsx watch → http://localhost:4000/api/health
+npm run build          # tsc → dist/
+npm run start          # node dist/server.js
+npm run db:seed:gen    # regenerate database/seed.sql from front/src/lib/mock
+npm run db:reset       # re-import schema.sql + seed.sql with the XAMPP mysql CLI
 
 # Frontend (front/)
-npm run dev              # Next dev → http://localhost:3000
-npm run build            # Next build
+npm run dev            # http://localhost:3000
+npm run build
 npm run lint
 ```
 
@@ -149,7 +145,7 @@ Minimalist, modern, generous whitespace, clean typography. **Light-first**, neut
 Usage: `bg-white`, `bg-surface` (cards), `text-text`, `text-text-secondary`, `border-border`, `bg-primary hover:bg-primary-hover`, `text-accent`.
 
 ### Theme Icons
-- Library: **lucide-react**. Functional: `ShieldCheck` (verified), `Store`, `Wallet`, `BadgeCheck` (KYC), `Lock` (escrow), `Star` (trust), `ScanLine` (inspection).
+- Library: **lucide-react**. Functional: `ShieldCheck` (verified), `Store`, `Wallet`, `BadgeCheck` (verified store), `Lock` (escrow), `Star` (trust), `ScanLine` (inspection).
 
 ### Typography
 - **Space Grotesk** → headings (`font-display`); **Inter** → body/UI (`font-sans`), via `next/font/google`.
@@ -161,24 +157,24 @@ Usage: `bg-white`, `bg-surface` (cards), `text-text`, `text-text-secondary`, `bo
 
 ```
 tugas/
-├── docs/                                   # source of truth
-├── front/  src/app  src/components  src/lib/(api.ts, auth.ts, data/, mock/)  src/types  public/images
-└── back/   src/(config, middlewares, modules, integrations, realtime, jobs, storage, lib)  prisma/  storage/private
+├── docs/            modeling/ (assignment model) + architecture/product docs
+├── front/           src/app  src/components  src/lib/(api.ts, api-server.ts, auth.ts, data/, mock/)  src/types  public/images
+└── back/            database/(schema.sql, seed.sql)  scripts/  src/(config, db, middlewares, lib, modules)
 ```
-Full detail: `docs/ARCHITECTURE.md`.
 
 ---
 
 ## Code Conventions
 
 - **TypeScript strict** in both services. No `any` (use `unknown` + narrowing).
-- **All domain logic in the Express API**, one folder per domain (`*.routes.ts` → `*.controller.ts` → `*.service.ts` → `*.repository.ts` + `*.schema.ts`). Only repositories call Prisma.
-- **The web app never computes/mutates money or trust** — always via the API. `front/` has no DB driver and no secrets.
-- **Validate input** with zod on every endpoint (backend, `.strict()` objects) and zod on forms (frontend).
-- **Money values** are integer Rupiah (never floats). MySQL `INT`/`BIGINT`, never `FLOAT`/`DOUBLE`.
-- **All balance/trust changes** go through their ledgers/event logs (`STORE_LEDGER`, `BALANCE_LEDGER`, `LOYALTY_LEDGER`, trust events) inside one `prisma.$transaction`.
+- **All domain logic in the Express API.** Only repositories contain SQL. The web app never computes/mutates money or trust and has no DB access or secrets.
+- **SQL:** parameterised (`?` placeholders) only — never concatenate user input. Money changes inside `withTransaction()` with `SELECT … FOR UPDATE` on balance rows.
+- **Validate input** with zod on every endpoint (`.strict()` objects) and on frontend forms.
+- **Money values** are integer Rupiah (MySQL `INT`), never floats.
+- **Every balance change writes a ledger row** (`balance_ledger` / `store_ledger`) with `balance_after`, in the same transaction.
+- **Schema changes:** edit `back/database/schema.sql` + `docs/modeling/05-struktur-tabel.md` (+ ERD/DFD if relations change) together.
 - **File naming:** `kebab-case.ts`; React components `PascalCase.tsx` (existing kebab-case component files may stay).
-- **Status enums** in sync with ERD & state machine.
+- **Status enums** in sync with `schema.sql` and the DFD.
 
 ---
 
@@ -186,179 +182,64 @@ Full detail: `docs/ARCHITECTURE.md`.
 
 Backend `back/.env` (never commit — see `back/.env.example`):
 ```
-NODE_ENV=development
 PORT=4000
 FRONTEND_URL=http://localhost:3000
-DATABASE_URL=mysql://valostock:change-me@127.0.0.1:3306/valostock
-SHADOW_DATABASE_URL=mysql://valostock:change-me@127.0.0.1:3306/valostock_shadow
-JWT_ACCESS_SECRET=
-JWT_REFRESH_SECRET=
-# Google OAuth
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_CALLBACK_URL=
-# Midtrans (Snap + Core status API)
-MIDTRANS_SERVER_KEY=
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=valostock
+DB_PASSWORD=
+DB_NAME=valostock
+JWT_SECRET=
+PAYMENT_MODE=simulation        # simulation | midtrans
+MIDTRANS_SERVER_KEY=           # Sandbox server key (only when PAYMENT_MODE=midtrans)
 MIDTRANS_CLIENT_KEY=
-MIDTRANS_IS_PRODUCTION=false
-# Midtrans Iris (payouts + account validation)
-IRIS_CREATOR_KEY=
-IRIS_APPROVER_KEY=
-IRIS_IS_PRODUCTION=false
-# Sumsub (KYC)
-SUMSUB_APP_TOKEN=
-SUMSUB_SECRET_KEY=
-# Digiflazz (top-up fulfillment)
-DIGIFLAZZ_USERNAME=
-DIGIFLAZZ_API_KEY=
-DIGIFLAZZ_WEBHOOK_SECRET=
-# Storage (local private folder; R2 in production)
-STORAGE_DIR=./storage/private
-FILE_URL_SIGNING_SECRET=
-# Email
-RESEND_API_KEY=
-# Security
-ENCRYPTION_KEY=
-TURNSTILE_SECRET_KEY=
 ```
-Frontend `front/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000`, `NEXT_PUBLIC_SOCKET_URL=http://localhost:4000`, `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=` (client key is public by design; the **server key never goes to the frontend**).
+Frontend `front/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000`.
 
 ---
 
 ## Do Not (Rules)
 
-- **DO NOT** put money/trust logic in the web app — Express API only. No Next.js route handlers with business logic, no DB access from `front/`.
-- **DO NOT** mark anything PAID without the Midtrans webhook gate: SHA512 `signature_key` verified + status re-fetched from Midtrans + `gross_amount` matched + idempotency (`WEBHOOK_EVENTS`). Same gate (signature + idempotency) for Iris/Digiflazz/Sumsub.
-- **DO NOT** credit Balance, open escrow, or activate a store from a browser redirect/`finish_url` — only from the verified webhook (or the reconcile job reading Midtrans status).
-- **DO NOT** use escrow or Balance float for operations — every rupiah in the platform's Midtrans account is attributed 1:1 in `STORE_LEDGER`/`BALANCE_LEDGER` and reconciled against Midtrans.
-- **DO NOT** pay out (withdrawal or external-seller transfer) without Iris Account Validation (name = KYC / recognized recipient name) **and** platform-admin approval.
-- **DO NOT** use Midtrans Production keys before legal review of the escrow/custody model (see `docs/MONEY_RULES.md` §3). Sandbox only.
-- **DO NOT** use absolute claims ("100% original/safe/guaranteed") anywhere in the UI.
-- **DO NOT** allow individual (non-store) sellers — only KYC-verified stores sell.
-- **DO NOT** let one account (VS catalog id) exist as more than one catalog.
-- **DO NOT** change a balance or trust score without a ledger/event-log row.
-- **DO NOT** auto-approve store KYC or verification — record decisions + audit.
-- **DO NOT** store KYC/evidence/inspection/chat media in public folders (`front/public`, static Express dirs) — `back/storage/private` + signed URLs.
-- **DO NOT** let transactions happen over WhatsApp/Discord/Telegram — those are one-way notifications; deals stay in-app (rekber room).
-- **DO NOT** add an open-loop wallet or crypto without instruction. Balance is **closed-loop**: top-up only — never allow cash-out, account purchase, or user-to-user transfer (would become e-money / need a BI licence).
-- **DO NOT** authorize by authentication alone — verify per-resource ownership (prevent IDOR) on every money/data endpoint (`require-ownership` middleware).
-- **DO NOT** store JWT/refresh tokens in localStorage — httpOnly cookies only; refresh tokens stored hashed in `REFRESH_TOKENS`.
-- **DO NOT** use XAMPP's `root` with an empty password for the app — create a dedicated `valostock` MySQL user. Never expose MySQL (3306) beyond `127.0.0.1`.
-- **DO NOT** use `$queryRawUnsafe` / string-built SQL with user input.
-- **DO NOT** reintroduce SQLite, DOKU, or Xendit.
-- **DO NOT** commit secrets (`.env`, keys) — `.env.example` only.
+- **DO NOT** put money/trust logic or SQL in the web app — Express API only.
+- **DO NOT** mark anything PAID from the browser. Only the Midtrans Status API answer, a verified Midtrans webhook (SHA512 signature + `webhook_events` idempotency), or the simulation endpoint (only when `PAYMENT_MODE=simulation`) may do it.
+- **DO NOT** change `users.balance` or `store_balances` without a ledger row in the same transaction.
+- **DO NOT** let Balance buy accounts, be cashed out, or be transferred — closed-loop, top-up only.
+- **DO NOT** auto-approve stores or withdrawals — an admin decides, and it is written to `audit_logs`.
+- **DO NOT** accept a withdrawal whose account name MISMATCHes the store's `owner_legal_name`.
+- **DO NOT** authorize by authentication alone — check ownership (buyer / store owner / admin) on every order, store and money endpoint.
+- **DO NOT** build SQL strings from user input; no ORM is used, so this is the main injection risk.
+- **DO NOT** store JWTs in localStorage — httpOnly cookie only.
+- **DO NOT** use absolute claims ("100% original/safe/guaranteed") in the UI.
+- **DO NOT** allow individual (non-store) sellers or more than one catalog per account (unique `vs_code`).
+- **DO NOT** reintroduce Prisma, Sumsub/KYC providers, SQLite, DOKU, Xendit, Redis, Socket.IO or Docker unless explicitly asked.
+- **DO NOT** create UML diagrams — the assignment uses the Data Flow approach only.
+- **DO NOT** commit secrets (`.env`, keys).
 
 ---
 
 ## Testing
 
-No automated tests yet. MANDATORY unit tests (in `back/tests`) for: escrow hold/release, ledger balance_after integrity, payout + Iris Account Validation, commission/handling-fee math, trust scoring, seller-level limits, Midtrans webhook signature + idempotency, top-up fulfillment. For now: manual testing + Midtrans Sandbox (Snap simulator) + Iris/Sumsub/Digiflazz sandboxes.
+Manual test scenarios (demo): register/login · top-up via Midtrans Sandbox/simulation + invoice check · Balance fill → top-up with Balance · buy account → rekber → Akun aman → Selesai → store balance · store onboarding → admin approve · withdrawal → admin approve/reject. Verify ledger rows in phpMyAdmin after each money step.
 
 ## Build
 
 ```bash
-# backend
-npm run build   # in back/ (npx prisma generate first)
-# frontend
-npm run build   # in front/
+npm run build   # in back/ and in front/ — both must compile with zero TypeScript errors
 ```
-Expected: both compile, zero TypeScript errors.
 
 ## Git Rules
 
-After every change, **commit before continuing**. Clear messages. Never commit secrets, `node_modules`, `.next`, `dist`, or `back/storage/private`.
+After every change, **commit before continuing**. Clear messages. Never commit secrets, `node_modules`, `.next`, or `dist`.
 
 ## Best Coding Practices
 
 - Follow the Development Workflow (9 steps).
 - Single source of logic (Express services) — never duplicate money/trust rules.
-- Atomic & idempotent for all money operations (`prisma.$transaction` + `SELECT … FOR UPDATE` on balance rows + idempotency keys).
-- Defense in depth: signatures, RBAC, rate limit, audit log, private storage.
-- Write `AUDIT_LOGS` for every sensitive admin action (KYC decision, payout approval, dispute resolution, deposit deduction, RBAC change).
-- Only valid state transitions (order/catalog/dispute/withdrawal state machines).
-- Stay consistent with `docs/MONEY_RULES.md` for all numbers.
+- Atomic & idempotent money operations (`withTransaction` + status guards + unique keys).
+- Write `audit_logs` for admin actions (store approve/reject, withdrawal approve/reject).
+- Only valid state transitions (order / catalog / payment / store / withdrawal).
+- Stay consistent with `docs/MONEY_RULES.md` for all numbers (implemented in `back/src/config/money.ts`).
 
----
+## Security (prototype level)
 
-## Security & Monitoring
-
-The stack is a foundation, not security by itself. Most breaches come through code/config, not the framework. Enforce these.
-
-### Application security (mandatory before handling real money)
-- **Rate limiting** (`express-rate-limit`) on login, OTP, KYC submit, withdraw, checkout, webhooks.
-- **Strict validation**: zod `.strict()` schemas on body/query/params for every endpoint (prevents mass-assignment).
-- **Security headers**: `helmet`.
-- **CORS**: allow only `FRONTEND_URL` with credentials (never `*`). Reject state-changing requests whose `Origin` isn't `FRONTEND_URL` (CSRF defence alongside `SameSite=Lax` cookies).
-- **JWT done right**: short access token (~15m) + rotating refresh token in **httpOnly cookies**; refresh tokens hashed + revocable in MySQL (`REFRESH_TOKENS`); no sensitive data in the payload.
-- **Per-resource authorization (IDOR is the #1 marketplace hole)**: every money/data endpoint verifies the resource belongs to the caller (order → buyer/store, withdrawal → store owner), not just "is logged in".
-- **Webhook gate**: Midtrans signature + status re-check + amount check + idempotency before any state change; same for Iris/Digiflazz/Sumsub.
-- **Secrets**: `.env` validated with zod on boot; never in code/repo; rotate on leak.
-- **Encrypt sensitive data at rest** (bank account numbers, external-seller KTP refs, evidence). KYC PII lives at Sumsub.
-- **No raw SQL** with user input (Prisma only; tagged `$queryRaw` for `FOR UPDATE`).
-- **Audit log** every admin & financial action with IP.
-
-### Local (XAMPP) hygiene
-- MySQL bound to `127.0.0.1`; dedicated app user with a password; phpMyAdmin only on localhost.
-- Midtrans/Iris **Sandbox** keys only. Webhook tunnel URL changes per session — update the Sandbox notification URL accordingly.
-
-### Production (later — see ARCHITECTURE §9)
-- **UFW firewall** (only 80/443/SSH), **Fail2ban**, SSH key-only on a non-default port, MySQL/Redis never exposed.
-- **Cloudflare** WAF, rate limiting, Bot Fight Mode.
-- **Sentry** (mandatory), UptimeRobot/Better Stack, Grafana + Prometheus + Loki, Dependabot + `npm audit` + Snyk.
-- **Before a serious launch:** legal review of the Midtrans escrow model + a professional **penetration test**.
-
-## Core Pages
-
-- [x] Project scaffold (Next.js 16 + TS + Tailwind v4) — `front/`
-- [x] UI pages built on mock data (marketplace, top-up, buyer account, store dashboard) — awaiting API wiring
-- [ ] `back/` Express scaffold + Prisma schema (MySQL/XAMPP) + seed from `front/src/lib/mock`
-- [ ] Catalog / home (badges, price) + advanced search & filter (game/rank/price/skin/region)
-- [ ] Listing detail (VS id, badges) + offer button
-- [ ] Store storefront (`/store/[slug]`) — custom homepage + type/trust badges + ratings
-- [ ] Wishlist + following + recently viewed + recommendations
-- [ ] Top-up flow (Midtrans Snap + Digiflazz fulfillment + promo code + contact email/WA)
-- [ ] Top-up invoice check page ("Cek Invoice Kamu" by invoice no)
-- [ ] Top-up Balance page (buy voucher denominations via Midtrans, closed-loop) + balance history
-- [ ] Help center articles (top-up refund policy, why balance can't buy accounts)
-- [ ] Checkout (Midtrans Snap + escrow ledger + handling fee + mandatory protection + optional lock)
-- [ ] Buyer: orders + rekber room + inspect + complete + loyalty points
-- [ ] Buyer: my offers (pending/countered) + disputes
-- [ ] Store: onboarding (KYC + deposit via Midtrans + type)
-- [ ] Store: create/manage catalogs + bulk ops + inspections
-- [ ] Store: offers (accept/counter/reject)
-- [ ] Store: external sellers + transfer requests (reseller, via Iris)
-- [ ] Store: balance (escrow + available ledger) + withdraw (Iris Account Validation + admin approval)
-- [ ] Store: subscription + ads + vouchers + flash sales + bundles
-- [ ] Store: notifications (WhatsApp/Discord/Telegram) + analytics + ratings
-- [ ] Admin: store KYC, rekber supervision, disputes, finance (Iris approvals, reconciliation), fraud, inspections
-- [ ] Legal: terms, privacy, refund
-
-## Features
-
-- [ ] OTP auth (phone + email) — buyers no KYC
-- [ ] Store-only selling: KYC (Sumsub, free) + Rp500K deposit
-- [ ] Store types: Owner / Reseller (+ external-seller management)
-- [ ] Platform-issued VS catalog IDs (anti double-sell)
-- [ ] Direct offer / negotiation (accept / counter / reject / expire) + optional lock
-- [ ] Midtrans Snap payments + per-store escrow/available ledger
-- [ ] 5% commission (Premium 4.5%/4%) + ~3.5% handling fee (min Rp4.000)
-- [ ] Mandatory protection Rp5.000 (14d ≤Rp10jt / 30d >Rp10jt) — support, not a hold
-- [ ] Rekber room (VS code, admin-supervised) + in-app chat (Socket.IO)
-- [ ] Escrow release 5h after account safe + Iris payout with Account Validation (name = KYC) + admin approval
-- [ ] Transfer request to external seller (from store balance via Iris) + name recognition
-- [ ] Account Inspection (login-only checklist + media) → Account Checked badge
-- [ ] Trust: store/buyer/product scores + Seller Rating + 3-dim Service Score
-- [ ] Badges: Owner/Reseller + Identity Verified/Verified/Platinum/Account Checked/Deposit Secured
-- [ ] Disputes (72h) + timeline + final arbitration; deposit deductions
-- [ ] Tiered sanctions + blacklists (device/KYC/bank); zero-tolerance off-platform
-- [ ] Notifications: WhatsApp (Baileys) / Discord / Telegram (one-way)
-- [ ] Engagement: wishlist + price-drop alerts, follow store, loyalty points, recently viewed, recommendations
-- [ ] Promotions: store vouchers, flash sales, bundles, custom store homepage
-- [ ] Ads: featured listings + banner ads
-- [ ] Top-up (Midtrans Snap + Digiflazz) — margin + payment-method surcharge; promo codes; invoice check
-- [ ] Top-up Balance (closed-loop, top-up only, filled via Midtrans, no cash-out / no account purchase / no transfer)
-- [ ] Store Premium (Free/Pro/Business)
-- [ ] Light theme (violet primary + zinc neutrals)
-- [ ] Reconciliation (ledgers vs Midtrans/Iris) + observability + audit log
-
-> Current status (v6 architecture): `front/` has UI pages running on mock data — the SQLite/DOKU prototype backend was removed. `back/` (Express + MySQL/XAMPP + Midtrans) is not started yet. Store-only model. All features above are **planned** and built following the Development Workflow + Planning Rules.
+helmet · CORS only `FRONTEND_URL` + Origin check on state-changing requests · zod strict validation · parameterised SQL · bcrypt passwords · JWT in httpOnly SameSite=Lax cookie · rate limit on auth & checkout · per-resource authorization · MySQL bound to 127.0.0.1 with a dedicated app user · Midtrans **Sandbox** keys only. Production hardening (Sentry, WAF, backups, pen-test, legal review of custody) is future work.

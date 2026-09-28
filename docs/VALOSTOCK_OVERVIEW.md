@@ -1,13 +1,16 @@
 # valostock.id — Project Overview
 
 **A Store-Only Marketplace for Game Accounts & Top-Up (Shopee-style)**
-Version 6.0 · Concept Overview (Express.js + MySQL/XAMPP + Midtrans)
+Version 7.0 · Concept Overview (Prototype: Express.js + MySQL/XAMPP + Midtrans)
+
+> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach).
+
 
 ---
 
 ## 1. In One Line
 
-**valostock.id** is a marketplace where **KYC-verified Stores** sell game accounts (Valorant, MLBB, and more) and game **top-up**, while buyers browse and buy freely with no KYC — like Shopee. The platform provides escrow, a built-in negotiation system, an admin-supervised rekber room, dispute arbitration, reputation, and notifications. It is a **service provider**, not the seller.
+**valostock.id** is a marketplace where **admin-verified Stores** sell game accounts (Valorant, MLBB, and more) and game **top-up**, while buyers browse and buy freely with no identity check — like Shopee. The platform provides escrow, a built-in negotiation system, an admin-supervised rekber room, dispute arbitration, reputation, and notifications. It is a **service provider**, not the seller.
 
 Money runs through **Midtrans** (Snap for payments, Iris for payouts); every store's escrow and available balance is tracked in an append-only ledger. Revenue is a clean **5% commission** plus a **~3.5% handling fee** on the buyer, store premium, ads, and top-up.
 
@@ -22,7 +25,7 @@ Account trading today runs on manual WhatsApp-group admin work — a bottleneck 
 ## 3. Core Principles
 
 ### 3.1 Store-Only, Buyer-Free
-Only verified stores sell (KYC + deposit). Buyers just buy — no friction. Accountability is concentrated on stores, which is what makes trust and sanctions enforceable.
+Only verified stores sell (manual admin verification + deposit). Buyers just buy — no friction. Accountability is concentrated on stores, which is what makes trust and sanctions enforceable.
 
 ### 3.2 Money You Can Audit
 Buyers pay through **Midtrans Snap**; the payment is confirmed only by a signed webhook. The store's share sits in **escrow** in the store's ledger until the account is safe, then moves to **available** minus commission. Withdrawals and external-seller transfers go out through **Midtrans Iris** after name validation and admin approval. Every movement is a ledger row reconciled against Midtrans. (Holding escrow in the platform's account requires legal review before live money — development uses the Midtrans Sandbox.)
@@ -37,7 +40,7 @@ Badges are measurable and separated by owner (Identity Verified, Store Verified,
 
 ## 4. How It Works — Store
 
-1. Register → **Sumsub KYC (free)** → pay **Rp500K deposit** → choose type (Owner/Reseller) → approved.
+1. Register → fill store profile + **owner legal name** + type (Owner/Reseller) → pay **Rp500K deposit** → **admin verifies manually** → approved.
 2. Create a listing → platform issues the **VS catalog ID** (one account = one catalog → no double-sell).
 3. Optionally run an **Account Inspection** (login-only checklist + media) → **Account Checked** badge.
 4. Receive offers, **negotiate** (accept/counter/reject), sell.
@@ -69,13 +72,13 @@ Store type badges (Owner/Reseller) + trust badges (Identity Verified, Verified, 
 
 ## 9. Security Model
 
-Ledger-tracked escrow (never used for operations, reconciled vs Midtrans) · Midtrans webhook signature + status re-check + idempotency · server-side money/trust mutations (auditable) · Sumsub KYC · private storage for inspection/evidence/chat media · Account Validation on payouts & transfers · RBAC + 2FA + per-resource authz (anti-IDOR) + audit log · rate limit + CAPTCHA + fraud detection · sanctions + blacklists.
+Ledger-tracked escrow (never used for operations, reconciled vs Midtrans) · Midtrans webhook signature + status re-check + idempotency · server-side money/trust mutations (auditable) · manual store verification by admin · private storage for inspection/evidence/chat media · Account Validation on payouts & transfers · RBAC + 2FA + per-resource authz (anti-IDOR) + audit log · rate limit + CAPTCHA + fraud detection · sanctions + blacklists.
 
 ---
 
 ## 10. Technology
 
-Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion, Socket.IO Client) + **`back/`** (Express.js + TypeScript, Prisma, Socket.IO, node-cron). Database: **MySQL (MariaDB) via XAMPP**, local. Integrations: **Midtrans** (Snap payments + Iris payouts + account validation), Sumsub, Digiflazz, Resend, and Baileys/Discord/Telegram for one-way store notifications. Local-first; production (VPS + Nginx + MySQL server + Cloudflare) is a later phase. The Express backend owns all money, trust, and state; the web app renders UI and calls the API.
+Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + **`back/`** (Express.js + TypeScript, **mysql2 without ORM**). Database: **MySQL (MariaDB) via XAMPP**, managed with phpMyAdmin. Payments: **Midtrans Snap** (Sandbox or simulation mode); Iris payouts and Digiflazz fulfilment are simulated in the prototype. Notifications, realtime chat and production infrastructure are future work. The Express backend owns all money, trust, and state; the web app renders UI and calls the API.
 
 ---
 
@@ -88,7 +91,8 @@ Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion, So
 ## 12. Roadmap
 
 - **Phase 0 — Foundation:** Express + MySQL (XAMPP) scaffold, auth, config, security middleware, jobs; front wired to the API.
-- **Phase 1 — MVP:** store KYC + deposit, VS catalog IDs, offers/negotiation, Midtrans Snap + ledger escrow, rekber + chat, protection, disputes, payout, ratings, top-up.
+- **Prototype (now):** see the scope note at the top.
+- **Phase 1 — MVP:** store verification + deposit, VS catalog IDs, offers/negotiation, Midtrans Snap + ledger escrow, rekber + chat, protection, disputes, payout, ratings, top-up.
 - **Phase 2 — Reseller & engagement:** external sellers + transfer, notifications (WA/Discord/Telegram), inspections, wishlist/follows/loyalty, vouchers/flash-sales/bundles, ads, analytics.
 - **Phase 3 — Scale:** infra clustering, advanced fraud/trust, (evaluate) crypto & content layer.
 
@@ -96,7 +100,7 @@ Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion, So
 
 ## 13. Decision Status
 
-**Decided:** store-only (KYC + Rp500K deposit); 5% commission + ~3.5% handling; mandatory 14/30-day protection; Midtrans-only (Snap in, Iris out) with per-store ledger escrow; Owner/Reseller types + external-seller transfer (from store balance via Iris); direct offers/negotiation + rekber rooms; badges + ratings + service scores; VS catalog IDs (anti double-sell); notifications WA/Discord/Telegram (one-way); all Shopee-style engagement features; Express.js + MySQL (XAMPP) + Next.js.
+**Decided:** store-only (manual admin verification + Rp500K deposit); 5% commission + ~3.5% handling; mandatory 14/30-day protection; Midtrans-only (Snap in, Iris out) with per-store ledger escrow; Owner/Reseller types + external-seller transfer (from store balance via Iris); direct offers/negotiation + rekber rooms; badges + ratings + service scores; VS catalog IDs (anti double-sell); notifications WA/Discord/Telegram (one-way); all Shopee-style engagement features; Express.js + mysql2 + MySQL (XAMPP) + Next.js; Data Flow modelling (docs/modeling).
 
 **Still to validate:** legality of holding escrow in the platform's Midtrans account + Iris payout terms + PSE/legal; Iris per-payout pricing; premium commission rates; trust/service formulas; cancellation-fee; Digiflazz margins; loyalty economics.
 
