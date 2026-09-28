@@ -129,6 +129,12 @@ Flow: pick game → enter UID → pick nominal → (optional promo code) → ent
 
 **Top-up product margin** = retail − wholesale (Digiflazz), kept minimal for competitiveness. The payment-method surcharge above is the platform's thin extra on top.
 
+- Every product stores its **Digiflazz buyer price** (`supplier_price`, the "Harga Terbaik" column of the Digiflazz price list).
+- **Retail price = supplier price + 3%, rounded up to the next Rp100** (`topupRetailFor()` in `back/src/config/money.ts`). Example: 475 VP at Rp51.145 → Rp52.700.
+- An admin may set a different retail price, but **never below the supplier price** (DB check). The admin list shows the margin per product.
+- Catalogue = the official in-game denominations only: Valorant, Mobile Legends and Free Fire from Digiflazz's *Umum* list, Genshin Impact from the *Indonesia* list (the only one with Blessing of the Welkin Moon). Passes, memberships and Welkin are shown as **Item Spesial**, currency packs as **Top Up Instan**.
+- Genshin Impact needs UID **and server** (Digiflazz format `UID|Server`); the server is picked from a fixed list per game (`games.uid_extra_options`) and validated by the API.
+
 **Promo codes:** top-up supports promo codes (percent/fixed discount, quota, expiry) to drive volume.
 
 ## 8b. TOP-UP BALANCE (Closed-Loop, top-up only)
@@ -238,6 +244,7 @@ Tiered (scaling with severity): warning → listing restriction → **fine from 
 | Store verification | Free (manual admin review) |
 | Withdraw / Transfer fee | Rp4.000 each (cover Iris payout) |
 | Lock | Rp5.000 optional (30 min) |
+| Top-up margin | Digiflazz price + 3%, rounded up to Rp100 (never below cost) |
 | Payout release | 5 hours after account safe |
 | Store types | Owner / Reseller |
 | Fund model | Midtrans Snap in + Iris out; per-store escrow/available ledger in platform account (legal review before live money) |

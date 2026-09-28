@@ -359,7 +359,10 @@ erDiagram
         text id PK
         int game_id FK
         text amount_label
-        int retail_price
+        int supplier_price "harga modal Digiflazz"
+        int retail_price ">= supplier_price"
+        enum section "SPECIAL / INSTANT"
+        text icon
         bool is_active
     }
     PROMO_CODES {

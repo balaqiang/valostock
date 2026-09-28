@@ -110,7 +110,7 @@ No OTP, no Google login in v8 (future work).
 
 | Page | Route | Contents |
 |---|---|---|
-| Top-up | `/topup`, `/[game]/topup` | Game, UID (+ zone), nominal, promo code, contact email/WhatsApp, method (QRIS / VA / retail / e-wallet / card / **Balance**) with surcharge |
+| Top-up | `/topup`, `/[game]/topup` | Game, UID (+ zone / server dropdown), nominal cards with item icon grouped as *Item Spesial* and *Top Up Instan*, promo code, contact email/WhatsApp, method (QRIS / VA / retail / e-wallet / card / **Balance**) with payment logos and surcharge |
 | Invoice check | `/topup/invoice` | Status by invoice number; game ID masked |
 | Balance | `/balance`, `/balance/history` | Buy BLC vouchers via Midtrans (idempotency key), ledger. **Closed-loop:** top-up only — never accounts, cash-out or transfers |
 

@@ -37,7 +37,7 @@ Model konseptual menggambarkan **entitas, atribut kunci, dan hubungan** tanpa de
 | 28 | Pesan Chat (`chat_messages`) | Isi chat | id | pengirim, isi |
 | 29 | Pembayaran (`payments`) | Transaksi Midtrans | id | order_id Midtrans, tujuan, jumlah, status |
 | 30 | Notifikasi Pembayaran (`webhook_events`) | Notifikasi Midtrans | id | id eksternal, isi, diproses |
-| 31 | Produk Top-up (`topup_products`) | Nominal top-up | id | label nominal, harga |
+| 31 | Produk Top-up (`topup_products`) | Nominal top-up | id | label nominal, harga modal, harga jual, bagian, ikon |
 | 32 | Kode Promo (`promo_codes`) | Promo top-up | id | kode, jenis, nilai, kuota |
 | 33 | Pesanan Top-up (`topup_orders`) | Invoice top-up | id | no. invoice, ID game, total, status |
 | 34 | Isi Balance (`balance_topups`) | Invoice voucher Balance | id | no. invoice, nominal, status |
