@@ -5,22 +5,23 @@ Marketplace akun game + top-up (tugas kuliah, **prototype**). Toko diverifikasi 
 | Folder | Isi |
 |---|---|
 | `front/` | Web Next.js 16 (UI) — `http://localhost:3000` |
-| `back/` | API Express.js + mysql2 (tanpa ORM) — `http://localhost:4000/api` |
-| `back/database/` | `schema.sql` + `seed.sql` untuk di-import lewat phpMyAdmin (XAMPP) |
+| `back/` | API Express.js — `http://localhost:4000/api` |
+| `supabase/` | Project Supabase lokal `valostock` (Postgres 17 + Auth + Storage): `config.toml`, `migrations/`, `seed.sql` |
 | `docs/modeling/` | **Pemodelan sistem (pendekatan Alur Data):** Diagram Konteks, DFD, ERD, Basis Data Konseptual, Struktur Tabel |
 | `docs/` | Arsitektur, aturan uang, PRD, sitemap, flowchart |
 
+> **Status migrasi v8:** database sudah pindah ke **Supabase** (Fase 2 selesai). Backend dan frontend sedang disesuaikan (Fase 3–4), jadi aplikasi belum bisa dijalankan end-to-end sampai fase tersebut selesai.
+
 ## Menjalankan (lokal)
 
-Kebutuhan: **XAMPP** (MySQL/MariaDB), **Node.js 20+**, npm.
+Kebutuhan: **Docker Desktop**, **Node.js 20+**, npm.
 
-1. **Database.** Di XAMPP Control Panel, Start **MySQL** (dan Apache jika ingin memakai phpMyAdmin).
-   Di <http://localhost/phpmyadmin>, buka tab **Import**, import `back/database/schema.sql`, lalu `back/database/seed.sql`.
-   Detail dan daftar akun demo ada di [`back/database/README.md`](back/database/README.md).
+1. **Database (Supabase).** Dari root repo: `npx supabase start`, lalu `npx supabase db reset` (migrasi + data demo). Studio ada di <http://127.0.0.1:55323>.
+   Detail port, keamanan, dan daftar akun demo ada di [`supabase/README.md`](supabase/README.md).
 2. **Backend:**
    ```bash
    cd back
-   cp .env.example .env      # isi JWT_SECRET; untuk XAMPP bawaan: DB_USER=root, DB_PASSWORD= (kosong)
+   cp .env.example .env      # isi key dari `npx supabase status`
    npm install
    npm run dev               # http://localhost:4000/api/health
    ```
@@ -46,13 +47,13 @@ Kebutuhan: **XAMPP** (MySQL/MariaDB), **Node.js 20+**, npm.
 5. Login `admin@valostock.test`, buka **Panel Admin**, setujui penarikan dan verifikasi toko **TokoBaru**.
 6. Top-up game (boleh tanpa login), isi Balance, lalu top-up dengan Balance, dan cek invoice di `/topup/invoice`.
 
-Setelah setiap langkah uang, periksa tabel `store_ledger` / `balance_ledger` di phpMyAdmin. Setiap perubahan saldo punya baris ledger dengan `balance_after`.
+Setelah setiap langkah uang, periksa tabel `store_ledger` / `balance_ledger` di Supabase Studio. Setiap perubahan saldo punya baris ledger dengan `balance_after`.
 
 ## Pengujian
 
 ```bash
 cd back
-npm run db:reset      # import ulang schema + seed (XAMPP mysql CLI)
+npm run db:reset      # npx supabase db reset (migrasi + seed, hanya project valostock)
 npm run test:smoke    # 14 pemeriksaan end-to-end (API harus berjalan, mode simulasi)
 npm run build         # tsc
 cd ../front && npm run build && npm run lint

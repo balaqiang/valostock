@@ -31,6 +31,7 @@ erDiagram
 
     PROFILES {
         uuid id PK "= auth.users.id"
+        text email "disalin dari Supabase Auth"
         text name
         text phone UK
         enum role "USER / ADMIN"
@@ -253,6 +254,7 @@ erDiagram
         uuid offer_id FK
         uuid bundle_id FK
         uuid voucher_id FK
+        uuid lock_id FK
         int items_subtotal
         int voucher_discount
         int item_price "dasar escrow & komisi"
@@ -475,6 +477,7 @@ erDiagram
         uuid user_id PK,FK
         uuid catalog_id PK,FK
         bool notify_price_drop
+        int price_at_save "pembanding turun harga"
     }
     STORE_FOLLOWS {
         uuid user_id PK,FK
