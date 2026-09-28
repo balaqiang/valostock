@@ -87,6 +87,8 @@ Commission is always % of the **final** price → negotiation up/down is auto-ha
 | API access | — | — | ✓ |
 | Priority support & dispute | — | Standard | ✓ |
 
+**In the prototype:** commission, listing quota and free featured slots as above; **ranking boost** = featured first, then Business before Pro before Free on the default (newest / popular) sort; **analytics** — Free: traffic funnel only, Pro: + daily GMV and most-viewed catalogs, Business ("Advanced"): + sales per game; **bulk actions** (Pro/Business): submit or hide many catalogs at once; **plan badge** on the storefront and listings. *API access* and *priority support* are not part of the prototype.
+
 Strongest lever = lower commission + more listings + free featured (Power-Merchant logic). Paid via Midtrans Snap (`payments.purpose = SUBSCRIPTION`), valid 30 days; the tier's commission rate is copied into each new order.
 
 ## 6. PROTECTION (Mandatory)
@@ -144,6 +146,8 @@ Buyers may keep a prepaid **Balance (BLC, 1:1 Rupiah)** to pay for top-ups faste
 - ToS must state clearly: *"Balance is an internal payment tool for top-up only, not electronic money, and cannot be cashed out."*
 - The closed-loop boundary must be enforced in code and never quietly relaxed (any cash-out/transfer would reclassify it as e-money → licence required).
 
+**Refund process (prototype):** an admin with `payouts:approve` marks an undelivered top-up as `REFUNDED`: a logged-in buyer gets the amount back as Balance (`REFUND_CREDIT` ledger row, loyalty points of that invoice reversed); a guest has no Balance, so a refund to the original payment method is queued (see §12b). Audit-logged.
+
 **Refund policy (top-up):**
 - **No refund for a successful top-up** (diamonds/VP delivered).
 - **Refund only if the game currency does not arrive** in the player's account → refunded **to Balance** (not cash).
@@ -181,6 +185,18 @@ For reseller stores to pay their external sellers, **safely**:
 - **Non-refundable / deductible when:** permanent ban · used to offset penalties or buyer compensation · fraud/serious complaints · legal retention.
 - **Platform may deduct** from the deposit any amount the store owes (penalties, buyer compensation, unpaid fees) — each deduction is a ledger row + audit log.
 
+**Implementation (prototype):**
+- The deposit is a third bucket of the store ledger: `store_balances.deposit` + `store_ledger` bucket `DEPOSIT`. When an admin approves the store, the paid deposit is booked as `DEPOSIT_HOLD`.
+- **Fines** (admin sanction `FINE`, or the part of a dispute compensation the store's available balance cannot cover) are booked as `DEPOSIT_DEDUCTION`, capped at the deposit held; any rest stays recorded in `store_sanctions`.
+- When the deposit falls below Rp500.000 the **Deposit Secured** badge disappears and the store can pay the shortfall via Midtrans (`STORE_DEPOSIT` payment → `DEPOSIT_HOLD`).
+- **Closure:** the store requests closure (store `CLOSING`) only when it has no unfinished order, no open dispute, no order still inside the protection window, no pending payout and zero escrow/available balance (withdraw first); its catalogs are hidden. An admin approves → store `CLOSED`, remaining deposit booked as `DEPOSIT_REFUND` (refund to the original method, simulated) and `deposit_status = RELEASED`; or rejects with a reason → store back to `ACTIVE`.
+
+## 12b. REFUND QUEUE (money received that can no longer be delivered)
+
+Payments that arrive after their purpose is gone are never kept silently: a row in `refunds` (status `PENDING`) is created for **order payments received after the order was cancelled**, **lock payments when the account was no longer available**, and **undelivered top-ups of guests**. An admin with `payouts:approve` completes the refund (Midtrans refund simulated) with a note → `COMPLETED`, audit-logged, buyer notified.
+
+**Balance adjustments:** an admin with `payouts:approve` may correct a buyer's Balance (`ADJUSTMENT` ledger row, reason required, audit-logged, buyer notified). This is a correction tool only — never a cash-out or a transfer between users.
+
 ## 13. STORE TYPES, BADGES & REPUTATION
 
 **Type badges:** 🏷️ **Owner Store** (sells own accounts) · 🔄 **Reseller Store** (sells external sellers' accounts).
@@ -196,7 +212,7 @@ For reseller stores to pay their external sellers, **safely**:
 
 ## 14. SANCTIONS & PENALTIES
 
-Tiered (scaling with severity): warning → listing restriction → **fine from deposit** → suspension (30d) → permanent ban → blacklist (device/identity/bank) → legal action. Store-error buyer refund may incur a fine (e.g. 10% of refund). Off-platform trading, fake delivery, false listings → deposit fine + ban.
+Tiered (scaling with severity): warning → listing restriction → **fine from deposit** → suspension (30d) → permanent ban → blacklist (device/identity/bank) → legal action. **Prototype:** admins issue warnings, fines (booked against the deposit, §12) and suspensions from the store detail page or a dispute ruling; permanent ban / blacklists are handled as suspension + user ban. Store-error buyer refund may incur a fine (e.g. 10% of refund). Off-platform trading, fake delivery, false listings → deposit fine + ban.
 
 ## 15. COSTS (Year-1 Baseline)
 

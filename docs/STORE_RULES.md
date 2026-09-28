@@ -173,7 +173,7 @@ The deposit is a **security measure**, not a prepayment for services.
 - No penalties, debts, chargebacks, or unresolved claims owed.
 - Store has formally initiated closure and stopped selling.
 
-**Process:** contact support → platform reviews (sole discretion) → refund to original method within a reasonable period, minus any amounts withheld.
+**Process:** request closure in **Dashboard Toko → Pengaturan → Tutup toko** (only possible when every condition above holds and the store balance has been withdrawn; your catalogs are hidden) → an admin reviews (sole discretion) → the remaining deposit is refunded to the original method (simulated in the prototype) minus any amounts withheld, and the store becomes `CLOSED`. A rejected request returns the store to `ACTIVE`. Every deposit movement (hold, deduction, refund) is visible in the store ledger.
 
 **Non-refundable / deductible when:**
 - Permanent ban for rule/law violations.
@@ -190,7 +190,7 @@ The deposit is a **security measure**, not a prepayment for services.
 Violations may trigger one or more, scaling with severity:
 - Quote/order cancellation.
 - Reputation penalty (loss of rating/badge).
-- Monetary fine **taken from the deposit**.
+- Monetary fine **taken from the deposit** (ledger `DEPOSIT_DEDUCTION`; top up the shortfall to keep the *Deposit Secured* badge).
 - Listing restrictions.
 - Account suspension (e.g. 30 days) or **permanent termination**.
 - Confiscation of payment, returned to buyer.

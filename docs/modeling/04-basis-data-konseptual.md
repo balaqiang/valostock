@@ -13,7 +13,7 @@ Model konseptual menggambarkan **entitas, atribut kunci, dan hubungan** tanpa de
 | 5 | Peran Pengguna (`admin_user_roles`) | Peran yang dimiliki admin | user_id + role_id | pemberi peran |
 | 6 | Toko (`stores`) | Penjual terverifikasi | id | pemilik, slug, tipe, level, status, nama pemilik (KTP), deposit, rating |
 | 7 | Langganan (`store_subscriptions`) | Tier toko & tarif komisi | store_id | tier, komisi, kuota katalog, berlaku sampai |
-| 8 | Saldo Toko (`store_balances`) | Ringkasan escrow & saldo tersedia | store_id | escrow, tersedia |
+| 8 | Saldo Toko (`store_balances`) | Ringkasan escrow, saldo tersedia & deposit | store_id | escrow, tersedia, deposit |
 | 9 | Mutasi Saldo Toko (`store_ledger`) | Riwayat perubahan saldo toko | id | bucket, jenis, jumlah, saldo setelah |
 | 10 | Sanksi Toko (`store_sanctions`) | Peringatan/penangguhan/denda | id | jenis, jumlah, alasan |
 | 11 | Penjual Eksternal (`external_sellers`) | Pemilik akun titipan (toko reseller) | id | alias, rekening, nama rekening |
@@ -58,6 +58,7 @@ Model konseptual menggambarkan **entitas, atribut kunci, dan hubungan** tanpa de
 | 49 | Artikel Bantuan (`help_articles`) | Pusat bantuan | id | slug, kategori |
 | 50 | Laporan (`reports`) | Laporan pengguna | id | target, alasan, status |
 | 51 | Log Audit (`audit_logs`) | Jejak aksi sensitif | id | pelaku, aksi, target, detail, IP |
+| 52 | Refund (`refunds`) | Uang masuk yang harus dikembalikan | id | pembayaran, jumlah, sumber, status |
 
 ## 4.2 Relasi dan Kardinalitas
 
@@ -94,6 +95,7 @@ Model konseptual menggambarkan **entitas, atribut kunci, dan hubungan** tanpa de
 | 29 | Bundle | berisi | Katalog (via Isi Bundle) | M : N |
 | 30 | Profil | menyimpan / mengikuti / melihat | Katalog / Toko / Katalog | M : N |
 | 31 | Profil | membuat | Laporan, Berita, Log Audit | 1 : N |
+| 32 | Pembayaran | dikembalikan lewat | Refund | 1 : 0..1 |
 
 ## 4.3 Diagram Konseptual (ringkas)
 
@@ -145,3 +147,5 @@ erDiagram
 | Balance hanya untuk top-up | tidak ada relasi Balance ke pesanan akun |
 | Penarikan hanya ke rekening atas nama pemilik | `withdrawals.name_match` vs `stores.owner_legal_name` |
 | Setiap keputusan admin tercatat | `audit_logs` |
+| Deposit dipotong/dikembalikan lewat ledger | `store_balances.deposit` + `DEPOSIT_HOLD` / `DEPOSIT_DEDUCTION` / `DEPOSIT_REFUND` |
+| Uang tanpa tujuan tidak disimpan diam-diam | `refunds` (PENDING → COMPLETED oleh admin) |

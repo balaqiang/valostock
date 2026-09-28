@@ -1,6 +1,6 @@
 # 3. Entity Relationship Diagram (ERD)
 
-Basis data PostgreSQL 17 pada project Supabase lokal **valostock** (schema `public`). Terdiri dari **52 tabel** dalam 7 domain. Supaya tetap terbaca, ERD dipecah per domain; tabel yang muncul di lebih dari satu diagram adalah tabel yang sama.
+Basis data PostgreSQL 17 pada project Supabase lokal **valostock** (schema `public`). Terdiri dari **53 tabel** dalam 7 domain. Supaya tetap terbaca, ERD dipecah per domain; tabel yang muncul di lebih dari satu diagram adalah tabel yang sama.
 
 - Tipe data: `uuid`, `text`, `int` (uang dalam Rupiah bulat), `numeric` (rasio/skor), `bool`, `timestamptz`, `jsonb`, `enum`.
 - Kardinalitas (crow's foot): `||` tepat satu · `o|` nol/satu · `|{` satu/lebih · `o{` nol/lebih.
@@ -67,7 +67,7 @@ erDiagram
         text name
         enum type "OWNER / RESELLER"
         enum level "AUTHORIZED / VERIFIED / PLATINUM"
-        enum status "PENDING_DEPOSIT / PENDING_REVIEW / ACTIVE / REJECTED / SUSPENDED"
+        enum status "PENDING_DEPOSIT / PENDING_REVIEW / ACTIVE / REJECTED / SUSPENDED / CLOSING / CLOSED"
         text owner_legal_name "diverifikasi manual admin"
         enum deposit_status
         numeric rating
@@ -87,11 +87,12 @@ erDiagram
         uuid store_id PK,FK
         int escrow
         int available
+        int deposit "deposit yang ditahan"
     }
     STORE_LEDGER {
         bigint id PK
         uuid store_id FK
-        enum bucket "ESCROW / AVAILABLE"
+        enum bucket "ESCROW / AVAILABLE / DEPOSIT"
         enum type
         int amount
         int balance_after
@@ -336,6 +337,8 @@ erDiagram
     PROFILES |o--o{ TOPUP_ORDERS : "memesan"
     PROFILES ||--o{ BALANCE_TOPUPS : "mengisi"
     PROFILES ||--o{ BALANCE_LEDGER : "mutasi"
+    PAYMENTS ||--o| REFUNDS : "dikembalikan"
+    PROFILES |o--o{ REFUNDS : "menerima"
 
     PAYMENTS {
         uuid id PK
@@ -392,6 +395,15 @@ erDiagram
         int amount
         int balance_after
         text reference
+    }
+    REFUNDS {
+        uuid id PK
+        uuid payment_id FK,UK
+        uuid user_id FK
+        int amount
+        enum source "PAID_AFTER_CANCEL / LOCK_UNAVAILABLE / TOPUP_UNDELIVERED"
+        enum status "PENDING / COMPLETED"
+        uuid handled_by FK
     }
 ```
 

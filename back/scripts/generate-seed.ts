@@ -282,7 +282,12 @@ const subscriptionRows = storeRows.map((s) =>
     ? { store_id: s.id, tier: 'PRO', commission_rate: 0.045, max_listings: 60, free_featured_slots: 2, current_period_end: ahead('30 days') }
     : { store_id: s.id, tier: 'FREE', commission_rate: 0.05, max_listings: 15, free_featured_slots: 0, current_period_end: null },
 );
-const balanceRows = stores.map((s) => ({ store_id: storeId(s.slug), escrow: 0, available: 0 }));
+const balanceRows = stores.map((s) => ({ store_id: storeId(s.slug), escrow: 0, available: 0, deposit: 500_000 }));
+// The deposit of every approved store is booked in its ledger (MONEY_RULES §12).
+const depositLedgerRows = stores.map((s) => ({
+  store_id: storeId(s.slug), bucket: 'DEPOSIT', type: 'DEPOSIT_HOLD', amount: 500_000, balance_after: 500_000,
+  ref_type: 'deposit', ref_id: storeId(s.slug), note: 'Deposit keamanan toko',
+}));
 
 const voucherRows = stores.flatMap((s) =>
   s.vouchers.map((v) => ({ store_id: storeId(s.slug), code: v.code, kind: v.kind, value: v.value, min_spend: v.minSpend, quota: 100, expires_at: ahead('60 days') })),
@@ -347,7 +352,7 @@ ${profileUpdates}
 -- ── RBAC ──
 ${insert('permissions', permissions.map(([key, module, description]) => ({ key, module, description })))}${insert('admin_roles', roles.map((r) => ({ id: roleId(r.key), key: r.key, name: r.name })))}${insert('role_permissions', roles.flatMap((r) => r.perms.map((p) => ({ role_id: roleId(r.key), permission_key: p }))))}${insert('admin_user_roles', users.flatMap((u) => (u.adminRoles ?? []).map((r) => ({ user_id: uid(u.key), role_id: roleId(r), assigned_by: uid('admin') }))))}
 -- ── Games & catalogs ──
-${insert('games', gameRows)}${insert('game_field_templates', templateRows)}${insert('stores', storeRows)}${insert('store_subscriptions', subscriptionRows)}${insert('store_balances', balanceRows)}${insert('catalogs', catalogRows)}${insert('catalog_images', imageRows)}${insert('catalog_reviews', reviewRows)}
+${insert('games', gameRows)}${insert('game_field_templates', templateRows)}${insert('stores', storeRows)}${insert('store_subscriptions', subscriptionRows)}${insert('store_balances', balanceRows)}${insert('store_ledger', depositLedgerRows)}${insert('catalogs', catalogRows)}${insert('catalog_images', imageRows)}${insert('catalog_reviews', reviewRows)}
 -- ── Promotions ──
 ${insert('store_vouchers', voucherRows)}${insert('flash_sales', flashRows)}${insert('bundles', bundleRows)}${insert('bundle_items', bundleItemRows)}${insert('featured_listings', featuredRows)}
 -- ── Top-up, content ──

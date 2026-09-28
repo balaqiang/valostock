@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { all, one, pool, run, withTransaction } from '../../db/pool.js';
 import { audit } from '../../lib/audit.js';
 import { badRequest, conflict, notFound, parse } from '../../lib/errors.js';
+import { moveUserBalance } from '../../lib/ledger.js';
+import { notify } from '../../lib/notify.js';
 import { supabaseAdmin } from '../../supabase/client.js';
 import { admin, idParam, ipOf, reasonText } from './admin.guard.js';
 
@@ -122,6 +124,30 @@ adminUsersRouter.post('/admin/users/:id/unban', async (req, res) => {
   });
   await supabaseAdmin.auth.admin.updateUserById(id, { ban_duration: 'none' }).catch(() => undefined);
   res.json({ ok: true });
+});
+
+/** Balance correction (MONEY_RULES §12b) — a ledger ADJUSTMENT, never a cash-out. */
+adminUsersRouter.post('/admin/users/:id/balance-adjust', async (req, res) => {
+  const actor = await admin(req, 'payouts:approve');
+  const id = parse(idParam, req.params.id);
+  const { amount, reason } = parse(
+    z
+      .object({ amount: z.number().int().min(-100_000_000).max(100_000_000).refine((n) => n !== 0, 'tidak boleh 0'), reason: reasonText })
+      .strict(),
+    req.body,
+  );
+  const balance = await withTransaction(async (tx) => {
+    const next = await moveUserBalance(tx, id, { type: 'ADJUSTMENT', amount, reference: `ADJ: ${reason}`.slice(0, 200) });
+    await audit(tx, { actorId: actor.id, action: 'balance.adjust', targetType: 'user', targetId: id, detail: { amount, reason, balance: next }, ip: ipOf(req) });
+    await notify(tx, id, {
+      kind: 'SYSTEM',
+      title: 'Penyesuaian Balance',
+      body: `Balance ${amount > 0 ? 'bertambah' : 'berkurang'} Rp${Math.abs(amount).toLocaleString('id-ID')}: ${reason}`,
+      link: '/balance/history',
+    });
+    return next;
+  });
+  res.json({ ok: true, balance });
 });
 
 // ── Admins & roles (Super Admin only) ──

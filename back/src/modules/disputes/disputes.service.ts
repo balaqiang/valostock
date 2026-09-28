@@ -11,6 +11,7 @@ import type { AuthUser } from '../../middlewares/auth.js';
 import { PRIVATE_BUCKET, removeObjects, signedUrls, uploadObject } from '../../supabase/storage.js';
 import { setOrderCatalogs, systemMessage } from '../orders/order-state.js';
 import { completeOrderTx, getOrderFor } from '../orders/orders.service.js';
+import { applySanction, deductDeposit } from '../store/sanctions.js';
 
 const EVIDENCE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'application/pdf'];
 export type DisputeReason = 'NOT_DELIVERED' | 'NOT_AS_DESCRIBED' | 'RECALLED' | 'OTHER';
@@ -254,12 +255,8 @@ export async function resolveDispute(admin: AuthUser, id: string, r: Resolution,
           ]);
         }
         if (want > fromBalance) {
-          await run(tx, `insert into store_sanctions (store_id, type, amount, reason, created_by) values ($1, 'FINE', $2, $3, $4)`, [
-            d.store_id,
-            want - fromBalance,
-            `Sisa kompensasi ${d.order_number} dipotong dari deposit`,
-            admin.id,
-          ]);
+          // The rest comes out of the deposit (never more than it holds) — MONEY_RULES §12.
+          await deductDeposit(tx, d.store_id, want - fromBalance, `Sisa kompensasi ${d.order_number}`, d.id);
         }
         refund = want;
         await systemMessage(tx, d.order_id, `Sengketa dimenangkan pembeli. Kompensasi Rp${want.toLocaleString('id-ID')} dibayarkan (disimulasikan).`);
@@ -281,14 +278,11 @@ export async function resolveDispute(admin: AuthUser, id: string, r: Resolution,
     ]);
 
     if (r.sanction) {
-      await run(tx, 'insert into store_sanctions (store_id, type, amount, reason, created_by) values ($1, $2, $3, $4, $5)', [
-        d.store_id,
-        r.sanction.type,
-        r.sanction.amount ?? 0,
-        r.sanction.reason ?? `Sengketa ${d.order_number}`,
-        admin.id,
-      ]);
-      if (r.sanction.type === 'SUSPEND') await run(tx, `update stores set status = 'SUSPENDED', review_note = $1 where id = $2`, [r.sanction.reason ?? r.note, d.store_id]);
+      await applySanction(tx, admin.id, d.store_id, {
+        type: r.sanction.type,
+        amount: r.sanction.amount,
+        reason: r.sanction.reason ?? `Sengketa ${d.order_number}: ${r.note}`,
+      });
     }
 
     await audit(tx, { actorId: admin.id, action: 'dispute.resolve', targetType: 'dispute', targetId: id, detail: { ...r, refund }, ip });

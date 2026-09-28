@@ -13,6 +13,7 @@ import {
 import { all, one, pool, run, withTransaction } from '../../db/pool.js';
 import { badRequest, conflict, forbidden, notFound, parse } from '../../lib/errors.js';
 import { documentNumber, uuid } from '../../lib/ids.js';
+import { audit } from '../../lib/audit.js';
 import { moveStoreBalance } from '../../lib/ledger.js';
 import { matchName } from '../../lib/name-match.js';
 import { requireUser } from '../../middlewares/auth.js';
@@ -42,7 +43,7 @@ storeRouter.get('/stores/me', async (req, res) => {
       'select * from store_subscriptions where store_id = $1',
       [store.id],
     ),
-    one<{ escrow: number; available: number }>(pool, 'select escrow, available from store_balances where store_id = $1', [store.id]),
+    one<{ escrow: number; available: number; deposit: number }>(pool, 'select escrow, available, deposit from store_balances where store_id = $1', [store.id]),
     payments.findPendingFor(pool, 'STORE_DEPOSIT', store.id),
   ]);
   res.json({
@@ -56,7 +57,8 @@ storeRouter.get('/stores/me', async (req, res) => {
         usedFeaturedSlots: subscription.used_featured_slots,
         periodEnd: subscription.current_period_end,
       },
-      balance: balance ?? { escrow: 0, available: 0 },
+      balance: balance ?? { escrow: 0, available: 0, deposit: 0 },
+      depositMinimum: STORE_DEPOSIT,
       pendingDeposit: pendingDeposit ? { invoice: pendingDeposit.midtrans_order_id, redirectUrl: pendingDeposit.redirect_url } : null,
     },
   });
@@ -144,7 +146,7 @@ storeRouter.get('/stores/me/dashboard', async (req, res) => {
   const [counts, orders, balance, revenue, pendingOffers, unreadChats] = await Promise.all([
     all<{ status: string; n: number }>(pool, 'select status, count(*)::int as n from catalogs where store_id = $1 group by status', [store.id]),
     all<{ status: string; n: number }>(pool, 'select status, count(*)::int as n from orders where store_id = $1 group by status', [store.id]),
-    one<{ escrow: number; available: number }>(pool, 'select escrow, available from store_balances where store_id = $1', [store.id]),
+    one<{ escrow: number; available: number; deposit: number }>(pool, 'select escrow, available, deposit from store_balances where store_id = $1', [store.id]),
     one<{ gmv: number; net: number; n: number }>(
       pool,
       `select coalesce(sum(item_price), 0)::int as gmv, coalesce(sum(store_receives), 0)::int as net, count(*)::int as n
@@ -195,11 +197,14 @@ storeRouter.get('/stores/me/analytics', async (req, res) => {
       [store.id],
     ),
   ]);
+  // Analytics per plan (MONEY_RULES §5): Free funnel · Pro + daily & most viewed · Business + per game.
+  const tier = (await one<{ tier: string }>(pool, 'select tier from store_subscriptions where store_id = $1', [store.id]))?.tier ?? 'FREE';
   res.json({
-    daily,
-    topViewed: topViewed.map((c) => ({ id: c.id, title: c.title, vsCode: c.vs_code, views: c.views, status: c.status, price: c.price })),
-    byGame,
+    tier,
     funnel: conversion ?? { views: 0, orders: 0, wishlists: 0 },
+    daily: tier === 'FREE' ? null : daily,
+    topViewed: tier === 'FREE' ? null : topViewed.map((c) => ({ id: c.id, title: c.title, vsCode: c.vs_code, views: c.views, status: c.status, price: c.price })),
+    byGame: tier === 'BUSINESS' ? byGame : null,
   });
 });
 
@@ -263,6 +268,27 @@ storeRouter.post('/stores/me/catalogs/:id/submit', writeLimiter, async (req, res
   res.json(await catalogs.submitCatalog(user, store, parse(idParam, req.params.id)));
 });
 
+const bulkSchema = z.object({ action: z.enum(['submit', 'withdraw']), ids: z.array(idParam).min(1).max(50) }).strict();
+
+/** Bulk actions for Pro / Business plans (MONEY_RULES §5): submit or hide many catalogs at once. */
+storeRouter.post('/stores/me/catalogs/bulk', writeLimiter, async (req, res) => {
+  const { user, store } = await ownStore(req);
+  const { action, ids } = parse(bulkSchema, req.body);
+  const tier = (await one<{ tier: string }>(pool, 'select tier from store_subscriptions where store_id = $1', [store.id]))?.tier ?? 'FREE';
+  if (tier === 'FREE') throw forbidden('Aksi massal tersedia untuk paket Pro dan Business.');
+  const results: { id: string; ok: boolean; message?: string }[] = [];
+  for (const id of [...new Set(ids)]) {
+    try {
+      if (action === 'submit') await catalogs.submitCatalog(user, store, id);
+      else await catalogs.withdrawCatalog(store, id);
+      results.push({ id, ok: true });
+    } catch (error) {
+      results.push({ id, ok: false, message: error instanceof Error ? error.message : 'Gagal' });
+    }
+  }
+  res.json({ results, done: results.filter((r) => r.ok).length });
+});
+
 storeRouter.post('/stores/me/catalogs/:id/withdraw', writeLimiter, async (req, res) => {
   const { store } = await ownStore(req);
   res.json(await catalogs.withdrawCatalog(store, parse(idParam, req.params.id)));
@@ -292,11 +318,68 @@ storeRouter.post('/stores/me/catalogs/:id/inspection', uploadLimiter, evidenceUp
   res.json(await catalogs.saveInspection(user, store, parse(idParam, req.params.id), { checklist: parse(checklistSchema, checklist), notes }, files(req)));
 });
 
+// ── Deposit & closure (MONEY_RULES §12, DFD 2.6) ──
+
+/** Pay back a deposit shortfall (after fines) so the Deposit Secured badge returns. */
+storeRouter.post('/stores/me/deposit-topup', checkoutLimiter, async (req, res) => {
+  const { user, store } = await activeStore(req);
+  const { method } = parse(z.object({ method: z.enum(GATEWAY_METHODS) }).strict(), req.body);
+  const bal = await one<{ deposit: number }>(pool, 'select deposit from store_balances where store_id = $1', [store.id]);
+  const shortfall = STORE_DEPOSIT - (bal?.deposit ?? 0);
+  if (shortfall <= 0) throw conflict('Deposit sudah lengkap.', 'DEPOSIT_FULL');
+  const invoice = documentNumber('DP');
+  await payments.recordPayment(pool, { invoice, purpose: 'STORE_DEPOSIT', refId: store.id, userId: user.id, amount: shortfall, method, meta: { topUp: true } });
+  res.json({ invoice, payment: await payments.openPaymentPage(invoice, { name: user.name, email: user.email }) });
+});
+
+/**
+ * Request closure: nothing may be pending (orders, protection windows, disputes,
+ * payouts) and the balance must be withdrawn. Catalogs are hidden; an admin
+ * then approves (deposit refunded) or rejects.
+ */
+storeRouter.post('/stores/me/close', writeLimiter, async (req, res) => {
+  const { user, store } = await ownStore(req);
+  if (store.status !== 'ACTIVE') throw conflict('Hanya toko aktif yang bisa mengajukan penutupan.', 'BAD_STATE');
+  const { reason } = parse(z.object({ reason: z.string().trim().min(3).max(500) }).strict(), req.body);
+  await withTransaction(async (tx) => {
+    await one(tx, 'select 1 from stores where id = $1 for update', [store.id]);
+    const b =
+      (await one<Record<string, number>>(
+        tx,
+        `select
+           (select count(*)::int from orders where store_id = $1 and status in ('PENDING_PAYMENT', 'PAID', 'IN_REKBER', 'SAFE', 'DISPUTED')) as active_orders,
+           (select count(*)::int from orders where store_id = $1 and status = 'COMPLETED' and protection_until > now()) as protected_orders,
+           (select count(*)::int from disputes d join orders o on o.id = d.order_id
+             where o.store_id = $1 and d.status in ('OPEN', 'STORE_RESPONDED', 'IN_REVIEW')) as open_disputes,
+           (select count(*)::int from withdrawals where store_id = $1 and status = 'PENDING')
+             + (select count(*)::int from transfer_requests where store_id = $1 and status = 'PENDING') as pending_payouts,
+           (select coalesce(escrow + available, 0) from store_balances where store_id = $1) as balance`,
+        [store.id],
+      )) ?? {};
+    const reasons = [
+      b.active_orders ? `${b.active_orders} pesanan belum selesai` : null,
+      b.protected_orders ? `${b.protected_orders} pesanan masih dalam masa proteksi` : null,
+      b.open_disputes ? `${b.open_disputes} sengketa terbuka` : null,
+      b.pending_payouts ? `${b.pending_payouts} penarikan/transfer menunggu` : null,
+      b.balance ? 'saldo toko belum ditarik' : null,
+    ].filter(Boolean);
+    if (reasons.length) throw conflict(`Belum bisa ditutup: ${reasons.join(', ')}.`, 'CLOSE_BLOCKED');
+    await run(tx, `update stores set status = 'CLOSING', review_note = $1 where id = $2`, [`Permintaan tutup: ${reason}`, store.id]);
+    await run(tx, `update catalogs set status = 'DELISTED', review_note = 'Toko mengajukan penutupan.' where store_id = $1 and status = 'LISTED'`, [store.id]);
+    await run(tx, `update catalogs set status = 'DRAFT' where store_id = $1 and status = 'PENDING_REVIEW'`, [store.id]);
+    await run(tx, `update featured_listings set status = 'STOPPED', stop_reason = 'Toko ditutup' where store_id = $1 and status = 'ACTIVE'`, [store.id]);
+    await run(tx, 'update store_vouchers set is_active = false where store_id = $1', [store.id]);
+    await run(tx, `update bundles set status = 'INACTIVE' where store_id = $1 and status = 'ACTIVE'`, [store.id]);
+    await audit(tx, { actorId: user.id, action: 'store.close_request', targetType: 'store', targetId: store.id, detail: { reason }, ip: req.ip ?? null });
+  });
+  res.json({ store: toStoreContext((await findStoreOf(pool, store.owner_id))!) });
+});
+
 // ── Balance & withdrawals (DFD 7.0) ──
 
 storeRouter.get('/stores/me/balance', async (req, res) => {
   const { store } = await ownStore(req);
-  const summary = await one<{ escrow: number; available: number }>(pool, 'select escrow, available from store_balances where store_id = $1', [store.id]);
+  const summary = await one<{ escrow: number; available: number; deposit: number }>(pool, 'select escrow, available, deposit from store_balances where store_id = $1', [store.id]);
   const ledger = await all<{ id: number; bucket: string; type: string; amount: number; balance_after: number; ref_type: string; ref_id: string | null; note: string | null; created_at: string }>(
     pool,
     'select * from store_ledger where store_id = $1 order by id desc limit 200',
@@ -305,6 +388,7 @@ storeRouter.get('/stores/me/balance', async (req, res) => {
   res.json({
     escrow: summary?.escrow ?? 0,
     available: summary?.available ?? 0,
+    deposit: summary?.deposit ?? 0,
     ledger: ledger.map((l) => ({
       id: String(l.id),
       bucket: l.bucket,

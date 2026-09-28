@@ -267,12 +267,19 @@ insert into public.store_subscriptions (store_id, tier, commission_rate, max_lis
   ('a100a6f0-f900-47fb-91c3-49b76b8f2320', 'FREE', 0.05, 15, 0, null),
   ('743e9987-69ad-44b5-a7ba-0f2ab735b52f', 'FREE', 0.05, 15, 0, null);
 
-insert into public.store_balances (store_id, escrow, available) values
-  ('bbf2a2d3-5bef-4995-bbd8-cc6723c92202', 0, 0),
-  ('c0f3cc00-f6de-4e22-a843-2005a01d52b5', 0, 0),
-  ('bc229cc5-5510-4035-b3d7-edc149e36dd0', 0, 0),
-  ('0811518d-4cbc-452f-bb7d-25aa1068b162', 0, 0),
-  ('a100a6f0-f900-47fb-91c3-49b76b8f2320', 0, 0);
+insert into public.store_balances (store_id, escrow, available, deposit) values
+  ('bbf2a2d3-5bef-4995-bbd8-cc6723c92202', 0, 0, 500000),
+  ('c0f3cc00-f6de-4e22-a843-2005a01d52b5', 0, 0, 500000),
+  ('bc229cc5-5510-4035-b3d7-edc149e36dd0', 0, 0, 500000),
+  ('0811518d-4cbc-452f-bb7d-25aa1068b162', 0, 0, 500000),
+  ('a100a6f0-f900-47fb-91c3-49b76b8f2320', 0, 0, 500000);
+
+insert into public.store_ledger (store_id, bucket, type, amount, balance_after, ref_type, ref_id, note) values
+  ('bbf2a2d3-5bef-4995-bbd8-cc6723c92202', 'DEPOSIT', 'DEPOSIT_HOLD', 500000, 500000, 'deposit', 'bbf2a2d3-5bef-4995-bbd8-cc6723c92202', 'Deposit keamanan toko'),
+  ('c0f3cc00-f6de-4e22-a843-2005a01d52b5', 'DEPOSIT', 'DEPOSIT_HOLD', 500000, 500000, 'deposit', 'c0f3cc00-f6de-4e22-a843-2005a01d52b5', 'Deposit keamanan toko'),
+  ('bc229cc5-5510-4035-b3d7-edc149e36dd0', 'DEPOSIT', 'DEPOSIT_HOLD', 500000, 500000, 'deposit', 'bc229cc5-5510-4035-b3d7-edc149e36dd0', 'Deposit keamanan toko'),
+  ('0811518d-4cbc-452f-bb7d-25aa1068b162', 'DEPOSIT', 'DEPOSIT_HOLD', 500000, 500000, 'deposit', '0811518d-4cbc-452f-bb7d-25aa1068b162', 'Deposit keamanan toko'),
+  ('a100a6f0-f900-47fb-91c3-49b76b8f2320', 'DEPOSIT', 'DEPOSIT_HOLD', 500000, 500000, 'deposit', 'a100a6f0-f900-47fb-91c3-49b76b8f2320', 'Deposit keamanan toko');
 
 insert into public.catalogs (id, vs_code, store_id, game_id, title, description, price, old_price, status, attributes, account_checked, instant, review_note, submitted_at, listed_at, sort_order) values
   ('095872cf-9313-411b-a472-6c01462e11e7', 'VSRDX91', 'bbf2a2d3-5bef-4995-bbd8-cc6723c92202', (select id from public.games where slug = 'valorant'), 'Akun Valorant Radiant — Full Skin Vandal & Phantom', 'Akun Radiant server Indonesia, 142 skin (208.500 VP). Email terverifikasi — bisa diganti. Serah terima lewat Rekber Room.', 8500000, null, 'LISTED', '{"rank":"Radiant","level":214,"server":"Indonesia","region":"IDN","skins":142,"totalVp":208500,"remainingVp":1250,"agents":"FULL","skinsList":["Champions 2023 Vandal","Kuronami Vandal","Elderflame Operator","RGX 11z Pro Vandal","Oni Phantom","Ion Sheriff"],"emailStatus":"Terverifikasi — bisa diganti","remainingRp":320,"remainingKc":0,"battlepass":["V25 A1 FULL","V25 A2 FULL","V25 A3 FULL"],"changeNick":true,"premier":"Unverified","episodeAct":"V26 // ACT IV","radianite":145,"verifiedAt":"7 Jul 2026"}'::jsonb, true, true, null, now() - interval '3 days', now() - interval '2 days', 0),

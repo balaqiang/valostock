@@ -1,9 +1,10 @@
 // End-to-end smoke test of the v8 API (PAYMENT_MODE=simulation) on a freshly
 // reset database (`npm run db:reset`). Needs the API running (`npm run dev`).
 //   npm run test:smoke        (API_URL defaults to http://localhost:4000/api)
+import { resolveApi } from './api-url.ts';
 import assert from 'node:assert/strict';
 
-const API = process.env.API_URL ?? 'http://localhost:4000/api';
+const API = await resolveApi();
 const DEMO_PASSWORD = 'valostock-demo';
 // 1×1 transparent PNG — a real image so the magic-byte check passes.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');

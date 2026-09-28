@@ -55,7 +55,7 @@ Account trading today is manual (admin bottleneck via WhatsApp groups), scam-pro
 ## 5. FUNCTIONAL REQUIREMENTS
 
 ### 5.1 Auth
-- Register via phone OTP + email. Buyers shop immediately.
+- Register with email + password (phone optional, usable for login; referral code optional) through Supabase Auth. Buyers shop immediately.
 
 ### 5.2 Becoming a Store
 - Register → fill store info (name, type Owner/Reseller, **owner legal name**) + accept Terms → pay **Rp500K deposit** via Midtrans Snap → **admin verifies manually** (approve/reject, audit-logged) → ACTIVE → list.
@@ -136,7 +136,7 @@ Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + 
 ## 10. SCOPE & PHASES
 
 - **This project (v8):** every feature in §5 on Express + Supabase (Postgres/Auth/Storage), including admin moderation of stores and of every catalog. External services (Iris, Digiflazz, WA/Discord/Telegram) simulated.
-- **Phase 0 — Foundation (post-prototype):** OTP, refresh tokens, background jobs, realtime chat.
+- **Phase 0 — Foundation (post-prototype):** phone OTP / Google login, admin 2FA, realtime (Socket.IO) chat instead of polling. (Refresh tokens and background jobs are already in v8.)
 - **Phase 1 — MVP:** provider KYC (optional) + deposit, VS catalog IDs, direct offers/negotiation, Midtrans Snap + ledger escrow, rekber room + chat, mandatory protection, disputes, Account Validation payout, ratings, top-up, basic admin.
 - **Phase 2 — Reseller & engagement:** external sellers + transfer requests, notifications (WA/Discord/Telegram), inspections, wishlist/follows/loyalty, vouchers/flash-sales/bundles, ads, analytics, reconciliation, observability.
 - **Phase 3 — Scale:** hosted Supabase (or VPS + Postgres), real Iris/Digiflazz/notification integrations, infra split & clustering, advanced fraud/trust, (evaluate) crypto & content layer.

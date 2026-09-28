@@ -6,7 +6,7 @@ The data model is documented with the **Data Flow approach** in `docs/modeling/`
 
 | Document | Content |
 |---|---|
-| [modeling/03-erd.md](modeling/03-erd.md) | Entity Relationship Diagram — 52 tables in 7 domains |
+| [modeling/03-erd.md](modeling/03-erd.md) | Entity Relationship Diagram — 53 tables in 7 domains |
 | [modeling/04-basis-data-konseptual.md](modeling/04-basis-data-konseptual.md) | Entities, relationships, cardinalities, business rules |
 | [modeling/05-struktur-tabel.md](modeling/05-struktur-tabel.md) | Physical table structure (generated from the database) |
 | `supabase/migrations/*.sql` | Executable schema (applied with `npx supabase db reset`) |

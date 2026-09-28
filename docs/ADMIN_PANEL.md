@@ -31,6 +31,7 @@ Admin panel adalah tempat platform **mengambil keputusan**: memverifikasi toko d
 ├── Keuangan
 │   ├── /admin/withdrawals              Penarikan dana toko   ← antrean PENDING
 │   ├── /admin/transfers                Transfer ke penjual eksternal ← antrean PENDING
+│   ├── /admin/refunds                  Antrean refund (bayar setelah batal, lock gagal, top-up tamu) ← antrean PENDING
 │   ├── /admin/finance                  Ringkasan: komisi, biaya, float Balance, escrow
 │   └── /admin/ads                      Iklan & featured listing, langganan toko
 ├── Data Master & Konten
@@ -139,10 +140,12 @@ Menu yang izinnya tidak dimiliki admin tidak ditampilkan. Kalau URL-nya diakses 
 - **Checklist moderasi** (ditampilkan di panel detail sebagai pengingat): foto memperlihatkan data yang diklaim · atribut konsisten · tidak ada kontak luar · tidak ada klaim mutlak · harga wajar · toko ACTIVE.
 
 ### 3.3 Verifikasi Toko `/admin/stores`
-- **Tab:** `PENDING_REVIEW` · `ACTIVE` · `SUSPENDED` · `REJECTED` · `PENDING_DEPOSIT` · Semua.
+- **Tab:** `PENDING_REVIEW` · `ACTIVE` · `SUSPENDED` · `CLOSING` (minta tutup) · `CLOSED` · `REJECTED` · `PENDING_DEPOSIT` · Semua.
 - **Kolom:** nama toko, tipe, nama pemilik (KTP), akun (nama + email), status deposit, tanggal daftar.
 - **Aksi:** Setujui (menjadi `ACTIVE`, `identity_verified`, saldo toko dibuat) · Tolak + alasan (deposit dikembalikan, disimulasikan) · Tangguhkan / Aktifkan kembali (`stores:suspend`, alasan wajib; semua katalog LISTED ikut disembunyikan selama ditangguhkan).
-- **Detail toko:** profil, katalog per status, pesanan, saldo + ledger, penarikan, sengketa, dan riwayat keputusan admin.
+- **Sanksi** (`stores:suspend`): peringatan, **denda dari deposit** (ledger `DEPOSIT_DEDUCTION`), atau penangguhan — alasan wajib.
+- **Permintaan tutup toko** (`stores:verify`): setujui → `CLOSED` + refund sisa deposit (`DEPOSIT_REFUND`, disimulasikan) · tolak + alasan → kembali `ACTIVE`.
+- **Detail toko:** profil, katalog per status, pesanan, saldo (escrow, tersedia, **deposit**) + ledger, penarikan, sengketa, sanksi, dan riwayat keputusan admin.
 
 ### 3.4 Laporan Pengguna `/admin/reports`
 Laporan dari pembeli terhadap katalog, toko, atau pengguna, berisi alasan dan detail. Aksi: tandai sedang ditinjau · selesaikan (dengan tindakan: turunkan katalog / tangguhkan toko / tanpa tindakan) · tolak laporan.
@@ -163,6 +166,10 @@ Laporan dari pembeli terhadap katalog, toko, atau pengguna, berisi alasan dan de
 ### 3.7 Penarikan & Transfer `/admin/withdrawals`, `/admin/transfers`
 Kolom: nomor, toko, jumlah, biaya, rekening, **kecocokan nama** (MATCH/REVIEW), dan tanggal. Aksi: Setujui (transfer Iris disimulasikan) · Tolak + alasan (dana dikembalikan ke saldo toko lewat `PAYOUT_REVERSAL`).
 
+### 3.7b Refund `/admin/refunds` dan top-up gagal
+- **Antrean refund** (`payments:view` melihat, `payouts:approve` memproses): pembayaran pesanan yang masuk setelah pesanan batal, pembayaran lock saat akun sudah tidak tersedia, dan top-up tamu yang tidak terkirim. Aksi: **Selesaikan refund** (refund Midtrans disimulasikan) dengan catatan.
+- **Top-up tidak terkirim** (`/admin/topups`, `payouts:approve`): tandai `REFUNDED` → pembeli login menerima Balance (`REFUND_CREDIT`, poin invoice itu ditarik), tamu masuk antrean refund.
+
 ### 3.8 Keuangan `/admin/finance` dan Iklan `/admin/ads`
 - **Keuangan:** pendapatan per sumber (komisi, biaya penanganan, proteksi, langganan, iklan, margin top-up), escrow berjalan, float Balance (liabilitas ke pembeli), penarikan per status. Hanya baca.
 - **Iklan:** daftar featured listing dan langganan aktif, dengan tanggal berakhir. Aksi: hentikan iklan yang melanggar (alasan wajib).
@@ -176,7 +183,7 @@ Kolom: nomor, toko, jumlah, biaya, rekening, **kecocokan nama** (MATCH/REVIEW), 
 Berita dan artikel bantuan: daftar, buat, ubah, publish/unpublish. Isi artikel berupa blok (paragraf / judul / daftar), sama dengan format yang dipakai halaman publik.
 
 ### 3.11 Pengguna & Admin
-- **Pengguna:** cari (nama/email), lihat ringkasan (pesanan, top-up, Balance, laporan), blokir/aktifkan (alasan wajib). Pengguna yang diblokir tidak bisa login atau bertransaksi.
+- **Pengguna:** cari (nama/email), lihat ringkasan (pesanan, top-up, Balance, laporan), blokir/aktifkan (alasan wajib). Pengguna yang diblokir tidak bisa login atau bertransaksi. **Penyesuaian Balance** (`payouts:approve`): tambah/kurangi dengan alasan → ledger `ADJUSTMENT` (koreksi saja, bukan pencairan).
 - **Admin & peran:** jadikan pengguna admin, atur peran, cabut akses. Hanya Super Admin.
 
 ### 3.12 Audit Log
@@ -188,7 +195,8 @@ Filter berdasarkan aksi, admin, jenis target, dan tanggal. Setiap entri memuat d
 
 | Objek | Transisi oleh admin | Syarat |
 |---|---|---|
-| Toko | `PENDING_REVIEW → ACTIVE / REJECTED`, `ACTIVE ↔ SUSPENDED` | alasan wajib untuk tolak/tangguhkan |
+| Toko | `PENDING_REVIEW → ACTIVE / REJECTED`, `ACTIVE ↔ SUSPENDED`, `CLOSING → CLOSED / ACTIVE` | alasan wajib untuk tolak/tangguhkan/tolak penutupan |
+| Refund | `PENDING → COMPLETED` | catatan wajib |
 | Katalog | `PENDING_REVIEW → LISTED / REJECTED`, `LISTED → DELISTED` | alasan wajib untuk tolak/turunkan |
 | Sengketa | `OPEN/STORE_RESPONDED/IN_REVIEW → RESOLVED_BUYER / RESOLVED_STORE` | catatan wajib |
 | Penarikan / Transfer | `PENDING → COMPLETED / REJECTED` | nama rekening bukan MISMATCH |

@@ -27,6 +27,7 @@ export interface ListingRow {
   store_name: string;
   store_rating: number;
   store_sold: number;
+  store_tier: string;
   images: string[];
   sale_price: number | null;
   flash_ends_at: string | null;
@@ -37,7 +38,7 @@ export const LISTING_SELECT = `
   select c.id, c.vs_code, c.title, c.description, c.price, c.old_price, c.status, c.account_checked, c.instant,
          c.attributes, c.views, c.review_note, c.submitted_at, c.listed_at, c.created_at,
          g.slug as game_slug, g.name as game_name, s.id as store_id, s.slug as store_slug, s.name as store_name,
-         s.rating as store_rating, s.sold as store_sold,
+         s.rating as store_rating, s.sold as store_sold, coalesce(sub.tier::text, 'FREE') as store_tier,
          (select coalesce(json_agg(ci.storage_path order by ci.sort_order), '[]'::json)
             from catalog_images ci where ci.catalog_id = c.id) as images,
          fs.sale_price, fs.ends_at as flash_ends_at,
@@ -46,6 +47,7 @@ export const LISTING_SELECT = `
   from catalogs c
   join games g on g.id = c.game_id
   join stores s on s.id = c.store_id
+  left join store_subscriptions sub on sub.store_id = s.id
   left join lateral (
     select f.sale_price, f.ends_at from flash_sales f
     where f.catalog_id = c.id and now() between f.starts_at and f.ends_at
@@ -103,6 +105,7 @@ export function toListing(row: ListingRow) {
     store: row.store_name,
     storeSlug: row.store_slug,
     storeId: row.store_id,
+    storeTier: row.store_tier,
     verified: row.account_checked,
     accountChecked: row.account_checked,
     instant: row.instant,
@@ -156,10 +159,14 @@ export async function searchListings(db: Db, filter: ListingFilter) {
     price_desc: `${effective} desc`,
     popular: 'c.views desc',
   }[filter.sort ?? 'newest'];
+  // Ranking boost (MONEY_RULES §5): on the default sorts, Business before Pro before Free (after featured).
+  const boost = filter.sort === undefined || filter.sort === 'newest' || filter.sort === 'popular'
+    ? "case coalesce(sub.tier::text, 'FREE') when 'BUSINESS' then 2 when 'PRO' then 1 else 0 end desc, "
+    : '';
   const limit = Math.min(Math.max(filter.limit ?? 60, 1), 200);
   const rows = await all<ListingRow>(
     db,
-    `${LISTING_SELECT} where ${where.join(' and ')} order by featured desc, ${order}, c.sort_order limit ${limit}`,
+    `${LISTING_SELECT} where ${where.join(' and ')} order by featured desc, ${boost}${order}, c.sort_order limit ${limit}`,
     params,
   );
   return rows.map(toListing);

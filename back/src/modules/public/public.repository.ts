@@ -1,4 +1,5 @@
 // Public read models: games, field templates, stores, bundles, help & news.
+import { STORE_DEPOSIT } from '../../config/money.js';
 import { all, one, type Db } from '../../db/pool.js';
 
 export interface GameRow {
@@ -98,6 +99,7 @@ interface StoreRow {
   gradient: string;
   created_at: string;
   tier: string | null;
+  deposit: number | null;
 }
 
 interface VoucherRow {
@@ -123,7 +125,8 @@ export function toStore(s: StoreRow, vouchers: VoucherRow[]) {
     level: s.level,
     tier: s.tier ?? 'FREE',
     identityVerified: s.identity_verified,
-    depositSecured: s.deposit_status === 'HELD',
+    // Deposit Secured only while the full deposit is held (fines reduce it — MONEY_RULES §12).
+    depositSecured: s.deposit_status === 'HELD' && (s.deposit ?? 0) >= STORE_DEPOSIT,
     rating: s.rating,
     reviews: s.reviews,
     sold: s.sold,
@@ -138,7 +141,9 @@ export function toStore(s: StoreRow, vouchers: VoucherRow[]) {
   };
 }
 
-const STORE_SELECT = `select s.*, sub.tier from stores s left join store_subscriptions sub on sub.store_id = s.id`;
+const STORE_SELECT = `select s.*, sub.tier, bal.deposit from stores s
+  left join store_subscriptions sub on sub.store_id = s.id
+  left join store_balances bal on bal.store_id = s.id`;
 
 /** Vouchers usable right now: active, started, not expired, quota left. */
 export const USABLE_VOUCHER = `v.is_active and v.starts_at <= now() and (v.expires_at is null or v.expires_at > now())

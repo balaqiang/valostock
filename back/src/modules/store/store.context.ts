@@ -12,7 +12,7 @@ export interface OwnStore {
   name: string;
   type: 'OWNER' | 'RESELLER';
   level: 'AUTHORIZED' | 'VERIFIED' | 'PLATINUM';
-  status: 'PENDING_DEPOSIT' | 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED';
+  status: 'PENDING_DEPOSIT' | 'PENDING_REVIEW' | 'ACTIVE' | 'REJECTED' | 'SUSPENDED' | 'CLOSING' | 'CLOSED';
   owner_legal_name: string;
   description: string | null;
   gradient: string;
@@ -44,6 +44,7 @@ export async function ownStore(req: Request): Promise<{ user: AuthUser; store: O
 export async function activeStore(req: Request): Promise<{ user: AuthUser; store: OwnStore }> {
   const ctx = await ownStore(req);
   if (ctx.store.status === 'SUSPENDED') throw forbidden('Toko sedang ditangguhkan admin.');
+  if (ctx.store.status === 'CLOSING' || ctx.store.status === 'CLOSED') throw forbidden('Toko sedang/sudah ditutup.');
   if (ctx.store.status !== 'ACTIVE') throw forbidden('Toko belum aktif — tunggu verifikasi admin.');
   return ctx;
 }

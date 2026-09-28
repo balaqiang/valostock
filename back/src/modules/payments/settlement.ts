@@ -12,6 +12,15 @@ import type { PaymentRow } from './payments.service.js';
 
 type Final = 'PAID' | 'FAILED' | 'EXPIRED';
 
+/** Money received for something that no longer exists → refund queue (idempotent per payment). */
+async function queueRefund(tx: Tx, payment: PaymentRow, source: 'PAID_AFTER_CANCEL' | 'LOCK_UNAVAILABLE', reference: string) {
+  await run(
+    tx,
+    `insert into refunds (payment_id, user_id, amount, source, reference) values ($1, $2, $3, $4, $5) on conflict (payment_id) do nothing`,
+    [payment.id, payment.user_id, payment.amount, source, reference],
+  );
+}
+
 export async function settle(tx: Tx, payment: PaymentRow, result: Final) {
   switch (payment.purpose) {
     case 'TOPUP':
@@ -89,7 +98,8 @@ async function settleOrder(tx: Tx, payment: PaymentRow, result: Final) {
   if (!order) return;
   if (order.status !== 'PENDING_PAYMENT') {
     if (result === 'PAID') {
-      // Paid after the order was cancelled: refunded manually (Midtrans refund is simulated).
+      // Paid after the order was cancelled: queued for an admin refund (MONEY_RULES §12b).
+      await queueRefund(tx, payment, 'PAID_AFTER_CANCEL', order.order_number);
       await audit(tx, {
         actorId: null,
         action: 'payment.paid_after_cancel',
@@ -150,6 +160,14 @@ async function settleOrder(tx: Tx, payment: PaymentRow, result: Final) {
 
 async function settleDeposit(tx: Tx, payment: PaymentRow, result: Final) {
   if (result !== 'PAID') return; // the store can simply try again
+  if (payment.meta.topUp === true) {
+    // An active store paying back a deposit shortfall (after fines) — MONEY_RULES §12.
+    await moveStoreBalance(tx, payment.ref_id, [
+      { bucket: 'DEPOSIT', type: 'DEPOSIT_HOLD', amount: payment.amount, refType: 'deposit', refId: payment.id, note: 'Top-up deposit' },
+    ]);
+    await notifyStore(tx, payment.ref_id, { title: 'Deposit dilengkapi', body: `Deposit bertambah Rp${payment.amount.toLocaleString('id-ID')}.`, link: '/store-dashboard/settings' });
+    return;
+  }
   const changed = await run(
     tx,
     `update stores set deposit_status = 'HELD', status = 'PENDING_REVIEW' where id = $1 and status = 'PENDING_DEPOSIT'`,
@@ -221,11 +239,12 @@ async function settleLock(tx: Tx, payment: PaymentRow, result: Final) {
   const taken = await one(tx, `select 1 from catalog_locks where catalog_id = $1 and status = 'ACTIVE' and expires_at > now()`, [lock.catalog_id]);
   if (catalog?.status !== 'LISTED' || taken) {
     await run(tx, `update catalog_locks set status = 'EXPIRED' where id = $1`, [lock.id]);
+    await queueRefund(tx, payment, 'LOCK_UNAVAILABLE', payment.midtrans_order_id);
     await audit(tx, { actorId: null, action: 'lock.paid_unavailable', targetType: 'catalog_lock', targetId: lock.id, detail: { invoice: payment.midtrans_order_id } });
     await notify(tx, lock.buyer_id, {
       kind: 'ORDER',
       title: 'Lock gagal',
-      body: 'Akun sudah tidak tersedia saat pembayaran lock diterima. Biaya lock dikembalikan (simulasi).',
+      body: 'Akun sudah tidak tersedia saat pembayaran lock diterima. Biaya lock masuk antrean refund admin.',
       link: `/catalog/${lock.catalog_id}`,
     });
     return;

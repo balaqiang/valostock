@@ -6,7 +6,7 @@ Pendekatan yang dipakai: **Alur Data** (bukan UML). Sesuai ketentuan tugas, pend
 |---|---|---|
 | 1 | [01-diagram-konteks.md](01-diagram-konteks.md) | Diagram Konteks (DFD Level 0): sistem sebagai satu proses + 5 entitas eksternal |
 | 2 | [02-dfd.md](02-dfd.md) | DFD Level 1 (10 proses) dan DFD Level 2 (3.0 Katalog & Moderasi, 6.0 Pesanan, 7.0 Sengketa, 4.0 Top-up) |
-| 3 | [03-erd.md](03-erd.md) | Entity Relationship Diagram — 52 tabel dalam 7 domain |
+| 3 | [03-erd.md](03-erd.md) | Entity Relationship Diagram — 53 tabel dalam 7 domain |
 | 4 | [04-basis-data-konseptual.md](04-basis-data-konseptual.md) | Entitas, relasi, kardinalitas, dan aturan bisnis |
 | 5 | [05-struktur-tabel.md](05-struktur-tabel.md) | Struktur tabel fisik PostgreSQL (dibuat otomatis dari database) |
 

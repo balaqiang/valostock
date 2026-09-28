@@ -2,9 +2,10 @@
 // the smoke test does not walk through. Run after `npm run test:smoke` or on a
 // fresh reset (PAYMENT_MODE=simulation, API running).
 //   npx tsx scripts/feature-test.ts
+import { resolveApi } from './api-url.ts';
 import assert from 'node:assert/strict';
 
-const API = process.env.API_URL ?? 'http://localhost:4000/api';
+const API = await resolveApi();
 type Json = Record<string, unknown>;
 
 class Client {
@@ -207,6 +208,108 @@ async function main() {
   await support.ok('GET', '/admin/news');
   await admin.ok('PUT', `/admin/admins/${supportId}/roles`, { roles: ['SUPPORT'] });
   check('ban blocks login → unban; RBAC role change takes effect immediately');
+
+  // ── Deposit ledger: fine from the deposit, badge off, store tops it up (MONEY_RULES §12) ──
+  const verdant = new Client('verdantshop');
+  await verdant.login('verdantshop@valostock.test');
+  const { stores: allStores } = await admin.ok<{ stores: { id: string; slug: string }[] }>('GET', '/admin/stores?status=ALL');
+  const verdantId = allStores.find((x) => x.slug === 'verdantshop')!.id;
+  const fine = await admin.ok<{ taken: number }>('POST', `/admin/stores/${verdantId}/sanctions`, { type: 'FINE', amount: 100_000, reason: 'Uji denda deposit.' });
+  assert.equal(fine.taken, 100_000);
+  let vb = await verdant.ok<{ deposit: number; ledger: { bucket: string; type: string }[] }>('GET', '/stores/me/balance');
+  assert.equal(vb.deposit, 400_000);
+  assert.equal(vb.ledger[0]!.type, 'DEPOSIT_DEDUCTION');
+  const pubStore = await guest.ok<{ store: { depositSecured: boolean } }>('GET', '/stores/verdantshop');
+  assert.equal(pubStore.store.depositSecured, false);
+  const topup = await verdant.ok<{ invoice: string }>('POST', '/stores/me/deposit-topup', { method: 'QRIS' });
+  await pay(verdant, topup.invoice);
+  vb = await verdant.ok('GET', '/stores/me/balance');
+  assert.equal(vb.deposit, 500_000);
+  assert.equal((await guest.ok<{ store: { depositSecured: boolean } }>('GET', '/stores/verdantshop')).store.depositSecured, true);
+  check('fine taken from the deposit (ledger), Deposit Secured off → deposit top-up → badge back');
+
+  // ── Store closure: blocked while money/orders are pending; approved → deposit refunded ──
+  await store.fails('POST', '/stores/me/close', { reason: 'Uji tutup toko.' }, 409);
+  const moderator = new Client('moderator');
+  await moderator.login('moderator@valostock.test');
+  const { stores: pending } = await moderator.ok<{ stores: { id: string; slug: string }[] }>('GET', '/admin/stores?status=PENDING_REVIEW');
+  const tokobaru = pending.find((x) => x.slug === 'tokobaru')!;
+  await moderator.ok('POST', `/admin/stores/${tokobaru.id}/approve`, { note: 'Nama KTP sesuai.' });
+  const tb = new Client('tokobaru');
+  await tb.login('tokobaru@valostock.test');
+  assert.equal((await tb.ok<{ deposit: number }>('GET', '/stores/me/balance')).deposit, 500_000);
+  await tb.ok('POST', '/stores/me/close', { reason: 'Berhenti berjualan.' });
+  assert.equal((await tb.ok<{ store: { status: string } }>('GET', '/stores/me')).store.status, 'CLOSING');
+  await moderator.ok('POST', `/admin/stores/${tokobaru.id}/close-decision`, { decision: 'approve', note: 'Tidak ada kewajiban tersisa.' });
+  const closed = await tb.ok<{ deposit: number; ledger: { type: string }[] }>('GET', '/stores/me/balance');
+  assert.equal(closed.deposit, 0);
+  assert.equal(closed.ledger[0]!.type, 'DEPOSIT_REFUND');
+  assert.equal((await tb.ok<{ store: { status: string; depositStatus: string } }>('GET', '/stores/me')).store.depositStatus, 'RELEASED');
+  check('closure blocked for a store with balance; new store approved (DEPOSIT_HOLD) → close → admin approves → DEPOSIT_REFUND');
+
+  // ── Late payment after cancel → refund queue → finance completes ──
+  const buyer2 = new Client('raven2');
+  await buyer2.login('raven@email.com');
+  const { listings: forSale } = await guest.ok<{ listings: { id: string; status: string }[] }>('GET', '/listings?game=valorant&store=skyvault');
+  const lateTarget = forSale.find((l) => l.status === 'LISTED')!;
+  const { order: late } = await buyer2.ok<{ order: { id: string } }>('POST', '/orders', { catalogId: lateTarget.id });
+  const latePay = await buyer2.ok<{ invoice: string }>('POST', `/orders/${late.id}/pay`, { method: 'VA' });
+  await buyer2.ok('POST', `/orders/${late.id}/cancel`);
+  await pay(buyer2, latePay.invoice); // the VA is paid after all
+  const { refunds } = await finance.ok<{ refunds: { id: string; invoice: string; source: string }[] }>('GET', '/admin/refunds');
+  const lateRefund = refunds.find((r) => r.invoice === latePay.invoice)!;
+  assert.equal(lateRefund.source, 'PAID_AFTER_CANCEL');
+  await finance.ok('POST', `/admin/refunds/${lateRefund.id}/complete`, { note: 'Dikembalikan ke VA pembeli.' });
+  check('payment arriving after the order was cancelled → refund queue → finance completes it');
+
+  // ── Undelivered top-up: logged-in → Balance (points reversed); guest → refund queue ──
+  const nf = new Client('nightfall2');
+  await nf.login('nightfall@email.com');
+  const before = await nf.ok<{ user: { balance: number; loyaltyPoints: number } }>('GET', '/auth/me');
+  const blcTopup = await nf.ok<{ transaction: { id: string } }>('POST', '/topup/checkout', { productId: 'vp-475', userGameId: 'Night#REF', paymentMethod: 'BALANCE' });
+  await finance.ok('POST', `/admin/topups/${blcTopup.transaction.id}/refund`, { note: 'Item tidak masuk ke akun.' });
+  const after = await nf.ok<{ user: { balance: number; loyaltyPoints: number } }>('GET', '/auth/me');
+  assert.equal(after.user.balance, before.user.balance);
+  assert.equal(after.user.loyaltyPoints, before.user.loyaltyPoints);
+  const guestTopup = await guest.ok<{ transaction: { id: string }; payment: { redirectUrl: string } }>('POST', '/topup/checkout', {
+    productId: 'vp-475',
+    userGameId: 'Guest#1',
+    paymentMethod: 'QRIS',
+    contactEmail: 'tamu@example.test',
+  });
+  await pay(guest, invoiceOf(guestTopup.payment));
+  const refundedTo = await finance.ok<{ refundedTo: string }>('POST', `/admin/topups/${guestTopup.transaction.id}/refund`, { note: 'Item tidak masuk.' });
+  assert.equal(refundedTo.refundedTo, 'ORIGINAL');
+  const queue = await finance.ok<{ refunds: { source: string }[] }>('GET', '/admin/refunds');
+  assert.ok(queue.refunds.some((r) => r.source === 'TOPUP_UNDELIVERED'));
+  check('undelivered top-up: buyer gets Balance back (points reversed); guest refund queued');
+
+  // ── Balance adjustment (finance only) ──
+  const ravenBefore = await buyer2.ok<{ user: { balance: number } }>('GET', '/auth/me');
+  await support.fails('POST', `/admin/users/${raven.id}/balance-adjust`, { amount: 5_000, reason: 'Uji koreksi.' }, 403);
+  await finance.ok('POST', `/admin/users/${raven.id}/balance-adjust`, { amount: 5_000, reason: 'Kompensasi gangguan.' });
+  const ravenAfter = await buyer2.ok<{ user: { balance: number } }>('GET', '/auth/me');
+  assert.equal(ravenAfter.user.balance, ravenBefore.user.balance + 5_000);
+  const ledger = await buyer2.ok<{ ledger: { type: string }[] }>('GET', '/me/balance-ledger');
+  assert.equal(ledger.ledger[0]!.type, 'ADJUSTMENT');
+  check('Balance adjustment with ledger row (payouts:approve only)');
+
+  // ── Plan benefits: bulk actions (Pro+), analytics per plan ──
+  await verdant.fails('POST', '/stores/me/catalogs/bulk', { action: 'withdraw', ids: [lateTarget.id] }, 403);
+  const { catalogs: nusaListed } = await store.ok<{ catalogs: { id: string }[] }>('GET', '/stores/me/catalogs?status=LISTED');
+  const ids = nusaListed.slice(0, 2).map((c) => c.id);
+  if (ids.length > 0) {
+    const hidden = await store.ok<{ done: number }>('POST', '/stores/me/catalogs/bulk', { action: 'withdraw', ids });
+    assert.equal(hidden.done, ids.length);
+    const resubmitted = await store.ok<{ done: number }>('POST', '/stores/me/catalogs/bulk', { action: 'submit', ids });
+    assert.equal(resubmitted.done, ids.length);
+  }
+  const freeStats = await verdant.ok<{ tier: string; daily: unknown; funnel: unknown }>('GET', '/stores/me/analytics');
+  assert.equal(freeStats.tier, 'FREE');
+  assert.equal(freeStats.daily, null);
+  const proStats = await store.ok<{ tier: string; daily: unknown[]; byGame: unknown }>('GET', '/stores/me/analytics');
+  assert.ok(Array.isArray(proStats.daily) && proStats.byGame === null);
+  check(`plan benefits: bulk hide/submit (${ids.length} catalogs, Pro), Free blocked; analytics per plan`);
 
   console.log(`\nSemua ${step} langkah lulus.`);
 }

@@ -13,7 +13,8 @@
     "db:reset": "npx supabase db reset --workdir ..",
     "docs:tables": "tsx scripts/generate-table-docs.ts",
     "test:features": "tsx scripts/feature-test.ts",
-    "test:sweep": "tsx scripts/endpoint-sweep.ts"
+    "test:sweep": "tsx scripts/endpoint-sweep.ts",
+    "dev:sim": "tsx watch --env-file=.env --env-file=.env.simulation src/server.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

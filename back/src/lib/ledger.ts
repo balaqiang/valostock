@@ -6,7 +6,7 @@ import { one, run, type Tx } from '../db/pool.js';
 import { conflict } from './errors.js';
 import { notify } from './notify.js';
 
-export type StoreBucket = 'ESCROW' | 'AVAILABLE';
+export type StoreBucket = 'ESCROW' | 'AVAILABLE' | 'DEPOSIT';
 export type StoreLedgerType =
   | 'ESCROW_HOLD'
   | 'ESCROW_RELEASE'
@@ -18,27 +18,30 @@ export type StoreLedgerType =
   | 'TRANSFER'
   | 'TRANSFER_FEE'
   | 'PAYOUT_REVERSAL'
-  | 'ADJUSTMENT';
+  | 'ADJUSTMENT'
+  | 'DEPOSIT_HOLD'
+  | 'DEPOSIT_DEDUCTION'
+  | 'DEPOSIT_REFUND';
 
 export interface StoreMovement {
   bucket: StoreBucket;
   type: StoreLedgerType;
   /** Signed Rupiah: + in, − out. */
   amount: number;
-  refType: 'order' | 'withdrawal' | 'transfer' | 'dispute' | 'adjustment';
+  refType: 'order' | 'withdrawal' | 'transfer' | 'dispute' | 'adjustment' | 'deposit' | 'sanction';
   refId: string | null;
   note?: string;
 }
 
 export async function moveStoreBalance(tx: Tx, storeId: string, movements: StoreMovement[]) {
-  const row = await one<{ escrow: number; available: number }>(
+  const row = await one<{ escrow: number; available: number; deposit: number }>(
     tx,
-    'select escrow, available from store_balances where store_id = $1 for update',
+    'select escrow, available, deposit from store_balances where store_id = $1 for update',
     [storeId],
   );
   if (!row) throw conflict('Saldo toko belum dibuat (toko belum disetujui admin).', 'NO_STORE_BALANCE');
 
-  const balance = { ESCROW: row.escrow, AVAILABLE: row.available };
+  const balance = { ESCROW: row.escrow, AVAILABLE: row.available, DEPOSIT: row.deposit };
   for (const m of movements) {
     balance[m.bucket] += m.amount;
     if (balance[m.bucket] < 0) throw conflict('Saldo toko tidak mencukupi.', 'INSUFFICIENT_STORE_BALANCE');
@@ -49,12 +52,13 @@ export async function moveStoreBalance(tx: Tx, storeId: string, movements: Store
       [storeId, m.bucket, m.type, m.amount, balance[m.bucket], m.refType, m.refId, m.note ?? null],
     );
   }
-  await run(tx, 'update store_balances set escrow = $1, available = $2 where store_id = $3', [
+  await run(tx, 'update store_balances set escrow = $1, available = $2, deposit = $3 where store_id = $4', [
     balance.ESCROW,
     balance.AVAILABLE,
+    balance.DEPOSIT,
     storeId,
   ]);
-  return { escrow: balance.ESCROW, available: balance.AVAILABLE };
+  return { escrow: balance.ESCROW, available: balance.AVAILABLE, deposit: balance.DEPOSIT };
 }
 
 export type BalanceLedgerType =

@@ -8,6 +8,8 @@ import { notifyStore, notify } from '../../lib/notify.js';
 import { permissionsOf, requireUser } from '../../middlewares/auth.js';
 import { forbidden } from '../../lib/errors.js';
 import * as catalogs from '../catalogs/catalogs.service.js';
+import { moveStoreBalance } from '../../lib/ledger.js';
+import { applySanction } from '../store/sanctions.js';
 import { toStoreContext, type OwnStore } from '../store/store.context.js';
 import { admin, idParam, ipOf, optionalNote, reasonText } from './admin.guard.js';
 
@@ -21,11 +23,12 @@ adminModerationRouter.get('/admin/queue-counts', async (req, res) => {
     pool,
     `select
        (select count(*)::int from catalogs where status = 'PENDING_REVIEW') as catalogs,
-       (select count(*)::int from stores where status = 'PENDING_REVIEW') as stores,
+       (select count(*)::int from stores where status in ('PENDING_REVIEW', 'CLOSING')) as stores,
        (select count(*)::int from reports where status in ('OPEN', 'REVIEWING')) as reports,
        (select count(*)::int from disputes where status in ('OPEN', 'STORE_RESPONDED', 'IN_REVIEW')) as disputes,
        (select count(*)::int from withdrawals where status = 'PENDING') as withdrawals,
-       (select count(*)::int from transfer_requests where status = 'PENDING') as transfers`,
+       (select count(*)::int from transfer_requests where status = 'PENDING') as transfers,
+       (select count(*)::int from refunds where status = 'PENDING') as refunds`,
   );
   res.json({ counts, permissions: [...(await permissionsOf(user.id))].sort() });
 });
@@ -52,11 +55,12 @@ adminModerationRouter.get('/admin/dashboard', async (req, res) => {
       `select
          (select count(*)::int from catalogs where status = 'PENDING_REVIEW') as catalogs,
          (select count(*)::int from catalogs where status = 'PENDING_REVIEW' and submitted_at < now() - interval '24 hours') as catalogs_overdue,
-         (select count(*)::int from stores where status = 'PENDING_REVIEW') as stores,
+         (select count(*)::int from stores where status in ('PENDING_REVIEW', 'CLOSING')) as stores,
          (select count(*)::int from disputes where status in ('OPEN', 'STORE_RESPONDED', 'IN_REVIEW')) as disputes,
          (select count(*)::int from disputes where status = 'OPEN' and store_deadline < now()) as disputes_overdue,
          (select count(*)::int from withdrawals where status = 'PENDING') as withdrawals,
          (select count(*)::int from transfer_requests where status = 'PENDING') as transfers,
+       (select count(*)::int from refunds where status = 'PENDING') as refunds,
          (select count(*)::int from reports where status in ('OPEN', 'REVIEWING')) as reports`,
     ),
     all<{ id: number; action: string; target_type: string; target_id: string; created_at: string; actor_name: string | null }>(
@@ -149,7 +153,7 @@ adminModerationRouter.post('/admin/catalogs/:id/takedown', async (req, res) => {
 
 // ── Store verification ──
 
-const storeStatus = z.enum(['PENDING_DEPOSIT', 'PENDING_REVIEW', 'ACTIVE', 'REJECTED', 'SUSPENDED']);
+const storeStatus = z.enum(['PENDING_DEPOSIT', 'PENDING_REVIEW', 'ACTIVE', 'REJECTED', 'SUSPENDED', 'CLOSING', 'CLOSED']);
 
 adminModerationRouter.get('/admin/stores', async (req, res) => {
   await admin(req, 'stores:view');
@@ -184,7 +188,7 @@ adminModerationRouter.get('/admin/stores/:id', async (req, res) => {
       'select id, order_number, status, item_price, created_at from orders where store_id = $1 order by created_at desc limit 20',
       [id],
     ),
-    one<{ escrow: number; available: number }>(pool, 'select escrow, available from store_balances where store_id = $1', [id]),
+    one<{ escrow: number; available: number; deposit: number }>(pool, 'select escrow, available, deposit from store_balances where store_id = $1', [id]),
     all<{ id: number; bucket: string; type: string; amount: number; balance_after: number; note: string | null; created_at: string }>(
       pool,
       'select id, bucket, type, amount, balance_after, note, created_at from store_ledger where store_id = $1 order by id desc limit 30',
@@ -208,7 +212,7 @@ adminModerationRouter.get('/admin/stores/:id', async (req, res) => {
     subscription,
     catalogs: Object.fromEntries(catalogCounts.map((c) => [c.status, c.n])),
     orders: orders.map((o) => ({ id: o.id, number: o.order_number, status: o.status, itemPrice: o.item_price, date: o.created_at })),
-    balance: balance ?? { escrow: 0, available: 0 },
+    balance: balance ?? { escrow: 0, available: 0, deposit: 0 },
     ledger: ledger.map((l) => ({ id: String(l.id), bucket: l.bucket, type: l.type, amount: l.amount, balanceAfter: l.balance_after, note: l.note, date: l.created_at })),
     sanctions: sanctions.map((s) => ({ id: s.id, type: s.type, amount: s.amount, reason: s.reason, admin: s.admin_name, date: s.created_at })),
     history: history.map((h) => ({ id: h.id, action: h.action, detail: h.detail, actor: h.actor_name ?? 'Sistem', date: h.created_at })),
@@ -235,6 +239,17 @@ async function decideStore(adminUser: Awaited<ReturnType<typeof admin>>, id: str
     if (decision === 'approve') {
       await run(tx, 'insert into store_balances (store_id) values ($1) on conflict do nothing', [id]);
       await run(tx, 'insert into store_subscriptions (store_id) values ($1) on conflict do nothing', [id]);
+      // The paid deposit enters the store ledger (bucket DEPOSIT) — MONEY_RULES §12.
+      const dep = await one<{ deposit_amount: number; deposit_status: string; held: number }>(
+        tx,
+        'select s.deposit_amount, s.deposit_status, b.deposit as held from stores s join store_balances b on b.store_id = s.id where s.id = $1',
+        [id],
+      );
+      if (dep && dep.deposit_status === 'HELD' && dep.held === 0) {
+        await moveStoreBalance(tx, id, [
+          { bucket: 'DEPOSIT', type: 'DEPOSIT_HOLD', amount: dep.deposit_amount, refType: 'deposit', refId: id, note: 'Deposit keamanan toko' },
+        ]);
+      }
     }
     if (decision === 'suspend') {
       await run(tx, `insert into store_sanctions (store_id, type, reason, created_by) values ($1, 'SUSPEND', $2, $3)`, [id, note ?? 'Ditangguhkan admin', adminUser.id]);
@@ -276,6 +291,69 @@ adminModerationRouter.post('/admin/stores/:id/reactivate', async (req, res) => {
   const user = await admin(req, 'stores:suspend');
   const { note } = parse(z.object({ note: optionalNote }).strict(), req.body ?? {});
   await decideStore(user, parse(idParam, req.params.id), 'reactivate', note, ipOf(req));
+  res.json({ ok: true });
+});
+
+const sanctionSchema = z
+  .object({
+    type: z.enum(['WARNING', 'FINE', 'SUSPEND']),
+    amount: z.number().int().positive().max(100_000_000).optional(),
+    reason: reasonText,
+  })
+  .strict()
+  .refine((s) => s.type !== 'FINE' || s.amount !== undefined, { message: 'isi nilai denda', path: ['amount'] });
+
+/** Warning, fine (from the deposit) or suspension — MONEY_RULES §14. */
+adminModerationRouter.post('/admin/stores/:id/sanctions', async (req, res) => {
+  const user = await admin(req, 'stores:suspend');
+  const id = parse(idParam, req.params.id);
+  const input = parse(sanctionSchema, req.body);
+  const result = await withTransaction(async (tx) => {
+    const store = await one<{ status: string }>(tx, 'select status from stores where id = $1 for update', [id]);
+    if (!store) throw notFound('Toko');
+    if (!['ACTIVE', 'SUSPENDED'].includes(store.status)) throw conflict('Sanksi hanya untuk toko aktif atau ditangguhkan.', 'BAD_STATE');
+    if (input.type === 'SUSPEND' && store.status !== 'ACTIVE') throw conflict('Toko sudah ditangguhkan.', 'BAD_STATE');
+    const r = await applySanction(tx, user.id, id, input);
+    await audit(tx, { actorId: user.id, action: 'store.sanction', targetType: 'store', targetId: id, detail: { ...input, taken: r.taken }, ip: ipOf(req) });
+    return r;
+  });
+  res.status(201).json(result);
+});
+
+/** Closure request (store CLOSING): approve → CLOSED + deposit refund; reject → ACTIVE. */
+adminModerationRouter.post('/admin/stores/:id/close-decision', async (req, res) => {
+  const user = await admin(req, 'stores:verify');
+  const id = parse(idParam, req.params.id);
+  const { decision, note } = parse(z.object({ decision: z.enum(['approve', 'reject']), note: optionalNote }).strict(), req.body);
+  if (decision === 'reject' && !note) throw conflict('Alasan penolakan wajib diisi.', 'NOTE_REQUIRED');
+  await withTransaction(async (tx) => {
+    const store = await one<{ status: string }>(tx, 'select status from stores where id = $1 for update', [id]);
+    if (!store) throw notFound('Toko');
+    if (store.status !== 'CLOSING') throw conflict('Toko ini tidak sedang mengajukan penutupan.', 'BAD_STATE');
+    if (decision === 'approve') {
+      const bal = await one<{ escrow: number; available: number; deposit: number }>(tx, 'select escrow, available, deposit from store_balances where store_id = $1', [id]);
+      if ((bal?.escrow ?? 0) + (bal?.available ?? 0) > 0) throw conflict('Saldo toko belum nol — toko harus menarik dana dulu.', 'BALANCE_LEFT');
+      if (bal && bal.deposit > 0) {
+        await moveStoreBalance(tx, id, [
+          { bucket: 'DEPOSIT', type: 'DEPOSIT_REFUND', amount: -bal.deposit, refType: 'deposit', refId: id, note: 'Refund deposit (penutupan toko, disimulasikan)' },
+        ]);
+      }
+      await run(tx, `update stores set status = 'CLOSED', deposit_status = 'RELEASED', review_note = $1, reviewed_by = $2, reviewed_at = now() where id = $3`, [
+        note ?? 'Penutupan disetujui.',
+        user.id,
+        id,
+      ]);
+      await notifyStore(tx, id, {
+        title: 'Toko ditutup',
+        body: `Penutupan disetujui. Sisa deposit Rp${(bal?.deposit ?? 0).toLocaleString('id-ID')} dikembalikan ke metode pembayaran asal (disimulasikan).`,
+        link: '/sell',
+      });
+    } else {
+      await run(tx, `update stores set status = 'ACTIVE', review_note = $1, reviewed_by = $2, reviewed_at = now() where id = $3`, [note!, user.id, id]);
+      await notifyStore(tx, id, { title: 'Penutupan toko ditolak', body: `${note} Katalog tetap tersembunyi — ajukan ulang dari dashboard.`, link: '/store-dashboard/settings' });
+    }
+    await audit(tx, { actorId: user.id, action: `store.close_${decision}`, targetType: 'store', targetId: id, detail: { note }, ip: ipOf(req) });
+  });
   res.json({ ok: true });
 });
 

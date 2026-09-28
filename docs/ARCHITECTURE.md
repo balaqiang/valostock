@@ -112,14 +112,14 @@ Layering: `*.routes.ts` (zod validation, response shape) → `*.service.ts` (rul
 |---|---|---|
 | Auth | `POST auth/register · login · logout · forgot · reset · change-password`, `GET auth/me`, `PATCH auth/profile` | public / session |
 | Public | `GET games`, `games/:slug`, `games/:slug/fields`, `games/:slug/topup-products`, `stores`, `stores/:slug`, `listings?game&store&q&minPrice&maxPrice&sort&attr.<key>&min.<key>`, `listings/:id`, `home`, `help`, `help/:slug`, `news`, `news/:slug`; `POST listings/:id/view`, `help/:slug/helpful` | public |
-| Store owner | `POST stores`, `GET/PATCH stores/me`, `POST stores/me/deposit`, `GET stores/me/dashboard · analytics · balance · withdrawals · subscription · ratings · orders · offers · disputes · conversations`, catalogs `GET/POST stores/me/catalogs`, `GET/PATCH/DELETE …/:id`, `POST …/:id/images · submit · withdraw · inspection`, `DELETE …/:id/images/:imageId`, promotions `stores/me/vouchers · flash-sales · bundles · ads`, resellers `stores/me/external-sellers · transfers`, `POST stores/me/withdrawals · subscription` | owner of the store (never by id from the URL) |
+| Store owner | `POST stores`, `GET/PATCH stores/me`, `POST stores/me/deposit`, `GET stores/me/dashboard · analytics · balance · withdrawals · subscription · ratings · orders · offers · disputes · conversations`, catalogs `GET/POST stores/me/catalogs`, `GET/PATCH/DELETE …/:id`, `POST …/:id/images · submit · withdraw · inspection`, `DELETE …/:id/images/:imageId`, promotions `stores/me/vouchers · flash-sales · bundles · ads`, resellers `stores/me/external-sellers · transfers`, `POST stores/me/withdrawals · subscription · close · deposit-topup · catalogs/bulk` | owner of the store (never by id from the URL) |
 | Buying | `GET catalogs/:id/buy-context`, `POST offers`, `POST offers/:id/accept · counter · reject · accept-counter · cancel`, `POST catalogs/:id/lock`, `POST orders`, `GET orders/:id`, `POST orders/:id/pay · cancel · safe · complete · rating · dispute`, `GET/POST orders/:id/messages` | buyer / store owner / admin of that order |
 | Disputes | `GET disputes/:id`, `POST disputes/:id/events · cancel` | the two parties or an admin |
 | Buyer data | `GET me/orders · offers · disputes · wishlist · following · recently-viewed · recommendations · notifications · points · referral · reports · transactions · balance-ledger`; wishlist/follow/notification/points writes | session |
 | Chat & reports | `GET/POST chat/conversations`, `GET/POST chat/conversations/:id/messages`, `POST reports` | participants / session |
 | Top-up | `GET topup/promo`, `POST topup/checkout`, `GET topup/invoice?q`, `POST balance/topup` | public / session |
 | Payments | `GET payments/:invoice/status`, `POST payments/:invoice/simulate` (simulation mode only), `POST webhooks/midtrans` | public (state comes from Midtrans) |
-| Admin | `admin/queue-counts · dashboard`, `admin/catalogs(/:id)(/approve|reject|takedown)`, `admin/stores(/:id)(/approve|reject|suspend|reactivate|level)`, `admin/reports(/:id)`, `admin/orders(/:id/cancel)`, `admin/disputes(/:id/resolve)`, `admin/topups · payments · finance · ads(/:id/stop)`, `admin/withdrawals/:id · transfers/:id`, `admin/games(/:id)(/fields) · fields/:id · topup-products · promo-codes · news · help`, `admin/users(/:id)(/ban|unban) · admins(/:id/roles) · audit · analytics` | `requirePermission('<modul:aksi>')` per ADMIN_PANEL §2 |
+| Admin | `admin/queue-counts · dashboard`, `admin/catalogs(/:id)(/approve|reject|takedown)`, `admin/stores(/:id)(/approve|reject|suspend|reactivate|level)`, `admin/reports(/:id)`, `admin/orders(/:id/cancel)`, `admin/disputes(/:id/resolve)`, `admin/topups · payments · finance · ads(/:id/stop)`, `admin/withdrawals/:id · transfers/:id · refunds(/:id/complete)`, `admin/topups/:id/refund`, `admin/users/:id/balance-adjust`, `admin/stores/:id/sanctions · close-decision`, `admin/games(/:id)(/fields) · fields/:id · topup-products · promo-codes · news · help`, `admin/users(/:id)(/ban|unban) · admins(/:id/roles) · audit · analytics` | `requirePermission('<modul:aksi>')` per ADMIN_PANEL §2 |
 
 Tests: `npm run test:smoke` (14 end-to-end steps), `npm run test:features` (9 steps: flash sale, voucher, bundle, reseller transfer, lock, ads, reports, master data, ban/RBAC), `npm run test:sweep` (every read endpoint per role).
 
@@ -171,7 +171,24 @@ Unchanged from v7: one `payments` row per payment, `purpose` ∈ `TOPUP · BALAN
 
 ### 5.4 Store verification
 
-Profile → deposit (Midtrans) → `PENDING_REVIEW` → admin approves (`ACTIVE`) or rejects with a note. No KYC provider.
+Profile → deposit (Midtrans) → `PENDING_REVIEW` → admin approves (`ACTIVE`, deposit booked as `DEPOSIT_HOLD`) or rejects with a note. No KYC provider.
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING_DEPOSIT: store profile
+    PENDING_DEPOSIT --> PENDING_REVIEW: deposit PAID
+    PENDING_REVIEW --> ACTIVE: admin approves
+    PENDING_REVIEW --> REJECTED: admin rejects + reason
+    ACTIVE --> SUSPENDED: admin sanction / report
+    SUSPENDED --> ACTIVE: admin reactivates
+    ACTIVE --> CLOSING: store requests closure (nothing pending, balance withdrawn)
+    CLOSING --> CLOSED: admin approves (DEPOSIT_REFUND)
+    CLOSING --> ACTIVE: admin rejects + reason
+```
+
+### 5.5 Refunds and corrections
+
+Money that arrives for something that no longer exists goes to the `refunds` queue (order paid after cancel, lock paid for an unavailable account, undelivered top-up of a guest); an admin completes it (Midtrans refund simulated). Undelivered top-ups of logged-in buyers are refunded to Balance. Admins can correct a Balance (`ADJUSTMENT`) and fine a store from its deposit (`DEPOSIT_DEDUCTION`). All of it is ledger + audit.
 
 ---
 

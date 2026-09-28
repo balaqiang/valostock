@@ -199,7 +199,7 @@ async function gameFor(slug: string) {
 }
 
 export async function createCatalog(store: OwnStore, input: CatalogInput) {
-  if (store.status === 'REJECTED' || store.status === 'SUSPENDED') throw conflict('Toko tidak bisa menambah katalog saat ini.', 'STORE_BLOCKED');
+  if (['REJECTED', 'SUSPENDED', 'CLOSING', 'CLOSED'].includes(store.status)) throw conflict('Toko tidak bisa menambah katalog saat ini.', 'STORE_BLOCKED');
   assertNoContact(input.title, input.description);
   const { game, templates } = await gameFor(input.gameSlug);
   const attributes = validateAttributes(templates, input.attributes ?? {}, false);

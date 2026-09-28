@@ -56,7 +56,7 @@ Version 4.0 (v8) · Next.js 16 web (`front/`) over the Express API (`back/`) · 
 │   ├── subscription  ads           Free / Pro / Business · featured listings (free first week, plan slots, paid)
 │   ├── vouchers  flash-sales  bundles
 │   ├── external-sellers · external-sellers/[id]   Reseller stores only: sellers + transfer requests
-│   ├── homepage-editor  settings   Storefront banner/description · profile & verification data
+│   ├── homepage-editor  settings   Storefront banner/description · profile, verification, deposit top-up, request closure
 │   ├── analytics  ratings  chat  notifications
 │
 └── admin/                          ADMIN PANEL (ADMIN_PANEL.md)                                                     admin:<perm>
@@ -67,7 +67,7 @@ Version 4.0 (v8) · Next.js 16 web (`front/`) over the Express API (`back/`) · 
     ├── orders                      orders:view / intervene   (detail = /orders/[id])
     ├── disputes                    disputes:resolve          (detail = /disputes/[id])
     ├── topups  payments            payments:view
-    ├── withdrawals  transfers  finance   finance:view · payouts:approve
+    ├── withdrawals  transfers  refunds  finance   finance:view / payments:view · payouts:approve
     ├── ads                         ads:manage
     ├── games · games/[id]  topup-products  promo-codes   master:manage
     ├── news  help                  content:manage
@@ -137,7 +137,7 @@ Single-page wizard: **profile** (name, type Owner/Reseller, owner legal name as 
 
 | Page | Contents | Key rules |
 |---|---|---|
-| Catalogs | Tabs per status (Draft · Menunggu Verifikasi · Ditolak · Tayang · Dalam Pesanan · Terjual · Diturunkan) | Only admin-approved catalogs are sold |
+| Catalogs | Tabs per status (Draft · Menunggu Verifikasi · Ditolak · Tayang · Dalam Pesanan · Terjual · Diturunkan); **bulk submit / hide** for Pro & Business | Only admin-approved catalogs are sold |
 | Catalog form | Game → **fields from the admin-managed template**, title, description, price, crossed-out price, instant; photos (≤ 10, ≤ 2 MB, PNG/JPG/WebP) | Required fields + ≥ 1 photo + plan quota to submit; VS code issued at first submission; edits of a LISTED catalog go back to review; no contact details / off-platform links |
 | Inspection | 5-item login-only checklist, notes, private media | All ticked = PASSED → Account Checked badge |
 | Offers | Pending + history | Offer valid 24 h; agreed price valid 24 h |
@@ -147,7 +147,9 @@ Single-page wizard: **profile** (name, type Owner/Reseller, owner legal name as 
 | Ads | Free first week (once), plan slots, paid 1/3/7/14/30 days | Featured listings go first in search and on the home page |
 | Vouchers · Flash sales · Bundles | CRUD | Flash sale ≤ 7 days; bundle 2–5 accounts, cheaper than the sum |
 | External sellers | Reseller stores only | One transfer per completed order, fee Rp4.000, admin approves |
-| Ratings · Chat · Notifications · Analytics · Etalase · Settings | — | Reply to each review once; chat blocks contact details |
+| Analytics | Free: funnel · Pro: + daily GMV, most viewed · Business: + sales per game | Tier from the subscription |
+| Settings | Profile, verification data, deposit (top up a shortfall), **request closure** | Closure needs no pending orders/disputes/payouts, balance withdrawn; admin decides and refunds the deposit |
+| Ratings · Chat · Notifications · Etalase | — | Reply to each review once; chat blocks contact details |
 
 ---
 

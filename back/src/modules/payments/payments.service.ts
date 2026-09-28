@@ -87,6 +87,9 @@ export async function openPaymentPage(
 /**
  * Applies a final result exactly once: the payment row is locked and only
  * moves out of PENDING; the business record changes in the same transaction.
+ * A payment we already closed locally (FAILED/EXPIRED — e.g. its order was
+ * cancelled) that Midtrans still reports as PAID is recorded as PAID and put
+ * straight into the refund queue (MONEY_RULES §12b) — money is never kept silently.
  */
 export async function applyResult(
   invoice: string,
@@ -96,7 +99,9 @@ export async function applyResult(
   return withTransaction(async (tx) => {
     const payment = await findByInvoice(tx, invoice, true);
     if (!payment) throw notFound('Pembayaran');
-    if (payment.status !== 'PENDING' || result === 'PENDING') return payment;
+    if (payment.status === 'PAID' || result === 'PENDING') return payment;
+    const late = payment.status !== 'PENDING';
+    if (late && result !== 'PAID') return payment;
 
     if (result === 'PAID' && info.grossAmount !== null && info.grossAmount !== payment.amount) {
       await audit(tx, {
@@ -116,16 +121,30 @@ export async function applyResult(
        where id = $4`,
       [result, info.transactionId, info.paymentType, payment.id],
     );
+    if (late) {
+      await run(
+        tx,
+        `insert into refunds (payment_id, user_id, amount, source, reference) values ($1, $2, $3, 'PAID_AFTER_CANCEL', $4)
+         on conflict (payment_id) do nothing`,
+        [payment.id, payment.user_id, payment.amount, payment.midtrans_order_id],
+      );
+      await audit(tx, { actorId: null, action: 'payment.late_paid', targetType: 'payment', targetId: payment.id, detail: { previous: payment.status } });
+      return { ...payment, status: result };
+    }
     await settle(tx, payment, result);
     return { ...payment, status: result };
   });
 }
 
-/** Ask Midtrans for the real status of a PENDING payment and apply it. */
-export async function syncPayment(invoice: string): Promise<PaymentRow> {
+/**
+ * Ask Midtrans for the real status and apply it. Normally only PENDING payments;
+ * `includeClosed` (signed webhooks) also checks locally closed ones for late payments.
+ */
+export async function syncPayment(invoice: string, includeClosed = false): Promise<PaymentRow> {
   const payment = await findByInvoice(pool, invoice);
   if (!payment) throw notFound('Pembayaran');
-  if (payment.status !== 'PENDING' || env.PAYMENT_MODE !== 'midtrans') return payment;
+  if (env.PAYMENT_MODE !== 'midtrans' || payment.status === 'PAID') return payment;
+  if (payment.status !== 'PENDING' && !includeClosed) return payment;
   const status = await midtrans.getTransactionStatus(invoice);
   return applyResult(invoice, status.result, status);
 }
@@ -179,6 +198,6 @@ export async function handleNotification(body: Record<string, unknown>): Promise
   // Duplicate notification or forged/unknown one → nothing to do.
   if (inserted === 0 || !signatureValid || !payment) return;
 
-  await syncPayment(payment.midtrans_order_id);
+  await syncPayment(payment.midtrans_order_id, true);
   await run(pool, `update webhook_events set processed = true where source = 'MIDTRANS' and external_id = $1`, [externalId]);
 }

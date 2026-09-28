@@ -26,6 +26,7 @@ Tabel yang berhubungan erat digabung dalam satu data store supaya diagram tetap 
 | D18 | Interaksi | `wishlists`, `store_follows`, `recently_viewed`, `conversations`, `chat_messages` |
 | D19 | Notifikasi & Loyalitas | `notifications`, `loyalty_ledger`, `referral_rewards` |
 | D20 | Konten & Log | `news_articles`, `help_articles`, `reports`, `audit_logs` |
+| D21 | Refund | `refunds` |
 
 ---
 
@@ -34,7 +35,7 @@ Tabel yang berhubungan erat digabung dalam satu data store supaya diagram tetap 
 | No | Proses | Ringkasan |
 |---|---|---|
 | 1.0 | Autentikasi & Profil | Registrasi (dengan kode referral), login, reset password (Supabase Auth), ubah profil |
-| 2.0 | Pendaftaran & Verifikasi Toko | Profil toko → deposit → verifikasi manual admin |
+| 2.0 | Pendaftaran, Deposit & Penutupan Toko | Profil toko → deposit → verifikasi manual admin; denda dari deposit; permintaan tutup toko → refund deposit |
 | 3.0 | Katalog & Moderasi | Toko membuat katalog + foto + atribut per game, mengajukan; admin memverifikasi; publik mencari katalog LISTED |
 | 4.0 | Top-up & Balance | Top-up game, promo, isi Balance, bayar dengan Balance, cek invoice |
 | 5.0 | Pembayaran | Midtrans Snap / simulasi; status dari Midtrans; penerapan status lunas |
@@ -42,7 +43,7 @@ Tabel yang berhubungan erat digabung dalam satu data store supaya diagram tetap 
 | 7.0 | Sengketa & Penilaian | Sengketa 72 jam + putusan admin; rating + skor layanan + balasan toko |
 | 8.0 | Keuangan & Promosi Toko | Penarikan, penjual eksternal + transfer, langganan, iklan, voucher, flash sale, bundle |
 | 9.0 | Interaksi & Loyalitas | Wishlist, ikuti toko, baru dilihat, chat toko, notifikasi, poin, hadiah referral |
-| 10.0 | Administrasi & Konten | Keputusan admin (toko, katalog, sengketa, pencairan, laporan), data master, CMS, RBAC, audit |
+| 10.0 | Administrasi & Konten | Keputusan admin (toko, katalog, sengketa, pencairan, refund, laporan), penyesuaian Balance, data master, CMS, RBAC, audit |
 
 ```mermaid
 flowchart LR
@@ -78,6 +79,7 @@ flowchart LR
     D17[(D17 Pencairan)]
     D19[(D19 Notifikasi & Loyalitas)]
     D20[(D20 Konten & Log)]
+    D21[(D21 Refund)]
 
     P -- "registrasi / login" --> P1
     T -- "registrasi / login" --> P1
@@ -86,6 +88,8 @@ flowchart LR
     T -- "profil toko, deposit" --> P2
     P2 --> D3
     P2 -- "tagihan deposit" --> P5
+    T -- "minta tutup toko" --> P2
+    P2 -- "DEPOSIT_HOLD / DEDUCTION / REFUND" --> D4
 
     T -- "katalog, foto, atribut, pengajuan" --> P3
     D5 -- "template kolom per game" --> P3
@@ -106,6 +110,7 @@ flowchart LR
     P5 -- "lunas" --> P4
     P5 -- "lunas" --> P6
     P5 -- "lunas" --> P8
+    P5 -- "lunas tanpa tujuan (batal / lock gagal)" --> D21
 
     P -- "tawar, beli, konfirmasi" --> P6
     T -- "respon tawar, kirim akun" --> P6
@@ -136,6 +141,9 @@ flowchart LR
     P10 -- "setujui / tolak katalog" --> D7
     P10 -- "putusan sengketa" --> D11
     P10 -- "setujui pencairan" --> D17
+    P10 -- "selesaikan refund" --> D21
+    P10 -- "refund top-up / penyesuaian" --> D15
+    P10 -- "denda, putusan tutup toko" --> P2
     P10 <--> D20
     P10 -- "antrean & laporan" --> A
 ```
@@ -188,6 +196,8 @@ flowchart LR
 - VS code diterbitkan saat katalog pertama kali diajukan (unik, anti double-sell).
 - Penolakan wajib disertai alasan. Toko memperbaiki lalu mengajukan ulang (kembali ke 3.2).
 - Katalog `LISTED` yang diubah pada judul, harga, foto, atau atribut kembali ke `PENDING_REVIEW`.
+- Toko boleh menarik pengajuan (`PENDING_REVIEW → DRAFT`) atau menyembunyikan katalog `LISTED` (`DELISTED`). Toko berstatus `PENDING_REVIEW` sudah boleh menyiapkan draf, tetapi baru bisa mengajukan setelah `ACTIVE`.
+- Toko paket Pro/Business dapat mengajukan atau menyembunyikan banyak katalog sekaligus (aksi massal).
 - Publik (3.4) hanya melihat katalog `LISTED` (dan yang sedang dikunci transaksi) dari toko `ACTIVE`.
 
 ---
@@ -331,3 +341,57 @@ flowchart LR
 ```
 
 Balance bersifat **closed-loop**: hanya untuk top-up, tidak bisa ditarik tunai, tidak bisa membeli akun, dan tidak bisa ditransfer ke pengguna lain.
+
+**Refund top-up:** jika item tidak masuk, admin menandai invoice `REFUNDED`; pembeli yang login menerima `REFUND_CREDIT` ke Balance (poin invoice itu ditarik), pembeli tamu masuk antrean refund (D21) ke metode bayar asal.
+
+---
+
+## 2.6 DFD Level 2 — Proses 2.0 Deposit & Penutupan Toko
+
+```mermaid
+flowchart LR
+    T[Toko]
+    A[Admin]
+    P5((5.0<br/>Pembayaran))
+
+    P21((2.1 Profil<br/>toko))
+    P22((2.2 Bayar<br/>deposit))
+    P23((2.3 Verifikasi<br/>admin))
+    P24((2.4 Denda<br/>deposit))
+    P25((2.5 Minta<br/>tutup toko))
+    P26((2.6 Putusan<br/>penutupan))
+
+    D3[(D3 Toko)]
+    D4[(D4 Saldo Toko)]
+    D6[(D6 Katalog)]
+    D9[(D9 Pesanan)]
+    D17[(D17 Pencairan)]
+    D20[(D20 Log Audit)]
+
+    T -- "nama, tipe, nama KTP" --> P21
+    P21 -- "PENDING_DEPOSIT" --> D3
+    T -- "bayar Rp500.000 / kekurangan" --> P22
+    P22 -- "tagihan" --> P5
+    P5 -- "lunas" --> P22
+    P22 -- "PENDING_REVIEW" --> D3
+    A -- "setujui / tolak + alasan" --> P23
+    P23 -- "ACTIVE / REJECTED" --> D3
+    P23 -- "DEPOSIT_HOLD" --> D4
+    A -- "denda + alasan" --> P24
+    P24 -- "DEPOSIT_DEDUCTION" --> D4
+    P24 -- "sanksi" --> D3
+    T -- "tutup toko" --> P25
+    D9 -- "tidak ada pesanan aktif / proteksi" --> P25
+    D17 -- "tidak ada pencairan tertunda" --> P25
+    D4 -- "escrow & tersedia = 0" --> P25
+    P25 -- "CLOSING" --> D3
+    P25 -- "katalog disembunyikan" --> D6
+    A -- "setujui / tolak + alasan" --> P26
+    P26 -- "CLOSED / ACTIVE" --> D3
+    P26 -- "DEPOSIT_REFUND" --> D4
+    P23 --> D20
+    P24 --> D20
+    P26 --> D20
+```
+
+**Aturan:** deposit dicatat sebagai kantong `DEPOSIT` di saldo toko. Denda tidak pernah melebihi deposit yang ditahan; jika deposit kurang dari Rp500.000, badge *Deposit Secured* hilang dan toko bisa membayar kekurangannya. Penutupan hanya bisa diminta bila semua pesanan selesai dan lewat masa proteksi, tidak ada sengketa terbuka, tidak ada penarikan/transfer tertunda, dan saldo sudah ditarik.

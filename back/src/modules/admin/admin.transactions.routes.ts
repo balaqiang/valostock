@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { all, one, pool, run, withTransaction } from '../../db/pool.js';
 import { audit } from '../../lib/audit.js';
 import { conflict, notFound, parse } from '../../lib/errors.js';
-import { moveStoreBalance } from '../../lib/ledger.js';
-import { notifyStore } from '../../lib/notify.js';
+import { movePoints, moveStoreBalance, moveUserBalance } from '../../lib/ledger.js';
+import { notify, notifyStore } from '../../lib/notify.js';
 import * as disputes from '../disputes/disputes.service.js';
 import * as orders from '../orders/orders.service.js';
 import { toTransfer, toWithdrawal, TRANSFER_SELECT, type TransferRow, type WithdrawalRow } from '../store/store.routes.js';
@@ -151,6 +151,108 @@ adminTransactionsRouter.get('/admin/payments', async (req, res) => {
       receivedAt: w.received_at,
     })),
   });
+});
+
+// ── Refunds (MONEY_RULES §12b) ──
+
+adminTransactionsRouter.get('/admin/refunds', async (req, res) => {
+  await admin(req, 'payments:view');
+  const { status } = parse(z.object({ status: z.enum(['PENDING', 'COMPLETED', 'ALL']).default('PENDING') }).strict(), req.query);
+  const rows = await all<{ id: string; amount: number; source: string; reference: string; status: string; note: string | null; created_at: string; handled_at: string | null; invoice: string; method: string; user_email: string | null; handler: string | null }>(
+    pool,
+    `select r.*, p.midtrans_order_id as invoice, p.payment_method as method, u.email as user_email, h.name as handler
+     from refunds r join payments p on p.id = r.payment_id left join profiles u on u.id = r.user_id left join profiles h on h.id = r.handled_by
+     where ($1::refund_status is null or r.status = $1) order by r.created_at asc limit 200`,
+    [status === 'ALL' ? null : status],
+  );
+  res.json({
+    refunds: rows.map((r) => ({
+      id: r.id,
+      amount: r.amount,
+      source: r.source,
+      reference: r.reference,
+      invoice: r.invoice,
+      method: r.method,
+      user: r.user_email,
+      status: r.status,
+      note: r.note,
+      handler: r.handler,
+      createdAt: r.created_at,
+      handledAt: r.handled_at,
+    })),
+  });
+});
+
+adminTransactionsRouter.post('/admin/refunds/:id/complete', async (req, res) => {
+  const user = await admin(req, 'payouts:approve');
+  const id = parse(idParam, req.params.id);
+  const { note } = parse(z.object({ note: reasonText }).strict(), req.body);
+  await withTransaction(async (tx) => {
+    const r = await one<{ status: string; user_id: string | null; amount: number; reference: string }>(tx, 'select status, user_id, amount, reference from refunds where id = $1 for update', [id]);
+    if (!r) throw notFound('Refund');
+    if (r.status !== 'PENDING') throw conflict('Refund ini sudah diproses.', 'BAD_STATE');
+    await run(tx, `update refunds set status = 'COMPLETED', note = $1, handled_by = $2, handled_at = now() where id = $3`, [note, user.id, id]);
+    await audit(tx, { actorId: user.id, action: 'refund.complete', targetType: 'refund', targetId: id, detail: { note, amount: r.amount }, ip: ipOf(req) });
+    if (r.user_id) {
+      await notify(tx, r.user_id, {
+        kind: 'SYSTEM',
+        title: 'Dana dikembalikan',
+        body: `Rp${r.amount.toLocaleString('id-ID')} untuk ${r.reference} dikembalikan ke metode pembayaran asal (disimulasikan).`,
+        link: null,
+      });
+    }
+  });
+  res.json({ ok: true });
+});
+
+/**
+ * Undelivered top-up (MONEY_RULES §8b): logged-in buyer → Balance (REFUND_CREDIT,
+ * earned points reversed); guest → refund queue to the original method.
+ */
+adminTransactionsRouter.post('/admin/topups/:id/refund', async (req, res) => {
+  const user = await admin(req, 'payouts:approve');
+  const id = parse(idParam, req.params.id);
+  const { note } = parse(z.object({ note: reasonText }).strict(), req.body);
+  const result = await withTransaction(async (tx) => {
+    const t = await one<{ id: string; status: string; user_id: string | null; amount: number; invoice_number: string }>(
+      tx,
+      'select id, status, user_id, amount, invoice_number from topup_orders where id = $1 for update',
+      [id],
+    );
+    if (!t) throw notFound('Invoice');
+    if (!['PAID', 'PROCESSING', 'SUCCESS'].includes(t.status)) throw conflict('Hanya invoice yang sudah dibayar yang bisa direfund.', 'BAD_STATE');
+    await run(tx, `update topup_orders set status = 'REFUNDED' where id = $1`, [t.id]);
+    let to: 'BALANCE' | 'ORIGINAL';
+    if (t.user_id) {
+      to = 'BALANCE';
+      await moveUserBalance(tx, t.user_id, { type: 'REFUND_CREDIT', amount: t.amount, reference: t.invoice_number });
+      const earned = await one<{ points: number }>(tx, `select coalesce(sum(points), 0)::int as points from loyalty_ledger where user_id = $1 and reference = $2 and type = 'EARN'`, [
+        t.user_id,
+        t.invoice_number,
+      ]);
+      const current = await one<{ loyalty_points: number }>(tx, 'select loyalty_points from profiles where id = $1', [t.user_id]);
+      const reverse = Math.min(earned?.points ?? 0, current?.loyalty_points ?? 0);
+      if (reverse > 0) await movePoints(tx, t.user_id, { type: 'ADJUSTMENT', points: -reverse, reference: `REFUND ${t.invoice_number}` });
+      await notify(tx, t.user_id, {
+        kind: 'SYSTEM',
+        title: 'Top-up direfund ke Balance',
+        body: `${t.invoice_number}: Rp${t.amount.toLocaleString('id-ID')} masuk ke Balance. ${note}`,
+        link: '/balance/history',
+      });
+    } else {
+      to = 'ORIGINAL';
+      const payment = await one<{ id: string }>(tx, `select id from payments where purpose = 'TOPUP' and ref_id = $1 and status = 'PAID'`, [t.id]);
+      if (!payment) throw conflict('Pembayaran invoice ini tidak ditemukan.', 'NO_PAYMENT');
+      await run(
+        tx,
+        `insert into refunds (payment_id, user_id, amount, source, reference) values ($1, null, $2, 'TOPUP_UNDELIVERED', $3) on conflict (payment_id) do nothing`,
+        [payment.id, t.amount, t.invoice_number],
+      );
+    }
+    await audit(tx, { actorId: user.id, action: 'topup.refund', targetType: 'topup_order', targetId: t.id, detail: { note, to, amount: t.amount }, ip: ipOf(req) });
+    return to;
+  });
+  res.json({ ok: true, refundedTo: result });
 });
 
 // ── Withdrawals & transfers (maker-checker; Iris simulated) ──

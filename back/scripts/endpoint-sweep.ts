@@ -1,7 +1,8 @@
 // Calls every read endpoint once per role and reports non-2xx answers.
 // Catches SQL/shape errors in routes the smoke test doesn't walk through.
 //   npx tsx scripts/endpoint-sweep.ts   (API running, seeded database)
-const API = process.env.API_URL ?? 'http://localhost:4000/api';
+import { resolveApi } from './api-url.ts';
+const API = await resolveApi();
 
 async function login(email: string): Promise<string> {
   const res = await fetch(`${API}/auth/login`, {
@@ -68,6 +69,8 @@ async function main() {
     '/admin/admins',
     '/admin/audit?action=catalog',
     '/admin/analytics',
+    '/admin/refunds?status=ALL',
+    '/admin/stores?status=CLOSING',
   ]);
 
   const nusa = await login('nusagame@email.com');
