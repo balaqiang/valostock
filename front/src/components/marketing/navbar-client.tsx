@@ -153,12 +153,12 @@ function AuthActions({ solid }: { solid: boolean }) {
     <>
       {user.role === "ADMIN" && (
         <Link
-          href="/admin/analytics"
-          aria-label="Analytics akun game"
+          href="/admin/stores"
+          aria-label="Panel admin"
           className={`hidden h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors duration-200 md:inline-flex ${quiet}`}
         >
           <BarChart3 className="h-4 w-4" />
-          <span className="hidden xl:inline">Analytics</span>
+          <span className="hidden xl:inline">Admin</span>
         </Link>
       )}
       <Link
@@ -311,9 +311,8 @@ export function NavbarClient({
               {(user
                 ? [
                     { label: "Akun Saya", href: "/account" },
-                    ...(user.role === "ADMIN"
-                      ? [{ label: "Analytics Akun Game", href: "/admin/analytics" }]
-                      : []),
+                    { label: "Toko Saya", href: "/sell" },
+                    ...(user.role === "ADMIN" ? [{ label: "Panel Admin", href: "/admin/stores" }] : []),
                   ]
                 : [{ label: "Masuk", href: "/login" }]
               ).map((link) => (

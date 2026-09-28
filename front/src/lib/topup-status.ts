@@ -9,6 +9,7 @@ export const topupStatusConfig: Record<string, { label: string; variant: BadgeVa
   PENDING: { label: "Menunggu Pembayaran", variant: "warning" },
   PROCESSING: { label: "Sedang Diproses", variant: "warning" },
   FAILED: { label: "Gagal", variant: "destructive" },
+  EXPIRED: { label: "Kedaluwarsa", variant: "destructive" },
   REFUNDED: { label: "Direfund", variant: "secondary" },
 };
 

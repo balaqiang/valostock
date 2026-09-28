@@ -18,7 +18,7 @@ export default async function StoreBalancePage() {
     <div>
       <PageHeader
         title="Saldo & Penarikan"
-        description="Dana hasil penjualan tercatat di saldo tokomu: ditahan (escrow) sampai akun aman + 5 jam, lalu masuk ke saldo tersedia. Penarikan dikirim lewat Midtrans Iris."
+        description="Dana hasil penjualan tercatat di saldo tokomu: ditahan (escrow) sampai pembeli menekan Selesai, lalu masuk ke saldo tersedia (dikurangi komisi 5%). Penarikan disetujui admin."
       />
 
       {/* Balance cards */}
@@ -35,7 +35,7 @@ export default async function StoreBalancePage() {
         <div className="rounded-2xl border border-border bg-surface p-6">
           <p className="flex items-center gap-2 text-xs uppercase tracking-wider text-text-secondary">
             <Timer className="h-4 w-4 text-primary" />
-            Ditahan escrow (rilis 5 jam setelah aman)
+            Ditahan escrow (sampai pesanan selesai)
           </p>
           <p className="num mt-2 font-display text-3xl font-bold text-text">
             {formatRupiah(escrow)}
@@ -45,7 +45,7 @@ export default async function StoreBalancePage() {
 
       {/* Withdraw */}
       <div className="mt-6">
-        <WithdrawForm kycName={store.kycName} availableBalance={available} />
+        <WithdrawForm ownerLegalName={store.ownerLegalName} availableBalance={available} />
       </div>
 
       {/* History */}
@@ -101,18 +101,16 @@ export default async function StoreBalancePage() {
                       variant={
                         withdrawal.status === "COMPLETED"
                           ? "success"
-                          : withdrawal.status === "FAILED"
+                          : withdrawal.status === "REJECTED"
                             ? "destructive"
-                            : "secondary"
+                            : "warning"
                       }
                     >
                       {withdrawal.status === "COMPLETED"
                         ? "Selesai"
-                        : withdrawal.status === "PROCESSING"
-                          ? "Diproses"
-                          : withdrawal.status === "FAILED"
-                            ? "Gagal — dana kembali"
-                            : "Validasi"}
+                        : withdrawal.status === "REJECTED"
+                          ? "Ditolak — dana kembali"
+                          : "Menunggu admin"}
                     </Badge>
                   </td>
                 </tr>
@@ -121,8 +119,8 @@ export default async function StoreBalancePage() {
           </table>
         </div>
         <p className="mt-2 text-xs text-text-secondary">
-          Penarikan gagal otomatis kembali ke saldo tersedia — perbaiki data
-          rekening lalu ajukan ulang.
+          Penarikan yang ditolak admin otomatis kembali ke saldo tersedia —
+          perbaiki data rekening lalu ajukan ulang. (Transfer bank disimulasikan di prototype.)
         </p>
       </section>
     </div>

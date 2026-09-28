@@ -12,7 +12,7 @@ export const buyerProfile = {
   phone: "+62 812-3456-7890",
   email: "nightfall@email.com",
   language: "Bahasa Indonesia",
-  /** Buyer KYC is optional — never required (docs/SITEMAP.md §5.4). */
+  /** Buyers never need identity verification (docs/SITEMAP.md §5.4). */
   kycVerified: false,
   twofaEnabled: false,
   loyaltyPoints: 1_250,

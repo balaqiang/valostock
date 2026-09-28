@@ -13,8 +13,8 @@ import { PageHeader } from "@/components/account/bits";
 import { requireUser } from "@/lib/auth";
 import { customerIdFor, formatDbDateTime } from "@/lib/format";
 
-// Not stored yet: buyer KYC is optional and 2FA/OTP isn't implemented.
-const KYC_VERIFIED = false;
+// Buyers never need identity verification; 2FA/OTP is future work.
+const IDENTITY_VERIFIED = false;
 const TWOFA_ENABLED = false;
 
 export const metadata: Metadata = {
@@ -93,14 +93,14 @@ export default async function ProfilePage() {
         </ProfileBlock>
 
         {/* Identity Verification — optional for buyers, never required */}
-        <ProfileBlock icon={BadgeCheck} title="Verifikasi Identitas (KYC)">
+        <ProfileBlock icon={BadgeCheck} title="Verifikasi Identitas">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={KYC_VERIFIED ? "success" : "secondary"}>
-              {KYC_VERIFIED ? "Terverifikasi" : "Belum diverifikasi"}
+            <Badge variant={IDENTITY_VERIFIED ? "success" : "secondary"}>
+              {IDENTITY_VERIFIED ? "Terverifikasi" : "Tidak diperlukan"}
             </Badge>
             <p className="text-xs text-text-secondary">
-              Opsional untuk pembeli — tidak pernah diwajibkan. KYC hanya wajib
-              saat membuka toko.
+              Pembeli tidak perlu verifikasi identitas. Verifikasi hanya untuk
+              pemilik toko — diperiksa manual oleh admin saat membuka toko.
             </p>
           </div>
         </ProfileBlock>

@@ -60,7 +60,7 @@ function SectionHeading({
 
 const trustPoints = [
   { icon: ShieldCheck, label: "Escrow di setiap transaksi" },
-  { icon: BadgeCheck, label: "Toko wajib KYC + deposit" },
+  { icon: BadgeCheck, label: "Toko terverifikasi + deposit" },
   { icon: ScanLine, label: "Akun bisa diinspeksi (Account Checked)" },
   { icon: Lock, label: "Serah terima diawasi admin" },
 ];
@@ -97,7 +97,7 @@ export default async function Home() {
                 Beli akun impianmu, dananya kami jaga sampai aman.
               </h1>
               <p className="mt-4 max-w-xl text-white/80">
-                Semua penjual adalah toko terverifikasi (KYC + deposit). Dana
+                Semua penjual adalah toko terverifikasi (verifikasi admin + deposit). Dana
                 ditahan di escrow dan serah terima diawasi admin di Rekber
                 Room.
               </p>

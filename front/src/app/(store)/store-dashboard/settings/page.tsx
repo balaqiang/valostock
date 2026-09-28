@@ -87,22 +87,24 @@ export default async function StoreSettingsPage() {
                 </span>
               }
             />
-            <Row
-              label="Kategori produk"
-              value={storeSettings.categories.join(" · ")}
-            />
+            <Row label="Nama pemilik (sesuai KTP)" value={storeSettings.ownerLegalName} />
           </dl>
         </Block>
 
-        {/* KYC */}
-        <Block icon={BadgeCheck} title="Verifikasi Identitas (KYC)">
+        {/* Manual verification (no KYC provider in the prototype) */}
+        <Block icon={BadgeCheck} title="Verifikasi Identitas">
           <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="success">Terverifikasi (Sumsub)</Badge>
+            <Badge variant={storeSettings.identityVerified ? "success" : "warning"}>
+              {storeSettings.identityVerified ? "Diverifikasi admin" : "Belum diverifikasi"}
+            </Badge>
             <p className="text-xs text-text-secondary">
-              Nama KYC dipakai untuk Account Validation di setiap penarikan —
+              Nama pemilik dipakai untuk Account Validation di setiap penarikan —
               rekening atas nama lain akan ditolak.
             </p>
           </div>
+          {storeSettings.reviewNote && (
+            <p className="mt-2 text-xs text-text-secondary">Catatan admin: {storeSettings.reviewNote}</p>
+          )}
         </Block>
 
         {/* Deposit */}
@@ -111,7 +113,9 @@ export default async function StoreSettingsPage() {
             <span className="num font-display text-xl font-bold text-text">
               {formatRupiah(storeSettings.depositAmount)}
             </span>
-            <Badge variant="success">Aktif (HELD)</Badge>
+            <Badge variant={storeSettings.depositStatus === "HELD" ? "success" : "secondary"}>
+              {storeSettings.depositStatus === "HELD" ? "Aktif (ditahan)" : storeSettings.depositStatus}
+            </Badge>
           </div>
           <p className="mt-2 text-xs text-text-secondary">
             Jaminan kepatuhan — dapat dipotong untuk denda/kompensasi pembeli,

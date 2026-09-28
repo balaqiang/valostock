@@ -22,6 +22,7 @@ import { Navbar } from "@/components/marketing/navbar";
 import { Footer } from "@/components/marketing/footer";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
+import { BuyButton } from "@/components/listings/buy-button";
 import { ImageSlider } from "@/components/listings/image-slider";
 import { Tabs } from "@/components/listings/tabs";
 import { CollectionView } from "@/components/listings/collection-view";
@@ -31,7 +32,7 @@ import { FaqSection } from "@/components/listings/faq-section";
 import { StoreBadges } from "@/components/store/store-badges";
 import { formatCompact, formatRupiah } from "@/lib/format";
 import type { MockListing } from "@/lib/mock/listings";
-import { handlingFeeFor, LOCK_FEE, PROTECTION_FEE, protectionDaysFor } from "@/lib/fees";
+import { handlingFeeFor, PROTECTION_FEE, protectionDaysFor } from "@/lib/fees";
 import { getGame, getListing, getStore } from "@/lib/data/catalog";
 import { buildCollection } from "./collection";
 
@@ -493,22 +494,20 @@ export default async function CatalogDetailPage({
                 </dl>
 
                 <div className="mt-4 flex flex-col gap-2.5">
-                  <Button variant="primary" size="lg" className="w-full">
-                    Beli Sekarang
-                  </Button>
-                  <Button variant="secondary" size="lg" className="w-full">
+                  <BuyButton catalogId={listing.id} available={listing.status === "LISTED"} />
+                  {/* Offers and store chat are future work (not in the prototype). */}
+                  <Button variant="secondary" size="lg" className="w-full" disabled title="Segera hadir">
                     <HandCoins className="h-4 w-4" />
-                    Tawar Harga
+                    Tawar Harga (segera)
                   </Button>
-                  <Button variant="ghost" size="md" className="w-full">
+                  <Button variant="ghost" size="md" className="w-full" disabled title="Segera hadir">
                     <MessageSquare className="h-4 w-4" />
-                    Chat Toko
+                    Chat Toko (segera)
                   </Button>
                 </div>
 
                 <p className="mt-3 text-center text-xs text-text-secondary">
-                  Kunci akun 30 menit dengan Lock {formatRupiah(LOCK_FEE)}{" "}
-                  (opsional) saat checkout.
+                  Akun dikunci otomatis untukmu selama menunggu pembayaran — tidak bisa dibeli orang lain.
                 </p>
 
                 <div className="mt-4 flex items-center justify-center gap-4 border-t border-border pt-4 text-xs text-text-secondary">

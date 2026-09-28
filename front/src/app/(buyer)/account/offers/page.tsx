@@ -7,7 +7,7 @@ import { formatDateShort, formatRupiah } from "@/lib/format";
 import { offerStatusLabel } from "@/lib/labels";
 import { requireUser } from "@/lib/auth";
 import { getBuyerOffers } from "@/lib/data/buyer";
-import { listingById } from "@/lib/data/catalog";
+import { demoListingById as listingById } from "@/lib/data/buyer";
 
 export const metadata: Metadata = {
   title: "Penawaran Saya — valostock.id",

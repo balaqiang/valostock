@@ -17,7 +17,7 @@ const columns = [
     title: "Platform",
     links: [
       { label: "Pusat Bantuan", href: "/help" },
-      { label: "Buka Toko", href: "/help/cara-membuka-toko" },
+      { label: "Buka Toko", href: "/sell" },
       { label: "Berita", href: "/news" },
       { label: "Tentang Kami", href: "/about" },
       { label: "Kontak", href: "/contact" },

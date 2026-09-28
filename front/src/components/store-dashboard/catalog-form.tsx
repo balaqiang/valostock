@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -21,6 +22,8 @@ import { cn } from "@/lib/utils";
 import { formatRupiah } from "@/lib/format";
 import type { MockGame } from "@/lib/mock/games";
 import type { MockStoreCatalog } from "@/lib/mock/store-dashboard";
+import { apiFetch } from "@/lib/api";
+import type { StoreCatalog } from "@/types/api";
 
 // Game-specific listing fields — mirrors CATALOGS.attributes (JSONB) field
 // templates (docs/SITEMAP.md §7: pick game → game-specific fields).
@@ -79,7 +82,8 @@ function FieldError({ message }: { message?: string }) {
 /**
  * Create/edit listing as a guided 4-step wizard: progress stepper, per-step
  * validation with inline errors, animated transitions, and a live preview of
- * the listing card. Display-only — drafts/publishing go through the API.
+ * the listing card. Saving goes through the API (POST/PATCH /api/stores/me/catalogs),
+ * which issues the VS code. Photo upload is future work — the API uses a placeholder image.
  */
 export function CatalogForm({
   catalog,
@@ -102,6 +106,10 @@ export function CatalogForm({
   const [delivery, setDelivery] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<"draft" | "published" | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedCode, setSavedCode] = useState<string | null>(catalog?.vsCode ?? null);
+  const router = useRouter();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const fields = gameFields[game] ?? [];
@@ -146,15 +154,61 @@ export function CatalogForm({
     goTo(Math.min(step + 1, steps.length - 1));
   };
 
-  const submit = (mode: "draft" | "published") => {
-    if (mode === "published") {
-      const issues = validateStep(3);
-      if (Object.keys(issues).length > 0) {
-        setErrors(issues);
-        return;
-      }
+  // Form fields → CATALOGS.attributes, using the keys the listing page reads.
+  const attributes = () => {
+    const num = (value?: string) => (value && Number.isFinite(Number(value)) ? Number(value) : undefined);
+    return {
+      rank: attrs.rank || undefined,
+      level: num(attrs.level),
+      server: attrs.server || undefined,
+      region: attrs.region || undefined,
+      skins: num(attrs.skin_count) ?? skins.length,
+      heroCount: num(attrs.hero_count),
+      skinsList: skins,
+    };
+  };
+
+  const submit = async (mode: "draft" | "published") => {
+    const issues = validateStep(3);
+    if (Object.keys(issues).length > 0) {
+      setErrors(issues);
+      return;
     }
-    setSaved(mode);
+    const fullDescription = [description.trim(), delivery.trim() && `Pengiriman: ${delivery.trim()}`]
+      .filter(Boolean)
+      .join("\n\n");
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const data = catalog
+        ? await apiFetch<{ catalog: StoreCatalog }>(`/api/stores/me/catalogs/${catalog.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              title: title.trim(),
+              price: numericPrice,
+              description: fullDescription,
+              status: mode === "published" ? "LISTED" : "DELISTED",
+            }),
+          })
+        : await apiFetch<{ catalog: StoreCatalog }>("/api/stores/me/catalogs", {
+            method: "POST",
+            body: JSON.stringify({
+              gameSlug: game,
+              title: title.trim(),
+              price: numericPrice,
+              description: fullDescription,
+              attributes: attributes(),
+              status: mode === "published" ? "LISTED" : "DRAFT",
+            }),
+          });
+      setSavedCode(data.catalog.vsCode);
+      setSaved(mode);
+      router.refresh();
+    } catch (err: unknown) {
+      setSaveError(err instanceof Error ? err.message : "Gagal menyimpan katalog.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (saved) {
@@ -171,7 +225,7 @@ export function CatalogForm({
         <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
           {saved === "draft"
             ? "Lanjutkan kapan saja dari halaman Katalog — draft belum terlihat pembeli."
-            : `Platform menerbitkan ID katalog (VS)${catalog?.vsCode ? ` — ${catalog.vsCode}` : ""}. Satu akun satu katalog, tidak bisa dijual dua kali.`}
+            : `Platform menerbitkan ID katalog (VS)${savedCode ? ` — ${savedCode}` : ""}. Satu akun satu katalog, tidak bisa dijual dua kali.`}
         </p>
         <div className="mt-5 flex justify-center gap-2">
           <Button href="/store-dashboard/catalogs" variant="primary" size="md">
@@ -568,6 +622,12 @@ export function CatalogForm({
           </motion.section>
         </div>
 
+        {saveError && (
+          <p role="alert" className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+            {saveError}
+          </p>
+        )}
+
         {/* Nav buttons */}
         <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-5">
           <Button
@@ -589,13 +649,15 @@ export function CatalogForm({
               <Button
                 variant="secondary"
                 size="md"
+                disabled={saving}
                 onClick={() => submit("draft")}
               >
-                Simpan Draft
+                {catalog ? "Sembunyikan" : "Simpan Draft"}
               </Button>
               <Button
                 variant="primary"
                 size="md"
+                disabled={saving}
                 onClick={() => submit("published")}
               >
                 <Sparkles className="h-4 w-4" />

@@ -61,7 +61,7 @@ export default async function AccountDashboardPage() {
         <OverviewRow icon={Crown} label="Status Akun">
           <Badge>{user.role === "ADMIN" ? "ADMIN" : "PEMBELI"}</Badge>
           <span className="text-xs text-text-secondary">
-            — belanja bebas tanpa KYC
+            — belanja bebas tanpa verifikasi identitas
           </span>
         </OverviewRow>
         <OverviewRow icon={CircleUserRound} label="Customer ID">
@@ -119,7 +119,7 @@ export default async function AccountDashboardPage() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-text">Buka Toko di valostock.id</p>
           <p className="text-xs text-text-secondary">
-            KYC gratis + deposit Rp500 ribu — jual akunmu dengan escrow, Rekber
+            Verifikasi admin + deposit Rp500 ribu — jual akunmu dengan escrow, Rekber
             Room, dan payout 5 jam.
           </p>
         </div>

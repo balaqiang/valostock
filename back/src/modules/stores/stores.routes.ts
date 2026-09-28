@@ -39,15 +39,19 @@ storesRouter.get('/stores/me/catalogs', async (req, res) => {
   res.json({ catalogs: await service.listCatalogs(requireUser(req)) });
 });
 
+const LOCAL_IMAGE = /^\/images\/[\w\-./() ]+$/;
+
 const catalogSchema = z
   .object({
     gameSlug: z.string().regex(/^[a-z0-9-]{1,50}$/),
     title: z.string().trim().min(5, 'minimal 5 karakter').max(200),
     price: z.number().int().min(10_000, 'minimal Rp10.000').max(1_000_000_000),
     description: z.string().trim().max(5000).optional(),
-    image: z.string().max(255).optional(),
-    images: z.array(z.string().max(255)).max(10).optional(),
+    // Local site images only (next/image serves them without remote config).
+    image: z.string().regex(LOCAL_IMAGE, 'gambar harus dari /images/').max(255).optional(),
+    images: z.array(z.string().regex(LOCAL_IMAGE, 'gambar harus dari /images/').max(255)).max(10).optional(),
     attributes: z.record(z.string(), z.unknown()).optional(),
+    status: z.enum(['LISTED', 'DRAFT']).optional(),
   })
   .strict();
 

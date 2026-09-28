@@ -43,7 +43,7 @@ export default async function StoreOrdersPage() {
                     href={`/store-dashboard/orders/${order.id}`}
                     className="num block text-xs font-medium text-primary hover:text-primary-hover"
                   >
-                    {order.id}
+                    {order.orderNumber}
                   </Link>
                   <span className="block truncate text-xs text-text-secondary">
                     {order.title} · {formatDateShort(order.createdAt)}

@@ -53,7 +53,7 @@ export default async function StoreOverviewPage() {
     href: "/store-dashboard/balance",
   },
   {
-    label: "Ditahan escrow (5 jam)",
+    label: "Ditahan escrow",
     value: formatRupiah(escrow),
     icon: Timer,
     href: "/store-dashboard/balance",
@@ -89,7 +89,7 @@ export default async function StoreOverviewPage() {
               <AlertTriangle className="h-4 w-4 flex-none text-amber-500" />
               <span className="min-w-0 flex-1 text-sm text-text">
                 {order.status === "DISPUTED"
-                  ? `Sengketa aktif di ${order.id} — tanggapi sebelum tenggat 72 jam.`
+                  ? `Sengketa aktif di ${order.orderNumber} — tanggapi sebelum tenggat 72 jam.`
                   : `${order.buyer} menunggu pengiriman akun di Rekber Room ${order.roomCode}.`}
               </span>
               <ArrowRight className="h-4 w-4 flex-none text-text-secondary" />
@@ -139,7 +139,7 @@ export default async function StoreOverviewPage() {
               >
                 <span className="min-w-0">
                   <span className="num block text-xs text-text-secondary">
-                    {order.id} · {formatDateShort(order.createdAt)} · pembeli:{" "}
+                    {order.orderNumber} · {formatDateShort(order.createdAt)} · pembeli:{" "}
                     {order.buyer}
                   </span>
                   <span className="mt-0.5 block truncate text-sm font-medium text-text group-hover:text-primary">

@@ -1,20 +1,39 @@
-// Buyer-scoped data. Every reader takes the logged-in user's id; the Express
-// API will scope each query to that session user (no IDOR through URL ids).
-// TEMPORARY: until those endpoints exist, every buyer sees the demo persona
-// ("Nightfall") from src/lib/mock — display only, nothing is persisted.
-import type { MockOrder } from '@/lib/mock/orders';
+// Buyer-scoped data.
+// - Orders come from the Express API, which scopes them to the session user
+//   (the web app never passes a user id for them).
+// - Offers, wishlist, follows, notifications, chats, points, affiliate and
+//   reports are NOT in the prototype: they show the demo persona ("Nightfall")
+//   from src/lib/mock for every buyer — display only, nothing is persisted.
+import { serverApiGet } from '@/lib/api-server';
 import type { MockListing } from '@/lib/mock/listings';
 import type { MockChat, MockNotification, MockOffer, MockReport, PointsEntry } from '@/lib/mock/buyer';
-import { orders } from '@/lib/mock/orders';
+import { listings as demoListings } from '@/lib/mock/listings';
 import * as persona from '@/lib/mock/buyer';
 import { stores } from '@/lib/mock/stores';
-import { handlingFeeFor, PROTECTION_FEE, protectionDaysFor } from '@/lib/fees';
-import { listingById } from '@/lib/data/catalog';
+import type { OrderView } from '@/types/api';
 
-/** Rows of the demo persona, for whichever user is logged in (see header). */
+// ── Orders (API) ──
+
+export async function getMyOrders(): Promise<OrderView[]> {
+  return (await serverApiGet<{ orders: OrderView[] }>('/api/me/orders'))?.orders ?? [];
+}
+
+/** Any order the visitor may see (buyer, owner of the selling store, admin), or null. */
+export async function getOrder(orderId: string): Promise<OrderView | null> {
+  return (await serverApiGet<{ order: OrderView }>(`/api/orders/${encodeURIComponent(orderId)}`))?.order ?? null;
+}
+
+// ── Demo-only features (see header) ──
+
+/** Rows of the demo persona, for whichever user is logged in. */
 function demoRowsFor<T>(userId: string, rows: T): T {
   void userId;
   return rows;
+}
+
+/** Listing details for demo offers / wishlist entries. */
+export function demoListingById(id: string): MockListing | undefined {
+  return demoListings.find((listing) => listing.id === id);
 }
 
 export async function getFollowedGameSlugs(userId: string): Promise<string[]> {
@@ -29,46 +48,9 @@ export async function getWishlistIds(userId: string): Promise<string[]> {
   return demoRowsFor(userId, persona.wishlistIds);
 }
 
-// ── Orders ──
-
-export async function getBuyerOrders(userId: string): Promise<MockOrder[]> {
-  return demoRowsFor(userId, orders);
-}
-
-/** The order, only if it belongs to this buyer. */
-export async function getBuyerOrder(userId: string, orderId: string): Promise<MockOrder | undefined> {
-  return (await getBuyerOrders(userId)).find((order) => order.id === orderId);
-}
-
-export type OrderDetails = {
-  listing: MockListing;
-  handlingFee: number;
-  protectionFee: number;
-  totalPaid: number;
-  protectionDays: number;
-};
-
-/** Listing + derived money fields for an order (display-only; the API is authoritative). */
-export function orderDetails(order: MockOrder): OrderDetails | null {
-  const listing = listingById(order.listingId);
-  if (!listing) return null;
-  const handlingFee = handlingFeeFor(listing.price);
-  return {
-    listing,
-    handlingFee,
-    protectionFee: PROTECTION_FEE,
-    totalPaid: listing.price + handlingFee + PROTECTION_FEE,
-    protectionDays: protectionDaysFor(listing.price),
-  };
-}
-
-// ── Offers ──
-
 export async function getBuyerOffers(userId: string): Promise<MockOffer[]> {
   return demoRowsFor(userId, persona.myOffers);
 }
-
-// ── Messages ──
 
 export async function getNotifications(userId: string, kind: 'ORDER' | 'SYSTEM'): Promise<MockNotification[]> {
   return demoRowsFor(userId, kind === 'ORDER' ? persona.orderNotifications : persona.systemNotifications);
@@ -78,8 +60,6 @@ export async function getChats(userId: string): Promise<MockChat[]> {
   const known = new Set(stores.map((store) => store.slug));
   return demoRowsFor(userId, persona.chats.filter((chat) => known.has(chat.storeSlug)));
 }
-
-// ── Loyalty, affiliate, reports ──
 
 export async function getPointsLedger(userId: string): Promise<PointsEntry[]> {
   return demoRowsFor(userId, persona.pointsLedger);

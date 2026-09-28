@@ -16,7 +16,6 @@ import {
   Mail,
   MessageCircle,
   Receipt,
-  Sparkles,
   Ticket,
   X,
 } from "lucide-react";

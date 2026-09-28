@@ -1,37 +1,35 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BadgeCheck, Landmark, ScanSearch, XCircle } from "lucide-react";
+import { BadgeCheck, Landmark, Loader2, ScanSearch, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatRupiah } from "@/lib/format";
-import type { NameMatch } from "@/lib/mock/store-dashboard";
 import { BANK_TAX, WITHDRAW_FEE } from "@/lib/fees";
+import { ApiError, apiFetch } from "@/lib/api";
+import type { Withdrawal } from "@/types/api";
+
+type NameMatch = Withdrawal["nameMatch"];
 
 const banks = ["BCA", "BNI", "BRI", "Mandiri", "SeaBank", "Jago"];
 
-// Display-only mirror of Account Validation (docs/MONEY_RULES.md §9):
-// exact = MATCH, partial = REVIEW, otherwise MISMATCH.
-function validateName(input: string, kycName: string): NameMatch {
-  const given = input.trim().toLowerCase();
-  const expected = kycName.toLowerCase();
-  if (!given) return "MISMATCH";
-  if (given === expected) return "MATCH";
-  const expectedParts = expected.split(/\s+/);
-  const givenParts = given.split(/\s+/);
-  return givenParts.some((part) => expectedParts.includes(part))
-    ? "REVIEW"
-    : "MISMATCH";
-}
-
+/**
+ * Withdrawal request (docs/MONEY_RULES.md §9). The API compares the account
+ * holder name with the store's admin-verified owner name: MATCH/REVIEW are
+ * accepted (admin approves; the bank transfer is simulated), MISMATCH is refused.
+ */
 export function WithdrawForm({
-  kycName,
+  ownerLegalName,
   availableBalance,
 }: {
-  kycName: string;
+  ownerLegalName: string;
   availableBalance: number;
 }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [bank, setBank] = useState(banks[0]);
   const [account, setAccount] = useState("");
@@ -49,9 +47,30 @@ export function WithdrawForm({
   return (
     <form
       className="rounded-2xl border border-border bg-surface p-6"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        setResult(validateName(name, kycName));
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        try {
+          const data = await apiFetch<{ withdrawal: Withdrawal }>("/api/stores/me/withdrawals", {
+            method: "POST",
+            body: JSON.stringify({
+              amount: numericAmount,
+              bankName: bank,
+              accountNumber: account.trim(),
+              accountName: name.trim(),
+            }),
+          });
+          setResult(data.withdrawal.nameMatch);
+          setAmount("");
+          router.refresh();
+        } catch (err: unknown) {
+          if (err instanceof ApiError && err.code === "NAME_MISMATCH") setResult("MISMATCH");
+          else setError(err instanceof Error ? err.message : "Gagal mengajukan penarikan.");
+        } finally {
+          setLoading(false);
+        }
       }}
     >
       <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
@@ -59,9 +78,9 @@ export function WithdrawForm({
         Tarik Dana
       </h2>
       <p className="mt-1 text-xs text-text-secondary">
-        Nama pemilik rekening wajib sama dengan nama KYC tokomu (
-        <span className="font-medium text-text">{kycName}</span>) — Account
-        Validation menolak nama yang tidak cocok.
+        Nama pemilik rekening wajib sama dengan nama pemilik toko yang
+        diverifikasi admin (<span className="font-medium text-text">{ownerLegalName}</span>) —
+        nama yang tidak cocok ditolak.
       </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -163,10 +182,13 @@ export function WithdrawForm({
         variant="primary"
         size="lg"
         className="mt-4"
-        disabled={!valid}
+        disabled={!valid || loading}
       >
+        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         Ajukan Penarikan
       </Button>
+
+      {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {result && (
         <motion.p
@@ -183,20 +205,20 @@ export function WithdrawForm({
           {result === "MATCH" ? (
             <>
               <BadgeCheck className="mt-0.5 h-4 w-4 flex-none" />
-              Account Validation: MATCH — penarikan diproses, dapat nomor
-              permintaan via notifikasi.
+              Account Validation: MATCH — pengajuan tercatat dan saldo sudah
+              didebit. Menunggu persetujuan admin.
             </>
           ) : result === "REVIEW" ? (
             <>
               <ScanSearch className="mt-0.5 h-4 w-4 flex-none" />
-              Account Validation: REVIEW — nama mirip sebagian, penarikan
-              ditinjau manual oleh admin.
+              Account Validation: REVIEW — nama mirip sebagian. Pengajuan
+              tercatat, admin akan memeriksa lebih teliti.
             </>
           ) : (
             <>
               <XCircle className="mt-0.5 h-4 w-4 flex-none" />
-              Account Validation: MISMATCH — nama tidak cocok dengan KYC,
-              penarikan ditolak. Perbaiki data rekening lalu ajukan ulang.
+              Account Validation: MISMATCH — nama tidak cocok dengan pemilik
+              toko, penarikan ditolak. Perbaiki data rekening lalu ajukan ulang.
             </>
           )}
         </motion.p>

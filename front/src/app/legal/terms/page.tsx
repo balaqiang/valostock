@@ -19,7 +19,7 @@ const sections: LegalSection[] = [
   {
     title: "Akun Pengguna",
     items: [
-      "Pendaftaran menggunakan nomor HP (OTP) dan email aktif. Pembeli tidak diwajibkan KYC.",
+      "Pendaftaran menggunakan email aktif dan password. Pembeli tidak diwajibkan verifikasi identitas.",
       "Kamu bertanggung jawab atas keamanan kredensial akunmu sendiri.",
       "Satu orang tidak boleh membuat banyak akun untuk menghindari sanksi.",
     ],
@@ -27,7 +27,7 @@ const sections: LegalSection[] = [
   {
     title: "Berjualan — Hanya Toko Terverifikasi",
     items: [
-      "Hanya Toko yang lulus verifikasi identitas (KYC) dan menyetor deposit keamanan Rp500.000 yang boleh berjualan.",
+      "Hanya Toko yang lulus verifikasi identitas oleh admin dan menyetor deposit keamanan Rp500.000 yang boleh berjualan.",
       "Toko bertipe Owner (akun milik sendiri) atau Reseller (akun titipan penjual eksternal). Reseller bertanggung jawab penuh atas penjual eksternalnya — identitas, keaslian akun, dan kerugian pembeli.",
       "Setiap listing mendapat ID katalog dari platform (awalan VS). Satu akun = satu katalog.",
       "Deskripsi listing wajib akurat. Klaim mutlak seperti \"100% aman\" atau \"100% original\" dilarang.",
@@ -38,7 +38,7 @@ const sections: LegalSection[] = [
     items: [
       "Pembayaran pembeli ditahan di escrow dan baru diteruskan ke Toko setelah pembeli mengonfirmasi akun diterima (atau jendela konfirmasi berakhir).",
       "Serah terima akun wajib berlangsung di Rekber Room — diawasi admin dan tercatat sebagai bukti.",
-      "Pencairan dana Toko tersedia 5 jam setelah akun dinyatakan aman, dengan Account Validation (nama rekening = nama KYC).",
+      "Dana Toko masuk ke saldo tersedia setelah pembeli menyelesaikan pesanan. Penarikan disetujui admin dengan Account Validation (nama rekening = nama pemilik toko yang terverifikasi).",
       "Seluruh transaksi wajib di dalam platform. Mengajak atau menerima transaksi di luar platform adalah pelanggaran berat.",
     ],
   },
@@ -87,7 +87,7 @@ const sections: LegalSection[] = [
   {
     title: "Sanksi",
     paragraphs: [
-      "Pelanggaran dikenai sanksi bertingkat sesuai beratnya: peringatan, pembatasan listing, denda dari deposit, suspensi (mis. 30 hari), ban permanen, blacklist (perangkat/KYC/bank), hingga proses hukum. Refund akibat kesalahan Toko dapat dikenai denda tambahan.",
+      "Pelanggaran dikenai sanksi bertingkat sesuai beratnya: peringatan, pembatasan listing, denda dari deposit, suspensi (mis. 30 hari), ban permanen, blacklist (perangkat/identitas/bank), hingga proses hukum. Refund akibat kesalahan Toko dapat dikenai denda tambahan.",
     ],
   },
   {

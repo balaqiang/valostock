@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 const faqs = [
   {
     q: "Bagaimana saya menilai akun ini aman dibeli?",
-    a: "Lihat tiga badge-nya: Identity Verified berarti identitas penjual sudah lolos KYC, Store Verified berarti tokonya memenuhi standar operasional, dan Account Checked berarti akun sudah diinspeksi toko dengan checklist bertimestamp. Recovery Risk adalah deklarasi mandiri penjual (bukan verifikasi platform) — lengkap dengan Confidence Level dan bukti yang diunggah (Evidence Submitted). Tidak ada yang bisa menjamin 100%; yang kami berikan adalah akuntabilitas yang terukur.",
+    a: "Lihat tiga badge-nya: Identity Verified berarti identitas pemilik toko sudah diverifikasi admin, Store Verified berarti tokonya memenuhi standar operasional, dan Account Checked berarti akun sudah diinspeksi toko dengan checklist bertimestamp. Recovery Risk adalah deklarasi mandiri penjual (bukan verifikasi platform) — lengkap dengan Confidence Level dan bukti yang diunggah (Evidence Submitted). Tidak ada yang bisa menjamin 100%; yang kami berikan adalah akuntabilitas yang terukur.",
   },
   {
     q: "Bagaimana saya menerima detail akun setelah membayar?",
@@ -11,7 +11,7 @@ const faqs = [
   },
   {
     q: "Bagaimana jika ada masalah setelah pembelian?",
-    a: "Sebelum klik Selesai, kamu bisa melapor atau membatalkan — platform menginvestigasi dengan bukti chat dan catatan inspeksi, dan dana yang masih di escrow dikembalikan jika laporanmu valid (pembatalan tanpa alasan valid dikenai biaya). Jika akun ditarik penjual setelah transaksi selesai, buka dispute: penjual ditekan lewat pemblokiran, pembekuan saldo, dan blacklist (KYC, perangkat, rekening). Priority Protection memberi penanganan prioritas.",
+    a: "Sebelum klik Selesai, kamu bisa melapor atau membatalkan — platform menginvestigasi dengan bukti chat dan catatan inspeksi, dan dana yang masih di escrow dikembalikan jika laporanmu valid (pembatalan tanpa alasan valid dikenai biaya). Jika akun ditarik penjual setelah transaksi selesai, buka dispute: penjual ditekan lewat pemblokiran, pembekuan saldo, dan blacklist (identitas, perangkat, rekening). Priority Protection memberi penanganan prioritas.",
   },
 ];
 

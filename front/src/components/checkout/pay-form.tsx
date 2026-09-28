@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, ShieldCheck } from "lucide-react";
+import { Loader2, Lock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/auth/form-alert";
+import { apiFetch } from "@/lib/api";
+import type { PaymentSession } from "@/types/api";
 import { cn } from "@/lib/utils";
 import { paymentMethods, type PaymentMethodKind } from "@/lib/fees";
 import { formatRupiah } from "@/lib/format";
@@ -14,11 +17,31 @@ import { formatRupiah } from "@/lib/format";
  * per-method surcharge here. Balance is shown but DISABLED — it is closed-loop
  * (top-up only) and can never buy accounts (docs/MONEY_RULES.md §8b).
  */
-export function PayForm({ total }: { total: number }) {
+export function PayForm({ orderId, total }: { orderId: string; total: number }) {
   const [method, setMethod] = useState<PaymentMethodKind | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // The API creates the Midtrans Snap transaction; the browser only follows the redirect.
+  const pay = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!method || method === "BALANCE") return;
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch<{ payment: PaymentSession }>(`/api/orders/${orderId}/pay`, {
+        method: "POST",
+        body: JSON.stringify({ method }),
+      });
+      if (data.payment.mode === "MIDTRANS_SNAP") window.location.assign(data.payment.redirectUrl);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Gagal membuat pembayaran.");
+      setLoading(false);
+    }
+  };
 
   return (
-    <form onSubmit={(event) => event.preventDefault()}>
+    <form onSubmit={pay}>
       <div className="grid gap-2.5 sm:grid-cols-2">
         {paymentMethods.map((item) => {
           const disabled = item.kind === "BALANCE";
@@ -55,14 +78,19 @@ export function PayForm({ total }: { total: number }) {
         })}
       </div>
 
+      <div className="mt-5">
+        <FormAlert message={error} />
+      </div>
+
       <Button
         type="submit"
         variant="primary"
         size="lg"
-        className="mt-5 w-full"
-        disabled={!method}
+        className="mt-3 w-full"
+        disabled={!method || loading}
       >
-        Bayar {formatRupiah(total)}
+        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading ? "Menyiapkan pembayaran..." : `Bayar ${formatRupiah(total)}`}
       </Button>
 
       <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-text-secondary">

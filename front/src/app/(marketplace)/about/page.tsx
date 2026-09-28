@@ -23,7 +23,7 @@ const principles = [
   {
     icon: BadgeCheck,
     title: "Hanya toko terverifikasi",
-    body: "Penjual wajib lolos KYC dan menyetor deposit keamanan Rp500 ribu. Akuntabilitas terpusat di toko — itulah yang membuat sanksi bisa ditegakkan.",
+    body: "Penjual wajib lolos verifikasi identitas oleh admin dan menyetor deposit keamanan Rp500 ribu. Akuntabilitas terpusat di toko — itulah yang membuat sanksi bisa ditegakkan.",
   },
   {
     icon: ShieldCheck,

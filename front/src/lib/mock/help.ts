@@ -49,7 +49,7 @@ export const helpArticles: MockHelpArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Pembeli tidak perlu KYC. Semua transaksi wajib di dalam platform — transaksi di luar menghilangkan escrow dan seluruh perlindunganmu.",
+        text: "Pembeli tidak perlu verifikasi identitas. Semua transaksi wajib di dalam platform — transaksi di luar menghilangkan escrow dan seluruh perlindunganmu.",
       },
     ],
   },
@@ -71,18 +71,18 @@ export const helpArticles: MockHelpArticle[] = [
   },
   {
     slug: "cara-membuka-toko",
-    title: "Cara membuka toko (KYC + deposit)",
+    title: "Cara membuka toko (verifikasi + deposit)",
     category: "BECOMING_STORE",
-    excerpt: "Verifikasi identitas gratis, deposit Rp500.000, langsung berjualan.",
+    excerpt: "Isi profil, deposit Rp500.000, lalu diverifikasi admin.",
     popular: true,
     body: [
       {
         type: "list",
         items: [
-          "Daftar dengan email aktif, lalu selesaikan verifikasi identitas (Sumsub) — gratis.",
-          "Bayar deposit keamanan Rp500.000 (aktivasi ±15 menit) — membuka hak listing.",
-          "Isi profil toko dan pilih tipe: Owner Store (akun milik sendiri) atau Reseller Store (akun titipan penjual eksternal).",
-          "Setujui Perjanjian Transaksi + Kebijakan Privasi → mulai listing.",
+          "Daftar dengan email aktif, lalu buka menu Toko Saya (/sell).",
+          "Isi profil toko, nama pemilik sesuai KTP, dan pilih tipe: Owner Store (akun milik sendiri) atau Reseller Store (akun titipan penjual eksternal).",
+          "Bayar deposit keamanan Rp500.000 lewat Midtrans.",
+          "Admin memverifikasi identitas pemilik secara manual (gratis). Setelah disetujui, toko aktif dan bisa mulai listing.",
         ],
       },
       {
@@ -129,11 +129,11 @@ export const helpArticles: MockHelpArticle[] = [
     slug: "penarikan-dana-toko",
     title: "Penarikan dana toko & Account Validation",
     category: "FEES_WITHDRAWAL",
-    excerpt: "Nama rekening tujuan harus sama dengan nama KYC.",
+    excerpt: "Nama rekening tujuan harus sama dengan nama pemilik toko yang terverifikasi.",
     body: [
       {
         type: "paragraph",
-        text: "Dana toko tercatat di saldo toko (escrow → tersedia) dan tidak dipakai untuk operasional platform. Penarikan dikirim lewat Midtrans Iris setelah disetujui admin, dan hanya bisa ke rekening atas nama yang sama dengan identitas KYC (Account Validation). Nama tidak cocok → ditolak; mirip sebagian → ditinjau manual.",
+        text: "Dana toko tercatat di saldo toko (escrow → tersedia) dan tidak dipakai untuk operasional platform. Penarikan diproses setelah disetujui admin (transfer disimulasikan di prototype), dan hanya bisa ke rekening atas nama yang sama dengan nama pemilik toko yang terverifikasi (Account Validation). Nama tidak cocok → ditolak; mirip sebagian → ditinjau manual.",
       },
       {
         type: "paragraph",
@@ -247,11 +247,11 @@ export const helpArticles: MockHelpArticle[] = [
     slug: "sanksi-dan-penalti-toko",
     title: "Sanksi bertingkat untuk pelanggaran toko",
     category: "PENALTIES",
-    excerpt: "Dari peringatan sampai blacklist perangkat/KYC/bank.",
+    excerpt: "Dari peringatan sampai blacklist perangkat/identitas/bank.",
     body: [
       {
         type: "paragraph",
-        text: "Sanksi menyesuaikan tingkat pelanggaran: peringatan → pembatasan listing → denda dari deposit → suspensi 30 hari → ban permanen → blacklist (perangkat/KYC/bank) → proses hukum. Transaksi di luar platform, pengiriman palsu, dan listing bohong dikenai denda deposit + ban tanpa toleransi.",
+        text: "Sanksi menyesuaikan tingkat pelanggaran: peringatan → pembatasan listing → denda dari deposit → suspensi 30 hari → ban permanen → blacklist (perangkat/identitas/bank) → proses hukum. Transaksi di luar platform, pengiriman palsu, dan listing bohong dikenai denda deposit + ban tanpa toleransi.",
       },
     ],
   },

@@ -1,5 +1,5 @@
 // UI labels for status enums (code, not data). Enum values mirror docs/ERD.md.
-import type { OrderStatus } from "@/lib/mock/orders";
+import type { OrderStatus } from "@/types/api";
 import type { MockOffer } from "@/lib/mock/buyer";
 import type { HelpCategory } from "@/lib/mock/help";
 import type { StoreLevel, StoreType } from "@/lib/mock/stores";

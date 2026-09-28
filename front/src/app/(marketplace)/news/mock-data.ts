@@ -56,7 +56,7 @@ export const newsArticles: MockNewsArticle[] = [
       { type: "heading", text: "Hanya toko terverifikasi yang berjualan" },
       {
         type: "paragraph",
-        text: "Di valostock.id, penjual adalah Toko yang sudah melewati verifikasi identitas (KYC) dan menyetor deposit keamanan Rp500.000. Pembeli tidak perlu KYC — cukup daftar dan langsung belanja. Akuntabilitas terpusat di toko, dan itulah yang membuat sanksi bisa ditegakkan.",
+        text: "Di valostock.id, penjual adalah Toko yang identitas pemiliknya sudah diverifikasi admin dan menyetor deposit keamanan Rp500.000. Pembeli tidak perlu verifikasi identitas — cukup daftar dan langsung belanja. Akuntabilitas terpusat di toko, dan itulah yang membuat sanksi bisa ditegakkan.",
       },
       { type: "heading", text: "Dana lewat escrow, bukan transfer langsung" },
       {
@@ -347,7 +347,7 @@ export const newsArticles: MockNewsArticle[] = [
       {
         type: "list",
         items: [
-          "Badge toko — Identity Verified menandakan KYC lolos; Verified dan Platinum mencerminkan rekam jejak; Deposit Secured berarti deposit keamanannya aktif.",
+          "Badge toko — Identity Verified menandakan identitas pemilik sudah diverifikasi admin; Verified dan Platinum mencerminkan rekam jejak; Deposit Secured berarti deposit keamanannya aktif.",
           "Tipe toko — Owner Store menjual akun miliknya sendiri; Reseller Store menjual akun titipan penjual eksternal dan bertanggung jawab penuh atasnya.",
           "Badge Account Checked — akun sudah diinspeksi dengan checklist dan bukti media.",
           "Rating dan Service Score — lihat akurasi deskripsi, sikap layanan, dan kecepatan pengiriman dari pembeli sebelumnya.",

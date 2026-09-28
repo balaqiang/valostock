@@ -23,22 +23,24 @@ const dateShort = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
   month: "numeric",
   year: "numeric",
+  timeZone: "Asia/Jakarta",
 });
 
 const dateLong = new Intl.DateTimeFormat("id-ID", {
   day: "numeric",
   month: "long",
   year: "numeric",
+  timeZone: "Asia/Jakarta",
 });
 
 /** "2026-07-10" → "10/7/2026" — news cards. */
 export function formatDateShort(iso: string): string {
-  return dateShort.format(new Date(iso));
+  return dateShort.format(parseDbDate(iso));
 }
 
 /** "2026-07-10" → "10 Juli 2026" — article headers. */
 export function formatDateLong(iso: string): string {
-  return dateLong.format(new Date(iso));
+  return dateLong.format(parseDbDate(iso));
 }
 
 const dateTime = new Intl.DateTimeFormat("id-ID", {
@@ -52,7 +54,8 @@ const dateTime = new Intl.DateTimeFormat("id-ID", {
 
 /** API timestamps are UTC: ISO-8601, or MySQL "2026-09-18 13:21:49" without a zone. */
 export function parseDbDate(value: string): Date {
-  return new Date(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
+  if (value.includes("T") || !value.includes(" ")) return new Date(value);
+  return new Date(`${value.replace(" ", "T")}Z`);
 }
 
 /** "2026-09-18 13:21:49" → "18 Sep 2026, 20.21" (WIB). */

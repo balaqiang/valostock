@@ -12,7 +12,7 @@ const sections: LegalSection[] = [
     title: "Data yang Kami Kumpulkan",
     items: [
       "Data akun: nomor HP, email, nickname, dan preferensi bahasa.",
-      "Data verifikasi Toko (KYC): diproses oleh penyedia verifikasi identitas (Sumsub); dokumen identitas tersimpan di penyedia tersebut, bukan di server kami.",
+      "Data verifikasi Toko: nama pemilik sesuai KTP, diperiksa manual oleh admin untuk verifikasi toko dan pencocokan nama rekening penarikan. Kami tidak meminta unggahan foto KTP.",
       "Data transaksi: pesanan, pembayaran, penawaran, penarikan, dan mutasi Balance.",
       "Riwayat Rekber Room dan chat: tersimpan sebagai jejak bukti sengketa.",
       "Data kontak top-up (email + WhatsApp) untuk pengiriman struk dan penanganan kendala.",
@@ -31,7 +31,7 @@ const sections: LegalSection[] = [
   {
     title: "Berbagi Data dengan Pihak Ketiga",
     paragraphs: [
-      "Kami membagikan data hanya sebatas yang diperlukan kepada pemroses layanan: Midtrans (pembayaran, pencairan dana & validasi rekening), Sumsub (verifikasi identitas Toko), Digiflazz (pemenuhan top-up), dan penyedia email/notifikasi. Kami tidak menjual data pribadimu.",
+      "Kami membagikan data hanya sebatas yang diperlukan kepada pemroses layanan: Midtrans (pembayaran, pencairan dana & validasi rekening), Digiflazz (pemenuhan top-up), dan penyedia email/notifikasi. Kami tidak menjual data pribadimu.",
       "Data dapat diberikan kepada penegak hukum sesuai prosedur hukum yang berlaku, misalnya pada kasus penipuan.",
     ],
   },

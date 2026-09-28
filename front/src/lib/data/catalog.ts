@@ -1,88 +1,69 @@
-// Public marketplace data (games, stores, listings, top-up, help).
-// TEMPORARY: read from src/lib/mock until the Express API (back/) serves these
-// endpoints — then each reader becomes a fetch through src/lib/api-server.ts.
-// Signatures are already async so callers won't change.
-import { games } from '@/lib/mock/games';
-import { stores } from '@/lib/mock/stores';
-import { listings } from '@/lib/mock/listings';
-import { topupProducts } from '@/lib/mock/topup';
-import { helpArticles } from '@/lib/mock/help';
-import { myCatalogs } from '@/lib/mock/store-dashboard';
+// Public marketplace data (games, stores, listings, top-up, help) from the
+// Express API. The response shapes equal the Mock* types, so pages and
+// components use them unchanged.
+import { publicApiGet } from '@/lib/api-server';
 import type { MockGame } from '@/lib/mock/games';
 import type { MockStore } from '@/lib/mock/stores';
 import type { MockListing } from '@/lib/mock/listings';
 import type { MockTopupProduct } from '@/lib/mock/topup';
 import type { MockHelpArticle } from '@/lib/mock/help';
-import type { CatalogStatus } from '@/lib/mock/store-dashboard';
+
+/** A marketplace listing as served by the API (Mock fields + status/description). */
+export type Listing = MockListing & { status: string; description: string };
 
 // ── Games ──
 
 export async function getGames(): Promise<MockGame[]> {
-  return [...games].sort((a, b) => a.sortOrder - b.sortOrder);
+  return (await publicApiGet<{ games: MockGame[] }>('/api/games'))?.games ?? [];
 }
 
 export async function getGame(slug: string): Promise<MockGame | undefined> {
-  return games.find((game) => game.slug === slug);
+  return (await publicApiGet<{ game: MockGame }>(`/api/games/${encodeURIComponent(slug)}`))?.game;
 }
 
 // ── Stores ──
 
 export async function getStores(): Promise<MockStore[]> {
-  return stores;
+  return (await publicApiGet<{ stores: MockStore[] }>('/api/stores'))?.stores ?? [];
 }
 
 export async function getStore(slug: string): Promise<MockStore | undefined> {
-  return stores.find((store) => store.slug === slug);
+  return (await publicApiGet<{ store: MockStore }>(`/api/stores/${encodeURIComponent(slug)}`))?.store;
 }
 
 // ── Listings (public view of CATALOGS) ──
 
-/** Catalog statuses that are visible on the marketplace. */
-const PUBLIC_STATUSES: CatalogStatus[] = ['LISTED', 'LOCKED', 'IN_ORDER'];
-
-const catalogStatus = new Map(myCatalogs.map((catalog) => [catalog.id, catalog.status]));
-
-function isPublic(listing: MockListing): boolean {
-  return PUBLIC_STATUSES.includes(catalogStatus.get(listing.id) ?? 'LISTED');
+export async function getListings(): Promise<Listing[]> {
+  return (await publicApiGet<{ listings: Listing[] }>('/api/listings'))?.listings ?? [];
 }
 
-export async function getListings(): Promise<MockListing[]> {
-  return listings.filter(isPublic);
+export async function getListing(id: string): Promise<Listing | undefined> {
+  return (await publicApiGet<{ listing: Listing }>(`/api/listings/${encodeURIComponent(id)}`))?.listing;
 }
 
-export async function getListing(id: string): Promise<MockListing | undefined> {
-  return listings.find((listing) => listing.id === id && isPublic(listing));
+export async function listingsByGame(game: string): Promise<Listing[]> {
+  return (await publicApiGet<{ listings: Listing[] }>(`/api/listings?game=${encodeURIComponent(game)}`))?.listings ?? [];
 }
 
-/** Any catalog with listing details, whatever its status (e.g. for past orders). */
-export function listingById(id: string): MockListing | undefined {
-  return listings.find((listing) => listing.id === id);
-}
-
-export async function listingsByGame(game: string): Promise<MockListing[]> {
-  return (await getListings()).filter((listing) => listing.game === game);
-}
-
-export async function listingsByStore(storeSlug: string): Promise<MockListing[]> {
-  return (await getListings()).filter((listing) => listing.storeSlug === storeSlug);
+export async function listingsByStore(storeSlug: string): Promise<Listing[]> {
+  return (await publicApiGet<{ listings: Listing[] }>(`/api/listings?store=${encodeURIComponent(storeSlug)}`))?.listings ?? [];
 }
 
 // ── Top-up ──
 
 export async function topupProductsByGame(gameSlug: string): Promise<MockTopupProduct[]> {
-  return topupProducts.filter((product) => product.gameSlug === gameSlug);
-}
-
-export async function getTopupProduct(id: string): Promise<MockTopupProduct | undefined> {
-  return topupProducts.find((product) => product.id === id);
+  return (
+    (await publicApiGet<{ products: MockTopupProduct[] }>(`/api/games/${encodeURIComponent(gameSlug)}/topup-products`))
+      ?.products ?? []
+  );
 }
 
 // ── Help center ──
 
 export async function getHelpArticles(): Promise<MockHelpArticle[]> {
-  return helpArticles;
+  return (await publicApiGet<{ articles: MockHelpArticle[] }>('/api/help'))?.articles ?? [];
 }
 
 export async function getHelpArticle(slug: string): Promise<MockHelpArticle | undefined> {
-  return helpArticles.find((article) => article.slug === slug);
+  return (await publicApiGet<{ article: MockHelpArticle }>(`/api/help/${encodeURIComponent(slug)}`))?.article;
 }

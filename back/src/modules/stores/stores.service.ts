@@ -143,7 +143,16 @@ export async function listCatalogs(user: AuthUser) {
 
 export async function createCatalog(
   user: AuthUser,
-  input: { gameSlug: string; title: string; price: number; description?: string; image?: string; images?: string[]; attributes?: Record<string, unknown> },
+  input: {
+    gameSlug: string;
+    title: string;
+    price: number;
+    description?: string;
+    image?: string;
+    images?: string[];
+    attributes?: Record<string, unknown>;
+    status?: 'LISTED' | 'DRAFT';
+  },
 ) {
   const store = await activeStore(user);
   const game = await findGameRow(pool, input.gameSlug);
@@ -155,9 +164,9 @@ export async function createCatalog(
       await run(
         pool,
         `INSERT INTO catalogs (id, vs_code, store_id, game_id, title, description, price, status, image, images, attributes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'LISTED', ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          id, vsCode(), store.id, game.id, input.title, input.description ?? null, input.price,
+          id, vsCode(), store.id, game.id, input.title, input.description ?? null, input.price, input.status ?? 'LISTED',
           input.image ?? input.images?.[0] ?? null, JSON.stringify(input.images ?? []), JSON.stringify(input.attributes ?? {}),
         ],
       );

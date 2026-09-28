@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/account/bits";
 import { cn } from "@/lib/utils";
 import { formatDateShort, formatRupiah } from "@/lib/format";
-import type { MockOrder } from "@/lib/mock/orders";
-import type { OrderDetails } from "@/lib/data/buyer";
+import type { OrderView } from "@/types/api";
 import { orderStatusLabel } from "@/lib/labels";
 
 // iGV-style tabs per docs/SITEMAP.md §5.1.
@@ -18,14 +17,13 @@ const tabs = [
   { key: "unpaid", label: "Belum Dibayar" },
   { key: "awaiting", label: "Menunggu Pengiriman" },
   { key: "rekber", label: "Di Rekber" },
-  { key: "review", label: "Perlu Rating" },
   { key: "completed", label: "Selesai" },
-  { key: "aftersales", label: "After-Sales" },
+  { key: "cancelled", label: "Dibatalkan" },
 ] as const;
 
 type TabKey = (typeof tabs)[number]["key"];
 
-function matches(order: MockOrder, tab: TabKey): boolean {
+function matches(order: OrderView, tab: TabKey): boolean {
   switch (tab) {
     case "all":
       return true;
@@ -35,32 +33,22 @@ function matches(order: MockOrder, tab: TabKey): boolean {
       return order.status === "PAID";
     case "rekber":
       return order.status === "IN_REKBER" || order.status === "SAFE";
-    case "review":
-      return order.status === "COMPLETED" && !order.rated;
     case "completed":
       return order.status === "COMPLETED";
-    case "aftersales":
-      return order.status === "DISPUTED" || order.status === "REFUNDED";
+    case "cancelled":
+      return order.status === "CANCELLED" || order.status === "REFUNDED";
   }
 }
 
-export function OrdersExplorer({
-  orders,
-  details: detailsById,
-}: {
-  orders: MockOrder[];
-  details: Record<string, OrderDetails>;
-}) {
+export function OrdersExplorer({ orders }: { orders: OrderView[] }) {
   const [tab, setTab] = useState<TabKey>("all");
   const [query, setQuery] = useState("");
-  const orderDetails = (order: MockOrder) => detailsById[order.id] ?? null;
 
   const term = query.trim().toLowerCase();
   const shown = orders.filter((order) => {
     if (!matches(order, tab)) return false;
     if (!term) return true;
-    const details = orderDetails(order);
-    return `${order.id} ${details?.listing.title ?? ""}`
+    return `${order.orderNumber} ${order.catalog.title}`
       .toLowerCase()
       .includes(term);
   });
@@ -104,8 +92,6 @@ export function OrdersExplorer({
       {shown.length > 0 ? (
         <ul className="mt-5 space-y-3">
           {shown.map((order) => {
-            const details = orderDetails(order);
-            if (!details) return null;
             return (
               <li key={order.id}>
                 <Link
@@ -114,16 +100,16 @@ export function OrdersExplorer({
                 >
                   <span className="min-w-0">
                     <span className="num block text-xs text-text-secondary">
-                      {order.id} · {formatDateShort(order.createdAt)} ·{" "}
-                      {details.listing.store}
+                      {order.orderNumber} · {formatDateShort(order.createdAt)} ·{" "}
+                      {order.store.name}
                     </span>
                     <span className="mt-0.5 block truncate text-sm font-medium text-text group-hover:text-primary">
-                      {details.listing.title}
+                      {order.catalog.title}
                     </span>
                   </span>
                   <span className="flex items-center gap-3">
                     <span className="num text-sm font-semibold text-text">
-                      {formatRupiah(details.totalPaid)}
+                      {formatRupiah(order.totalPaid)}
                     </span>
                     <Badge
                       variant={
@@ -146,7 +132,7 @@ export function OrdersExplorer({
         <div className="mt-5">
           <EmptyState
             icon={Package}
-            title="No orders found"
+            title="Belum ada pesanan"
             body="Tidak ada pesanan di tab ini — coba tab lain atau ubah kata kunci."
           />
         </div>

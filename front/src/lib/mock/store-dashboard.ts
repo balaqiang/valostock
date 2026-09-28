@@ -11,7 +11,7 @@ import { BANK_TAX, TRANSFER_FEE, WITHDRAW_FEE } from "@/lib/fees";
 
 export const myStoreSlug = "nusagame";
 
-/** KYC name on file — Account Validation matches payout names against this. */
+/** Verified owner legal name — Account Validation matches payout names against this. */
 export const kycName = "Rizky Pratama";
 
 export const mySubscription = {

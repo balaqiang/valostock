@@ -33,13 +33,13 @@ export function StoreCta() {
               <span className="text-primary">mitra terverifikasi.</span>
             </h2>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-text-secondary">
-              KYC gratis + deposit Rp500 ribu, langsung bisa listing. Kami
+              Verifikasi identitas gratis oleh admin + deposit Rp500 ribu. Kami
               sediakan escrow, Rekber Room, ID katalog anti double-sell, dan
               perlindungan sengketa.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:pb-2">
-            <Button href="/register" variant="primary" size="lg">
+            <Button href="/sell" variant="primary" size="lg">
               Daftarkan toko
             </Button>
             <Button href="/help/cara-membuka-toko" variant="secondary" size="lg">

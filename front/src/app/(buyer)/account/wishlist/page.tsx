@@ -4,7 +4,7 @@ import { EmptyState, PageHeader } from "@/components/account/bits";
 import { ListingCard } from "@/components/listings/listing-card";
 import { requireUser } from "@/lib/auth";
 import { getWishlistIds } from "@/lib/data/buyer";
-import { listingById } from "@/lib/data/catalog";
+import { demoListingById as listingById } from "@/lib/data/buyer";
 
 export const metadata: Metadata = {
   title: "Wishlist — valostock.id",
