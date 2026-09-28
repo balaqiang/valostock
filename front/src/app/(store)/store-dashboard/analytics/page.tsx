@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BarChart3, Eye, Heart, ShoppingBag } from "lucide-react";
+import { BarChart3, Eye, Gem, Heart, ShoppingBag } from "lucide-react";
 import { DashHeader, Panel, StatCard, Table, Td, Tone } from "@/components/dashboard/ui";
 import { getAnalytics, requireStore } from "@/lib/data/store";
 import { catalogStatusLabel, catalogStatusTone } from "@/lib/labels";
@@ -20,14 +20,20 @@ export default async function StoreAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <DashHeader title="Analytics" description="Kinerja toko 30 hari terakhir, dihitung dari pesanan yang selesai dan data kunjungan katalog." />
+      <DashHeader title="Analytics" description={`Kinerja toko 30 hari terakhir · paket ${a?.tier ?? "FREE"}. Free: corong kunjungan · Pro: + GMV harian & katalog terpopuler · Business: + penjualan per game.`} />
+      {a && a.tier !== "BUSINESS" && (
+        <Link href="/store-dashboard/subscription" className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+          <Gem className="h-4 w-4" /> {a.tier === "FREE" ? "Upgrade ke Pro untuk grafik harian dan katalog terpopuler." : "Upgrade ke Business untuk analitik penjualan per game."}
+        </Link>
+      )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="GMV 30 hari" value={formatRupiah(gmv30)} icon={BarChart3} />
-        <StatCard label="Pesanan selesai 30 hari" value={orders30} icon={ShoppingBag} />
+        {a?.daily && <StatCard label="GMV 30 hari" value={formatRupiah(gmv30)} icon={BarChart3} />}
+        {a?.daily && <StatCard label="Pesanan selesai 30 hari" value={orders30} icon={ShoppingBag} />}
         <StatCard label="Total dilihat" value={funnel.views.toLocaleString("id-ID")} icon={Eye} hint={`Konversi ${conversion.toLocaleString("id-ID", { maximumFractionDigits: 2 })}%`} />
         <StatCard label="Disimpan ke wishlist" value={funnel.wishlists} icon={Heart} />
       </div>
 
+      {a?.daily && (
       <Panel title="GMV harian (30 hari)">
         <div className="flex h-40 items-end gap-1">
           {daily.map((d) => (
@@ -40,8 +46,10 @@ export default async function StoreAnalyticsPage() {
           ))}
         </div>
       </Panel>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {a?.topViewed && (
         <Panel title="Katalog paling banyak dilihat">
           <Table head={["Katalog", "Dilihat", "Status"]}>
             {(a?.topViewed ?? []).map((c) => (
@@ -59,6 +67,8 @@ export default async function StoreAnalyticsPage() {
             ))}
           </Table>
         </Panel>
+        )}
+        {a?.byGame && (
         <Panel title="Penjualan per game">
           <Table head={["Game", "Terjual", "GMV"]} empty="Belum ada penjualan.">
             {(a?.byGame ?? []).map((g) => (
@@ -70,6 +80,7 @@ export default async function StoreAnalyticsPage() {
             ))}
           </Table>
         </Panel>
+        )}
       </div>
     </div>
   );

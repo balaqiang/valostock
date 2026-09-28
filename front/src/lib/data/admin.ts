@@ -16,7 +16,7 @@ import type { FieldTemplate, Game, HelpBlock, HelpCategory, Listing, NewsArticle
 
 export const adminGet = <T>(path: string) => serverApiGet<T>(`/api/admin${path}`);
 
-export type QueueCounts = { catalogs: number; stores: number; reports: number; disputes: number; withdrawals: number; transfers: number };
+export type QueueCounts = { catalogs: number; stores: number; reports: number; disputes: number; withdrawals: number; transfers: number; refunds: number };
 
 export async function getQueueCounts(): Promise<{ counts: QueueCounts; permissions: string[] } | null> {
   return adminGet<{ counts: QueueCounts; permissions: string[] }>('/queue-counts');
@@ -40,7 +40,7 @@ export type AdminStoreDetail = {
   subscription: { tier: string; current_period_end: string | null } | null;
   catalogs: Record<string, number>;
   orders: { id: string; number: string; status: string; itemPrice: number; date: string }[];
-  balance: { escrow: number; available: number };
+  balance: { escrow: number; available: number; deposit: number };
   ledger: { id: string; bucket: string; type: string; amount: number; balanceAfter: number; note: string | null; date: string }[];
   sanctions: { id: string; type: string; amount: number; reason: string; admin: string; date: string }[];
   history: { id: number; action: string; detail: unknown; actor: string; date: string }[];
@@ -170,6 +170,21 @@ export type AdminRbac = {
   admins: { id: string; name: string; email: string; roles: string[] }[];
   roles: { key: string; name: string; description: string | null; permissions: string[] }[];
   permissions: { key: string; module: string; description: string }[];
+};
+
+export type AdminRefund = {
+  id: string;
+  amount: number;
+  source: 'PAID_AFTER_CANCEL' | 'LOCK_UNAVAILABLE' | 'TOPUP_UNDELIVERED';
+  reference: string;
+  invoice: string;
+  method: string;
+  user: string | null;
+  status: 'PENDING' | 'COMPLETED';
+  note: string | null;
+  handler: string | null;
+  createdAt: string;
+  handledAt: string | null;
 };
 
 export type AuditEntry = { id: number; action: string; targetType: string; targetId: string; detail: unknown; ip: string | null; actor: string; date: string };

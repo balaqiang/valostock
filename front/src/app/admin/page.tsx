@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, Banknote, Coins, Gavel, HandCoins, Landmark, Package, Receipt, Send, Store, Wallet } from "lucide-react";
+import { Undo2, AlertTriangle, Banknote, Coins, Gavel, HandCoins, Landmark, Package, Receipt, Send, Store, Wallet } from "lucide-react";
 import { Denied } from "@/components/admin/denied";
 import { DashHeader, Panel, StatCard } from "@/components/dashboard/ui";
 import { adminGet, type AdminDashboard } from "@/lib/data/admin";
@@ -38,6 +38,7 @@ export default async function AdminDashboardPage() {
             { href: "/admin/withdrawals", label: "Penarikan menunggu", count: q("withdrawals"), icon: HandCoins },
             { href: "/admin/transfers", label: "Transfer menunggu", count: q("transfers"), icon: Send },
             { href: "/admin/reports", label: "Laporan terbuka", count: q("reports"), icon: AlertTriangle },
+            { href: "/admin/refunds", label: "Refund menunggu", count: q("refunds"), icon: Undo2 },
           ].map((item) => (
             <Link
               key={item.href}

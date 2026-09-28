@@ -122,6 +122,8 @@ export const storeStatusLabel: Record<StoreStatus, string> = {
   ACTIVE: "Aktif",
   REJECTED: "Ditolak",
   SUSPENDED: "Ditangguhkan",
+  CLOSING: "Mengajukan Penutupan",
+  CLOSED: "Ditutup",
 };
 
 export const disputeStatusLabel: Record<DisputeStatus, string> = {

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { PackagePlus } from "lucide-react";
+import { Gem, PackagePlus } from "lucide-react";
+import { BulkActions } from "@/components/store-dashboard/bulk-actions";
 import { Button } from "@/components/ui/button";
 import { DashHeader, StatusTabs, Table, Td, Tone } from "@/components/dashboard/ui";
 import { getDashboard, getMyCatalogs, requireStore } from "@/lib/data/store";
@@ -21,6 +22,8 @@ export default async function StoreCatalogsPage({ searchParams }: { searchParams
   const counts = dashboard?.catalogs ?? {};
   const active = (counts.PENDING_REVIEW ?? 0) + (counts.LISTED ?? 0) + (counts.LOCKED ?? 0) + (counts.IN_ORDER ?? 0);
   const max = store.subscription?.maxListings;
+  const tier = store.subscription?.tier ?? "FREE";
+  const everything = status === "ALL" ? catalogs : await getMyCatalogs();
 
   return (
     <div className="space-y-6">
@@ -38,6 +41,14 @@ export default async function StoreCatalogsPage({ searchParams }: { searchParams
           </Button>
         }
       />
+
+      {tier === "FREE" ? (
+        <Link href="/store-dashboard/subscription" className="flex items-center gap-2 text-xs text-text-secondary hover:text-primary">
+          <Gem className="h-3.5 w-3.5" /> Aksi massal (ajukan/sembunyikan banyak katalog) tersedia di paket Pro & Business.
+        </Link>
+      ) : (
+        <BulkActions items={everything.map((c) => ({ id: c.id, title: c.title, code: c.code, status: c.status }))} />
+      )}
 
       <StatusTabs
         base="/store-dashboard/catalogs"

@@ -1,5 +1,6 @@
 import {
   BadgeCheck,
+  Gem,
   Landmark,
   Repeat,
   ShieldCheck,
@@ -25,6 +26,12 @@ export function StoreBadges({
 }) {
   return (
     <div className={`flex flex-wrap gap-1.5 ${className ?? ""}`}>
+      {store.tier && store.tier !== "FREE" && (
+        <Badge>
+          <Gem />
+          {store.tier === "BUSINESS" ? "Business Store" : "Pro Store"}
+        </Badge>
+      )}
       <Badge variant="outline">
         {store.type === "OWNER" ? <StoreIcon /> : <Repeat />}
         {storeTypeLabel[store.type]}

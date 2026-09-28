@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getStoreBalance, getWithdrawals, requireStore } from "@/lib/data/store";
-import { Timer, Wallet } from "lucide-react";
+import { ShieldCheck, Timer, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/account/bits";
 import { WithdrawForm } from "@/components/store-dashboard/withdraw-form";
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function StoreBalancePage() {
   const store = await requireStore("/store-dashboard/balance");
   const [balance, withdrawals] = await Promise.all([getStoreBalance(), getWithdrawals()]);
-  const { available, escrow, ledger } = balance;
+  const { available, escrow, deposit, ledger } = balance;
   return (
     <div>
       <PageHeader
@@ -24,7 +24,7 @@ export default async function StoreBalancePage() {
       />
 
       {/* Balance cards */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl bg-gradient-to-br from-primary via-violet-600 to-fuchsia-600 p-6">
           <p className="flex items-center gap-2 text-xs uppercase tracking-wider text-white/70">
             <Wallet className="h-4 w-4" />
@@ -42,6 +42,13 @@ export default async function StoreBalancePage() {
           <p className="num mt-2 font-display text-3xl font-bold text-text">
             {formatRupiah(escrow)}
           </p>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-6">
+          <p className="flex items-center gap-2 text-xs uppercase tracking-wider text-text-secondary">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            Deposit keamanan (tidak bisa ditarik)
+          </p>
+          <p className="num mt-2 font-display text-3xl font-bold text-text">{formatRupiah(deposit)}</p>
         </div>
       </div>
 
@@ -135,7 +142,7 @@ export default async function StoreBalancePage() {
               <tr key={l.id}>
                 <Td className="whitespace-nowrap text-xs text-text-secondary">{formatDbDateTime(l.createdAt)}</Td>
                 <Td className="text-xs font-medium">{l.type}</Td>
-                <Td className="text-xs">{l.bucket === "ESCROW" ? "Escrow" : "Tersedia"}</Td>
+                <Td className="text-xs">{l.bucket === "ESCROW" ? "Escrow" : l.bucket === "DEPOSIT" ? "Deposit" : "Tersedia"}</Td>
                 <Td className={cn("num whitespace-nowrap font-medium", l.amount < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400")}>
                   {l.amount > 0 ? "+" : ""}
                   {formatRupiah(l.amount)}

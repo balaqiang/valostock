@@ -86,6 +86,7 @@ export type Listing = {
   store: string;
   storeSlug: string;
   storeId: string;
+  storeTier?: "FREE" | "PRO" | "BUSINESS";
   verified: boolean;
   accountChecked: boolean;
   instant: boolean;

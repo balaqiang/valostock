@@ -253,7 +253,7 @@ export interface PaymentStart {
 
 // ── Store owner area ──
 
-export type StoreStatus = "PENDING_DEPOSIT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED";
+export type StoreStatus = "PENDING_DEPOSIT" | "PENDING_REVIEW" | "ACTIVE" | "REJECTED" | "SUSPENDED" | "CLOSING" | "CLOSED";
 
 export interface StoreContext {
   id: string;
@@ -283,7 +283,9 @@ export interface StoreContext {
     usedFeaturedSlots: number;
     periodEnd: string | null;
   } | null;
-  balance?: { escrow: number; available: number };
+  balance?: { escrow: number; available: number; deposit: number };
+  /** Full deposit required for the Deposit Secured badge (Rp500.000). */
+  depositMinimum?: number;
   pendingDeposit?: { invoice: string; redirectUrl: string | null } | null;
 }
 
@@ -316,7 +318,7 @@ export interface CatalogDetail {
 
 export interface StoreLedgerEntry {
   id: string;
-  bucket: "ESCROW" | "AVAILABLE";
+  bucket: "ESCROW" | "AVAILABLE" | "DEPOSIT";
   type: string;
   amount: number;
   balanceAfter: number;

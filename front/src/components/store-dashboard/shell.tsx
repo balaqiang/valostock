@@ -253,6 +253,11 @@ export function StoreDashboardShell({
             Toko sedang <strong>diverifikasi admin</strong>. Kamu sudah bisa menyiapkan katalog sebagai draf — pengajuan ke admin dan penjualan dibuka setelah toko disetujui.
           </div>
         )}
+        {info.status === "CLOSING" && (
+          <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-700 sm:px-6 dark:text-amber-300">
+            Toko sedang <strong>mengajukan penutupan</strong> — katalog disembunyikan. Admin akan meninjau dan mengembalikan sisa deposit.
+          </div>
+        )}
         {info.status === "SUSPENDED" && (
           <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-700 sm:px-6 dark:text-red-300">
             Toko sedang <strong>ditangguhkan</strong> admin — katalog disembunyikan dan transaksi baru dinonaktifkan. Hubungi support.

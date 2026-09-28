@@ -9,7 +9,7 @@ import type { StoreStatus } from "@/types/api";
 
 export const metadata: Metadata = { title: "Verifikasi Toko — Admin" };
 
-const TABS = ["PENDING_REVIEW", "ACTIVE", "SUSPENDED", "REJECTED", "PENDING_DEPOSIT", "ALL"] as const;
+const TABS = ["PENDING_REVIEW", "CLOSING", "ACTIVE", "SUSPENDED", "CLOSED", "REJECTED", "PENDING_DEPOSIT", "ALL"] as const;
 
 export default async function AdminStoresPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const sp = await searchParams;
@@ -57,7 +57,7 @@ export default async function AdminStoresPage({ searchParams }: { searchParams: 
             <Td className="whitespace-nowrap text-xs text-text-secondary">{formatDbDateTime(s.createdAt)}</Td>
             <Td>
               <Link href={`/admin/stores/${s.id}`} className="text-xs font-medium text-primary">
-                {s.status === "PENDING_REVIEW" ? "Verifikasi →" : "Detail →"}
+                {s.status === "PENDING_REVIEW" ? "Verifikasi →" : s.status === "CLOSING" ? "Tinjau penutupan →" : "Detail →"}
               </Link>
             </Td>
           </tr>

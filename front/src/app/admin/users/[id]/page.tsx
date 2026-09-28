@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Denied } from "@/components/admin/denied";
 import { ActionButton } from "@/components/dashboard/action-button";
+import { ApiForm } from "@/components/dashboard/api-form";
 import { DashHeader, KeyValues, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { adminGet, type AdminUserDetail } from "@/lib/data/admin";
@@ -15,6 +16,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   if (!data) return <Denied permission="users:view" />;
   const { user: u } = data;
   const canBan = (me?.permissions.includes("users:ban") ?? false) && u.role !== "ADMIN";
+  const canAdjust = me?.permissions.includes("payouts:approve") ?? false;
 
   return (
     <div className="space-y-6">
@@ -76,6 +78,20 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           </Table>
         </Panel>
       </div>
+      {canAdjust && (
+        <Panel title="Penyesuaian Balance" description="Koreksi saja (bukan pencairan): nilai positif menambah, negatif mengurangi. Tercatat sebagai ADJUSTMENT + audit log.">
+          <ApiForm
+            endpoint={`/api/admin/users/${u.id}/balance-adjust`}
+            columns={2}
+            submitLabel="Simpan penyesuaian"
+            successMessage="Balance disesuaikan."
+            fields={[
+              { name: "amount", label: "Jumlah (Rp, boleh negatif)", type: "number", required: true },
+              { name: "reason", label: "Alasan", type: "text", required: true },
+            ]}
+          />
+        </Panel>
+      )}
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="Pesanan">
           <Table head={["No.", "Status", "Total", "Tanggal"]} empty="Belum ada.">

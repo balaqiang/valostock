@@ -25,6 +25,7 @@ import {
   ShieldCheck,
   Store,
   Ticket,
+  Undo2,
   UserCog,
   Users,
   Wallet,
@@ -35,7 +36,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
 
-type Badge = "catalogs" | "stores" | "reports" | "disputes" | "withdrawals" | "transfers";
+type Badge = "catalogs" | "stores" | "reports" | "disputes" | "withdrawals" | "transfers" | "refunds";
 type Item = { label: string; href: string; icon: React.ComponentType<{ className?: string }>; perm: string; badge?: Badge };
 
 // docs/ADMIN_PANEL.md §1 — menu grouped as in the information architecture.
@@ -63,6 +64,7 @@ const SECTIONS: { title?: string; items: Item[] }[] = [
     items: [
       { label: "Penarikan", href: "/admin/withdrawals", icon: HandCoins, perm: "finance:view", badge: "withdrawals" },
       { label: "Transfer", href: "/admin/transfers", icon: Send, perm: "finance:view", badge: "transfers" },
+      { label: "Refund", href: "/admin/refunds", icon: Undo2, perm: "payments:view", badge: "refunds" },
       { label: "Ringkasan", href: "/admin/finance", icon: BarChart3, perm: "finance:view" },
       { label: "Iklan & Langganan", href: "/admin/ads", icon: Megaphone, perm: "ads:manage" },
     ],

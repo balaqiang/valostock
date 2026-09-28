@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Denied } from "@/components/admin/denied";
 import { ActionButton } from "@/components/dashboard/action-button";
+import { ApiForm } from "@/components/dashboard/api-form";
 import { DashHeader, KeyValues, Panel, StatCard, Table, Td, Tone } from "@/components/dashboard/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { adminGet, type AdminStoreDetail } from "@/lib/data/admin";
@@ -48,6 +49,16 @@ export default async function AdminStoreDetailPage({ params }: { params: Promise
                 Tangguhkan
               </ActionButton>
             )}
+            {s.status === "CLOSING" && perms.has("stores:verify") && (
+              <>
+                <ActionButton variant="primary" endpoint={`${base}/close-decision`} body={{ decision: "approve" }} prompt="Catatan persetujuan penutupan (opsional):">
+                  Setujui penutupan + refund deposit
+                </ActionButton>
+                <ActionButton endpoint={`${base}/close-decision`} body={{ decision: "reject" }} prompt="Alasan menolak penutupan (wajib):" promptRequired>
+                  Tolak penutupan
+                </ActionButton>
+              </>
+            )}
             {s.status === "SUSPENDED" && perms.has("stores:suspend") && (
               <ActionButton variant="primary" endpoint={`${base}/reactivate`} prompt="Catatan (opsional):">
                 Aktifkan kembali
@@ -64,7 +75,7 @@ export default async function AdminStoreDetailPage({ params }: { params: Promise
 
       <div className="grid gap-4 sm:grid-cols-4">
         <StatCard label="Saldo tersedia" value={formatRupiah(data.balance.available)} />
-        <StatCard label="Escrow" value={formatRupiah(data.balance.escrow)} />
+        <StatCard label="Escrow" value={formatRupiah(data.balance.escrow)} hint={`Deposit ${formatRupiah(data.balance.deposit)}`} />
         <StatCard label="Rating" value={`${s.rating} / 5`} hint={`${s.reviews} ulasan · ${s.sold} terjual`} />
         <StatCard label="Pelanggaran" value={data.sanctions.length} tone={data.sanctions.length ? "danger" : "default"} />
       </div>
@@ -108,6 +119,33 @@ export default async function AdminStoreDetailPage({ params }: { params: Promise
           </ul>
         </Panel>
       </div>
+
+      {perms.has("stores:suspend") && ["ACTIVE", "SUSPENDED"].includes(s.status) && (
+        <Panel title="Beri sanksi" description={`Denda dipotong dari deposit (saat ini ${formatRupiah(data.balance.deposit)}), tidak pernah melebihi deposit. Penangguhan menyembunyikan semua katalog.`}>
+          <ApiForm
+            endpoint={`${base}/sanctions`}
+            columns={3}
+            submitLabel="Terapkan sanksi"
+            successMessage="Sanksi dicatat."
+            fields={[
+              {
+                name: "type",
+                label: "Jenis",
+                type: "select",
+                required: true,
+                defaultValue: "WARNING",
+                options: [
+                  { value: "WARNING", label: "Peringatan" },
+                  { value: "FINE", label: "Denda dari deposit" },
+                  { value: "SUSPEND", label: "Tangguhkan toko" },
+                ],
+              },
+              { name: "amount", label: "Nilai denda (Rp, untuk denda)", type: "money", min: 1 },
+              { name: "reason", label: "Alasan", type: "text", required: true },
+            ]}
+          />
+        </Panel>
+      )}
 
       <Panel title="Pesanan terbaru">
         <Table head={["No.", "Status", "Harga", "Tanggal"]} empty="Belum ada pesanan.">

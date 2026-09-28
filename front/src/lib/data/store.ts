@@ -40,7 +40,7 @@ export const getMyStore = cache(async (): Promise<StoreContext | null> => {
 export const requireStore = cache(async (returnTo: string): Promise<StoreContext> => {
   await requireUser(returnTo);
   const store = await getMyStore();
-  if (!store || !['ACTIVE', 'SUSPENDED', 'PENDING_REVIEW'].includes(store.status)) redirect('/sell');
+  if (!store || !['ACTIVE', 'SUSPENDED', 'PENDING_REVIEW', 'CLOSING'].includes(store.status)) redirect('/sell');
   return store;
 });
 
@@ -59,10 +59,12 @@ export async function getDashboard(): Promise<StoreDashboard | null> {
   return get<StoreDashboard>('/dashboard');
 }
 
+/** Sections are null when the store's plan does not include them (MONEY_RULES §5). */
 export type StoreAnalytics = {
-  daily: { day: string; orders: number; gmv: number }[];
-  topViewed: { id: string; title: string; vsCode: string | null; views: number; status: CatalogStatus; price: number }[];
-  byGame: { game: string; sold: number; gmv: number }[];
+  tier: 'FREE' | 'PRO' | 'BUSINESS';
+  daily: { day: string; orders: number; gmv: number }[] | null;
+  topViewed: { id: string; title: string; vsCode: string | null; views: number; status: CatalogStatus; price: number }[] | null;
+  byGame: { game: string; sold: number; gmv: number }[] | null;
   funnel: { views: number; orders: number; wishlists: number };
 };
 
@@ -90,8 +92,8 @@ export async function getStoreDisputes(): Promise<DisputeSummary[]> {
   return (await get<{ disputes: DisputeSummary[] }>('/disputes'))?.disputes ?? [];
 }
 
-export async function getStoreBalance(): Promise<{ available: number; escrow: number; ledger: StoreLedgerEntry[] }> {
-  return (await get<{ available: number; escrow: number; ledger: StoreLedgerEntry[] }>('/balance')) ?? { available: 0, escrow: 0, ledger: [] };
+export async function getStoreBalance(): Promise<{ available: number; escrow: number; deposit: number; ledger: StoreLedgerEntry[] }> {
+  return (await get<{ available: number; escrow: number; deposit: number; ledger: StoreLedgerEntry[] }>('/balance')) ?? { available: 0, escrow: 0, deposit: 0, ledger: [] };
 }
 
 export async function getWithdrawals(): Promise<Withdrawal[]> {

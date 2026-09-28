@@ -199,6 +199,16 @@ export function SellWizard({ store }: { store: StoreContext | null }) {
           </div>
         )}
 
+        {store?.status === "CLOSED" && (
+          <div className="text-center">
+            <XCircle className="mx-auto h-10 w-10 text-text-secondary" />
+            <h2 className="mt-3 font-display text-xl font-bold text-text">Toko {store.name} sudah ditutup</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
+              Sisa deposit sudah dikembalikan. Satu akun hanya bisa memiliki satu toko — hubungi admin jika ingin membuka kembali.
+            </p>
+          </div>
+        )}
+
         {store?.status === "SUSPENDED" && (
           <p className="text-center text-sm text-text-secondary">Toko ditangguhkan. Hubungi admin melalui halaman Kontak.</p>
         )}
