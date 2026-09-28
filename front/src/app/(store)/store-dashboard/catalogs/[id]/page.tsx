@@ -132,7 +132,7 @@ export default async function EditCatalogPage({ params, searchParams }: { params
             title="Inspeksi akun"
             description="Checklist login + bukti privat → badge Account Checked."
             actions={
-              <Link href={`/store-dashboard/inspections/${listing.id}`} className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+              <Link href={`/store-dashboard/inspections/${listing.id}`} className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-primary">
                 <ScanLine className="h-3.5 w-3.5" /> {detail.inspection ? "Perbarui" : "Isi"}
               </Link>
             }

@@ -23,9 +23,9 @@ Admin panel adalah tempat platform **mengambil keputusan**: memverifikasi toko d
 │   └── /admin/reports                  Laporan Pengguna
 ├── Transaksi
 │   ├── /admin/orders                   Pesanan (cari no. pesanan / pembeli / toko)
-│   ├── /admin/orders/[id]              Detail pesanan + Rekber Room (hanya baca / pesan admin)
+│   ├── /orders/[id]                    Detail pesanan + Rekber Room (halaman bersama; admin bisa kirim pesan)
 │   ├── /admin/disputes                 Sengketa              ← antrean OPEN / IN_REVIEW
-│   ├── /admin/disputes/[id]            Timeline + bukti + putusan
+│   ├── /disputes/[id]                  Timeline + bukti + putusan (halaman bersama; form putusan untuk admin)
 │   ├── /admin/topups                   Invoice top-up & isi Balance
 │   └── /admin/payments                 Pembayaran & log webhook Midtrans
 ├── Keuangan

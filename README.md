@@ -1,23 +1,21 @@
-# valostock.id — Prototype
+# valostock.id
 
-Marketplace akun game + top-up (tugas kuliah, **prototype**). Toko diverifikasi manual oleh admin, pembayaran lewat Midtrans (Sandbox atau mode simulasi), dana pembeli ditahan di escrow sampai pesanan selesai.
+Marketplace akun game + top-up (tugas kuliah). Toko **dan setiap katalog** diverifikasi admin sebelum dijual, pembayaran lewat Midtrans (Sandbox atau mode simulasi), dana pembeli ditahan di escrow sampai pesanan selesai, dan serah terima akun berlangsung di Rekber Room.
 
 | Folder | Isi |
 |---|---|
-| `front/` | Web Next.js 16 (UI) — `http://localhost:3000` |
-| `back/` | API Express.js — `http://localhost:4000/api` |
+| `front/` | Web Next.js 16 (UI saja) — `http://localhost:3000` |
+| `back/` | API Express.js (semua logika bisnis) — `http://localhost:4000/api` |
 | `supabase/` | Project Supabase lokal `valostock` (Postgres 17 + Auth + Storage): `config.toml`, `migrations/`, `seed.sql` |
 | `docs/modeling/` | **Pemodelan sistem (pendekatan Alur Data):** Diagram Konteks, DFD, ERD, Basis Data Konseptual, Struktur Tabel |
-| `docs/` | Arsitektur, aturan uang, PRD, sitemap, flowchart |
-
-> **Status migrasi v8:** database sudah pindah ke **Supabase** (Fase 2 selesai). Backend dan frontend sedang disesuaikan (Fase 3–4), jadi aplikasi belum bisa dijalankan end-to-end sampai fase tersebut selesai.
+| `docs/` | Arsitektur (+ kontrak API), perancangan admin panel, aturan uang, PRD, sitemap, flowchart |
 
 ## Menjalankan (lokal)
 
 Kebutuhan: **Docker Desktop**, **Node.js 20+**, npm.
 
-1. **Database (Supabase).** Dari root repo: `npx supabase start`, lalu `npx supabase db reset` (migrasi + data demo). Studio ada di <http://127.0.0.1:55323>.
-   Detail port, keamanan, dan daftar akun demo ada di [`supabase/README.md`](supabase/README.md).
+1. **Database (Supabase).** Dari root repo: `npx supabase start`, lalu `npx supabase db reset` (migrasi + data demo). Studio: <http://127.0.0.1:55323>, Mailpit (email reset password): <http://127.0.0.1:55324>.
+   Port, keamanan, dan akun demo: [`supabase/README.md`](supabase/README.md). Project ini **tidak** menyentuh project Supabase lain di mesin yang sama.
 2. **Backend:**
    ```bash
    cd back
@@ -35,34 +33,49 @@ Kebutuhan: **Docker Desktop**, **Node.js 20+**, npm.
 
 ### Pembayaran
 
-- `PAYMENT_MODE=simulation` (bawaan): tidak perlu akun Midtrans. Tombol bayar membuka halaman **Simulasi Pembayaran**, tempat kamu memilih "Bayar" atau "Gagalkan".
-- `PAYMENT_MODE=midtrans`: isi `MIDTRANS_SERVER_KEY` dan `MIDTRANS_CLIENT_KEY` dari dashboard **Midtrans Sandbox**. Pembeli diarahkan ke halaman Snap asli, dan statusnya dicek ke Status API Midtrans saat kembali ke `/payment/finish`.
+- `PAYMENT_MODE=simulation` (bawaan): tanpa akun Midtrans. Tombol bayar membuka **Simulasi Pembayaran** (Bayar / Gagalkan).
+- `PAYMENT_MODE=midtrans`: isi `MIDTRANS_SERVER_KEY` dan `MIDTRANS_CLIENT_KEY` dari **Midtrans Sandbox**. Status diambil dari Status API Midtrans (atau webhook bertanda tangan).
 
-## Skenario demo
+## Akun demo (password semua: `valostock-demo`)
 
-1. Login `nightfall@email.com`, buka katalog, klik **Beli Sekarang**, pilih metode, **Bayar**. Pesanan menjadi PAID dan dana masuk escrow.
-2. Login `nusagame@email.com`, buka Dashboard Toko, pilih pesanan, lalu kirim data akun di **Rekber Room**.
-3. Login pembeli lagi, klik **Akun Aman**, lalu **Selesai**. Escrow dilepas ke saldo toko (dikurangi komisi 5%).
-4. Sebagai toko, buka **Saldo & Penarikan** dan ajukan tarik dana. Nama rekening harus sama dengan nama pemilik toko.
-5. Login `admin@valostock.test`, buka **Panel Admin**, setujui penarikan dan verifikasi toko **TokoBaru**.
-6. Top-up game (boleh tanpa login), isi Balance, lalu top-up dengan Balance, dan cek invoice di `/topup/invoice`.
+| Email | Peran |
+|---|---|
+| `admin@valostock.test` | Super Admin (semua izin) |
+| `moderator@valostock.test` | Moderator Katalog + Verifikator Toko |
+| `finance@valostock.test` · `support@valostock.test` | Keuangan · Support & Sengketa |
+| `nightfall@email.com` | Pembeli (Balance Rp100.000, kode referral `NIGHTFALL10`) |
+| `raven@email.com` | Pembeli |
+| `nusagame@email.com`, `<slug>@valostock.test` (mis. `verdantshop@valostock.test`) | Pemilik toko |
+| `tokobaru@valostock.test` | Toko yang menunggu verifikasi |
 
-Setelah setiap langkah uang, periksa tabel `store_ledger` / `balance_ledger` di Supabase Studio. Setiap perubahan saldo punya baris ledger dengan `balance_after`.
+## Skenario demo (alur inti)
+
+1. **Toko menambah katalog:** login `verdantshop@valostock.test` → Dashboard Toko → **Katalog Baru** → pilih game (kolom form mengikuti template game), simpan draf → unggah foto → **Ajukan ke Admin** (VS code terbit, status *Menunggu Verifikasi*).
+2. **Admin memverifikasi produk:** login `moderator@valostock.test` → Admin → **Moderasi Katalog** → Tinjau → **Tolak** dengan alasan (toko mendapat notifikasi + alasan) atau **Setujui** (katalog tayang; pengikut toko dan wishlist harga turun diberi notifikasi).
+3. **Toko memperbaiki:** ubah data/foto → **Ajukan Ulang** → admin menyetujui.
+4. **Pembeli:** login `raven@email.com` → buka katalog → **Tawar** / **Beli** (bisa pakai voucher toko, lock Rp5.000) → bayar (simulasi) → escrow.
+5. **Rekber:** toko mengirim data akun di Rekber Room → pembeli **Akun Aman** → **Selesai** (atau otomatis 5 jam kemudian) → escrow dilepas ke saldo toko (dikurangi komisi paket), pembeli dapat poin → beri penilaian.
+6. **Keuangan:** toko ajukan penarikan (nama rekening harus cocok dengan nama pemilik) → `finance@valostock.test` menyetujui.
+7. **Lainnya:** sengketa dengan bukti (Support memutus), top-up + promo + cek invoice, isi Balance, referral `/register?ref=NIGHTFALL10`, langganan Pro/Business, iklan featured, flash sale, bundle, penjual eksternal (toko Reseller).
+
+Setelah langkah uang, cek `store_ledger` / `balance_ledger` / `loyalty_ledger` di Supabase Studio — setiap perubahan saldo punya baris ledger dengan `balance_after`, setiap keputusan admin ada di `audit_logs`.
 
 ## Pengujian
 
 ```bash
 cd back
-npm run db:reset      # npx supabase db reset (migrasi + seed, hanya project valostock)
-npm run test:smoke    # 14 pemeriksaan end-to-end (API harus berjalan, mode simulasi)
-npm run build         # tsc
+npm run db:reset        # migrasi + seed (hanya project valostock)
+npm run test:smoke      # 14 langkah end-to-end (API berjalan, mode simulasi, seed baru)
+npm run test:features   # 9 langkah fitur bisnis toko, reseller, admin
+npm run test:sweep      # semua endpoint GET per peran
+npm run build
 cd ../front && npm run build && npm run lint
 ```
 
-## Cakupan prototype
+## Cakupan
 
-**Berfungsi:** login/registrasi, katalog, top-up + promo + cek invoice, Balance closed-loop, pembelian akun dengan escrow + rekber, pembukaan toko dengan verifikasi manual admin, katalog/pesanan/saldo/penarikan toko, persetujuan admin, analitik top-up.
+**Berfungsi:** Supabase Auth (daftar + referral, login email/HP, lupa/reset password, ubah profil & password), verifikasi toko manual, **moderasi katalog** dengan template kolom per game, foto di Supabase Storage, inspeksi akun, tawar-menawar, lock, pesanan + escrow + rekber (lampiran privat) + selesai otomatis, sengketa + putusan admin + sanksi, rating + balasan toko, voucher, flash sale, bundle, langganan, iklan featured, penjual eksternal + transfer, penarikan, top-up + promo + cek invoice, Balance closed-loop, wishlist + notifikasi harga turun, follow, terakhir dilihat, rekomendasi, chat toko, notifikasi in-app, poin loyalitas, referral, laporan pengguna, CMS berita/bantuan, **admin panel dengan RBAC + audit log**.
 
-**Disimulasikan:** pengiriman item top-up (Digiflazz) dan transfer penarikan (Midtrans Iris).
+**Disimulasikan:** Midtrans Iris (persetujuan penarikan/transfer = terkirim), Digiflazz (top-up PAID = SUCCESS), WhatsApp/Discord/Telegram, dan halaman bayar Midtrans pada mode simulasi.
 
-**Hanya data demo di UI:** tawar-menawar, rating, sengketa, wishlist/follow, poin, afiliasi, langganan, iklan, voucher toko, flash sale, bundle, penjual eksternal, notifikasi.
+**Catatan aset:** beberapa foto produk contoh di `front/public/images/products` berasal dari pihak ketiga (ada watermark dan nomor WhatsApp) — ganti dengan foto sendiri sebelum presentasi publik.

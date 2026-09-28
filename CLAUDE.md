@@ -101,6 +101,8 @@ npm run build               # tsc
 npm run db:seed:gen         # regenerate supabase/seed.sql from front/src/lib/mock
 npm run docs:tables         # regenerate docs/modeling/05-struktur-tabel.md from the database
 npm run test:smoke          # end-to-end API test (API running, simulation mode, fresh seed)
+npm run test:features       # promotions, reseller transfers, lock, ads, reports, master data, RBAC
+npm run test:sweep          # every read endpoint per role
 
 # Frontend (front/)
 npm run dev                 # http://localhost:3000
@@ -227,7 +229,7 @@ Frontend `front/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000`.
 
 ## Testing
 
-`npm run test:smoke` in `back/` covers auth, catalog submit → admin moderation → listing, offers, orders/escrow/rekber/complete, disputes, ratings, vouchers, top-up/Balance, withdrawals/transfers, idempotency, IDOR and admin permissions. Then a browser pass through the main flows. After money steps, check the ledger tables in Supabase Studio.
+`npm run test:smoke` + `npm run test:features` + `npm run test:sweep` in `back/` cover auth, catalog submit → admin moderation → listing, offers, orders/escrow/rekber/complete, disputes, ratings, vouchers, top-up/Balance, withdrawals/transfers, idempotency, IDOR and admin permissions. Then a browser pass through the main flows. After money steps, check the ledger tables in Supabase Studio.
 
 ## Build
 
