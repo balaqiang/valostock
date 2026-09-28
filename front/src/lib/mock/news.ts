@@ -46,7 +46,7 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "valostock.id Resmi Dibuka: Marketplace Akun Game dengan Escrow",
     excerpt:
-      "Jual beli akun Valorant kini lewat toko terverifikasi, dana ditahan di escrow sampai akun terbukti aman di tanganmu.",
+      "Jual beli akun Valorant kini lewat toko terverifikasi, dana ditahan di escrow sampai kamu mengonfirmasi akunnya aman.",
     cover: "/images/products/1.jpeg",
     body: [
       {

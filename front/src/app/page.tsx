@@ -27,7 +27,7 @@ import { getCurrentUser } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "valostock.id — Marketplace Akun Game & Top-Up",
   description:
-    "Beli akun game dari toko terverifikasi dengan escrow, atau top-up instan. Dana ditahan sampai akun terbukti aman di tanganmu.",
+    "Beli akun game dari toko terverifikasi dengan escrow, atau top-up instan. Dana ditahan sampai kamu mengonfirmasi akunnya aman.",
 };
 
 function SectionHeading({

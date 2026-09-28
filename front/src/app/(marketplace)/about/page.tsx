@@ -28,7 +28,7 @@ const principles = [
   {
     icon: ShieldCheck,
     title: "Escrow, bukan saling percaya",
-    body: "Dana pembeli ditahan dan baru diteruskan ke toko setelah akun terbukti aman di tangan pembeli. Setiap rupiah dibayar lewat Midtrans dan tercatat di buku besar (ledger) yang bisa diaudit.",
+    body: "Dana pembeli ditahan dan baru diteruskan ke toko setelah pembeli mengonfirmasi akunnya aman. Setiap rupiah dibayar lewat Midtrans dan tercatat di buku besar (ledger) yang bisa diaudit.",
   },
   {
     icon: Lock,

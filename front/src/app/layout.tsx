@@ -18,9 +18,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "valostock.id — Marketplace Akun Game Teraman di Indonesia",
+  title: "valostock.id — Marketplace Akun Game dengan Toko & Produk Terverifikasi",
   description:
-    "Jual & beli akun game Valorant, Mobile Legends, dan lainnya lewat toko terverifikasi. Dana ditahan di escrow sampai akun terbukti aman.",
+    "Jual & beli akun game Valorant, Mobile Legends, dan lainnya lewat toko terverifikasi. Dana ditahan di escrow sampai kamu mengonfirmasi akunnya aman.",
   // Static file in public/images like every other site image.
   icons: { icon: "/images/favicon.ico" },
 };

@@ -80,8 +80,8 @@ export function Footer() {
               height={30}
             />
             <p className="mt-5 text-sm leading-relaxed text-zinc-400">
-              Platform penyedia layanan jual-beli akun game teraman di
-              Indonesia. Toko yang berjualan, kami yang menjaga.
+              Marketplace akun game dengan toko dan produk yang diverifikasi
+              admin. Toko yang berjualan, kami yang menjaga.
             </p>
           </div>
 
