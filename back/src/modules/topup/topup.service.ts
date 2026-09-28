@@ -1,15 +1,8 @@
-import {
-  BLC_DENOMINATIONS,
-  BLC_MAX_QTY,
-  discountFor,
-  surchargeFor,
-  type GatewayMethod,
-  type TopupMethod,
-} from '../../config/money.js';
+import { BLC_DENOMINATIONS, BLC_MAX_QTY, discountFor, surchargeFor, type GatewayMethod, type TopupMethod } from '../../config/money.js';
 import { one, pool, run, withTransaction } from '../../db/pool.js';
 import { badRequest, notFound, unauthorized } from '../../lib/errors.js';
-import { documentNumber, uuid } from '../../lib/ids.js';
-import { moveUserBalance } from '../../lib/ledger.js';
+import { documentNumber, randomCode, uuid } from '../../lib/ids.js';
+import { earnPoints, moveUserBalance, rewardReferral } from '../../lib/ledger.js';
 import type { AuthUser } from '../../middlewares/auth.js';
 import * as payments from '../payments/payments.service.js';
 import * as repo from './topup.repository.js';
@@ -65,27 +58,22 @@ export async function checkout(user: AuthUser | undefined, input: CheckoutInput)
   if (input.paymentMethod === 'BALANCE') {
     if (!user) throw unauthorized('Masuk dulu untuk membayar dengan Balance.');
     // DFD 4.3: debit Balance + invoice in one transaction; delivery simulated → SUCCESS.
-    const balance = await withTransaction(async (conn) => {
-      await repo.insertTopupOrder(conn, { ...common, status: 'SUCCESS', providerRef: `SIM-${id.slice(0, 8).toUpperCase()}` });
-      if (promo) await run(conn, 'UPDATE promo_codes SET used_count = used_count + 1 WHERE id = ?', [promo.id]);
-      return moveUserBalance(conn, user.id, { type: 'SPEND_TOPUP', amount: -amount, reference: invoice });
+    const balance = await withTransaction(async (tx) => {
+      await repo.insertTopupOrder(tx, { ...common, status: 'SUCCESS', providerRef: `SIM-${randomCode(8)}` });
+      if (promo) await run(tx, 'update promo_codes set used_count = used_count + 1 where id = $1', [promo.id]);
+      const next = await moveUserBalance(tx, user.id, { type: 'SPEND_TOPUP', amount: -amount, reference: invoice });
+      await earnPoints(tx, user.id, amount, invoice);
+      await rewardReferral(tx, user.id, invoice);
+      return next;
     });
     const transaction = await repo.findTopupTx(pool, 'id', id);
     return { transaction, payment: { mode: 'BALANCE' } satisfies payments.PaymentSession, balance };
   }
 
   const method = input.paymentMethod;
-  await withTransaction(async (conn) => {
-    await repo.insertTopupOrder(conn, { ...common, status: 'PENDING', providerRef: null });
-    await payments.recordPayment(conn, {
-      invoice,
-      purpose: 'TOPUP',
-      refId: id,
-      userId: user?.id ?? null,
-      amount,
-      method,
-      customer: {},
-    });
+  await withTransaction(async (tx) => {
+    await repo.insertTopupOrder(tx, { ...common, status: 'PENDING', providerRef: null });
+    await payments.recordPayment(tx, { invoice, purpose: 'TOPUP', refId: id, userId: user?.id ?? null, amount, method });
   });
   const payment = await payments.openPaymentPage(invoice, {
     name: user?.name,
@@ -99,7 +87,7 @@ export async function checkout(user: AuthUser | undefined, input: CheckoutInput)
 /** "Cek Invoice" — exact invoice number only; the game account is masked. */
 export async function lookupInvoice(invoiceNumber: string) {
   const invoice = invoiceNumber.trim().toUpperCase();
-  const pending = await one<{ status: string }>(pool, 'SELECT status FROM topup_orders WHERE invoice_number = ?', [invoice]);
+  const pending = await one<{ status: string }>(pool, 'select status from topup_orders where invoice_number = $1', [invoice]);
   if (!pending) throw notFound('Invoice');
   if (pending.status === 'PENDING') await payments.syncPayment(invoice).catch(() => undefined);
   const tx = await repo.findTopupTx(pool, 'invoice_number', invoice);
@@ -121,17 +109,14 @@ function maskGameId(value: string): string {
 
 // ── Balance (closed-loop BLC) — DFD 4.4 ──
 
-export async function fillBalance(
-  user: AuthUser,
-  input: { nominal: number; qty: number; method: GatewayMethod; idempotencyKey: string },
-) {
+export async function fillBalance(user: AuthUser, input: { nominal: number; qty: number; method: GatewayMethod; idempotencyKey: string }) {
   if (!BLC_DENOMINATIONS.includes(input.nominal)) throw badRequest('Nominal voucher tidak tersedia.');
   if (input.qty < 1 || input.qty > BLC_MAX_QTY) throw badRequest(`Jumlah voucher 1–${BLC_MAX_QTY}.`);
 
   // Same key again (double click / retry) → the same invoice, never a second one.
   const existing = await one<{ id: string; invoice_number: string }>(
     pool,
-    'SELECT id, invoice_number FROM balance_topups WHERE user_id = ? AND idempotency_key = ?',
+    'select id, invoice_number from balance_topups where user_id = $1 and idempotency_key = $2',
     [user.id, input.idempotencyKey],
   );
   let id = existing?.id;
@@ -142,21 +127,20 @@ export async function fillBalance(
     const surcharge = surchargeFor(input.method, credit);
     const newId = uuid();
     const newInvoice = documentNumber('BL');
-    await withTransaction(async (conn) => {
+    await withTransaction(async (tx) => {
       await run(
-        conn,
-        `INSERT INTO balance_topups (id, invoice_number, user_id, nominal, qty, credit, payment_method, surcharge, amount, idempotency_key)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        tx,
+        `insert into balance_topups (id, invoice_number, user_id, nominal, qty, credit, payment_method, surcharge, amount, idempotency_key)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [newId, newInvoice, user.id, input.nominal, input.qty, credit, input.method, surcharge, credit + surcharge, input.idempotencyKey],
       );
-      await payments.recordPayment(conn, {
+      await payments.recordPayment(tx, {
         invoice: newInvoice,
         purpose: 'BALANCE_FILL',
         refId: newId,
         userId: user.id,
         amount: credit + surcharge,
         method: input.method,
-        customer: {},
       });
     });
     id = newId;

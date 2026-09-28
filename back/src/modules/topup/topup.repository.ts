@@ -1,5 +1,5 @@
-import { all, one, run, type Db } from '../../db/pool.js';
 import { METHOD_LABEL, type TopupMethod } from '../../config/money.js';
+import { all, one, run, type Db } from '../../db/pool.js';
 
 export interface PromoRow {
   id: number;
@@ -14,9 +14,9 @@ export interface PromoRow {
 export const findUsablePromo = (db: Db, code: string) =>
   one<PromoRow>(
     db,
-    `SELECT id, code, kind, value, min_spend, label FROM promo_codes
-     WHERE code = ? AND is_active = 1 AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP())
-       AND (quota IS NULL OR used_count < quota)`,
+    `select id, code, kind, value, min_spend, label from promo_codes
+     where code = $1 and is_active and (expires_at is null or expires_at > now())
+       and (quota is null or used_count < quota)`,
     [code.trim().toUpperCase()],
   );
 
@@ -32,8 +32,9 @@ export interface ProductWithGame {
 export const findProduct = (db: Db, id: string) =>
   one<ProductWithGame>(
     db,
-    `SELECT p.id, p.name, p.amount_label, p.retail_price, g.name AS game_name, g.uid_extra_label
-     FROM topup_products p JOIN games g ON g.id = p.game_id WHERE p.id = ?`,
+    `select p.id, p.name, p.amount_label, p.retail_price, g.name as game_name, g.uid_extra_label
+     from topup_products p join games g on g.id = p.game_id
+     where p.id = $1 and p.is_active and g.is_active and g.supports_topup`,
     [id],
   );
 
@@ -60,14 +61,29 @@ export async function insertTopupOrder(
 ) {
   await run(
     db,
-    `INSERT INTO topup_orders (id, invoice_number, user_id, product_id, promo_code_id, user_game_id, game_zone_id,
+    `insert into topup_orders (id, invoice_number, user_id, product_id, promo_code_id, user_game_id, game_zone_id,
        contact_email, contact_whatsapp, base_price, discount, surcharge, amount, pay_source, payment_method, status,
        provider_ref, paid_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${o.status === 'SUCCESS' ? 'UTC_TIMESTAMP()' : 'NULL'})`,
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+             case when $16::topup_status = 'SUCCESS' then now() end)`,
     [
-      o.id, o.invoice, o.userId, o.productId, o.promoId, o.userGameId, o.gameZoneId, o.email, o.whatsapp,
-      o.basePrice, o.discount, o.surcharge, o.amount, o.method === 'BALANCE' ? 'BALANCE' : 'MIDTRANS', o.method,
-      o.status, o.providerRef,
+      o.id,
+      o.invoice,
+      o.userId,
+      o.productId,
+      o.promoId,
+      o.userGameId,
+      o.gameZoneId,
+      o.email,
+      o.whatsapp,
+      o.basePrice,
+      o.discount,
+      o.surcharge,
+      o.amount,
+      o.method === 'BALANCE' ? 'BALANCE' : 'MIDTRANS',
+      o.method,
+      o.status,
+      o.providerRef,
     ],
   );
 }
@@ -105,16 +121,16 @@ interface TopupTxRow {
   created_at: string;
 }
 
-const TOPUP_TX_SELECT = `
-  SELECT t.id, t.invoice_number, t.user_game_id, t.game_zone_id, t.product_id,
-         CONCAT(g.name, ' - ', p.amount_label) AS item_name, t.amount, t.payment_method, t.status,
-         pay.midtrans_transaction_id AS gateway_ref, t.user_id, t.created_at
-  FROM topup_orders t
-  JOIN topup_products p ON p.id = t.product_id
-  JOIN games g ON g.id = p.game_id
-  LEFT JOIN payments pay ON pay.purpose = 'TOPUP' AND pay.ref_id = t.id`;
+export const TOPUP_TX_SELECT = `
+  select t.id, t.invoice_number, t.user_game_id, t.game_zone_id, t.product_id,
+         g.name || ' - ' || p.amount_label as item_name, t.amount, t.payment_method, t.status,
+         pay.midtrans_transaction_id as gateway_ref, t.user_id, t.created_at
+  from topup_orders t
+  join topup_products p on p.id = t.product_id
+  join games g on g.id = p.game_id
+  left join payments pay on pay.purpose = 'TOPUP' and pay.ref_id = t.id`;
 
-const toTopupTx = (r: TopupTxRow): TransactionRecord => ({
+export const toTopupTx = (r: TopupTxRow): TransactionRecord => ({
   id: r.id,
   invoice_number: r.invoice_number,
   user_game_id: r.user_game_id,
@@ -131,12 +147,25 @@ const toTopupTx = (r: TopupTxRow): TransactionRecord => ({
 });
 
 export async function findTopupTx(db: Db, where: 'id' | 'invoice_number', value: string) {
-  const row = await one<TopupTxRow>(db, `${TOPUP_TX_SELECT} WHERE t.${where} = ?`, [value]);
+  const column = where === 'id' ? 't.id' : 't.invoice_number';
+  const row = await one<TopupTxRow>(db, `${TOPUP_TX_SELECT} where ${column} = $1`, [value]);
   return row ? toTopupTx(row) : null;
 }
 
 export const listUserTopupTx = async (db: Db, userId: string) =>
-  (await all<TopupTxRow>(db, `${TOPUP_TX_SELECT} WHERE t.user_id = ? ORDER BY t.created_at DESC LIMIT 100`, [userId])).map(toTopupTx);
+  (await all<TopupTxRow>(db, `${TOPUP_TX_SELECT} where t.user_id = $1 order by t.created_at desc limit 100`, [userId])).map(toTopupTx);
+
+export const listAllTopupTx = async (db: Db, q: string | undefined, status: string | undefined, limit = 200) =>
+  (
+    await all<TopupTxRow>(
+      db,
+      `${TOPUP_TX_SELECT}
+       where ($1::text is null or t.invoice_number ilike $1 or t.user_game_id ilike $1 or t.contact_email ilike $1)
+         and ($2::topup_status is null or t.status = $2)
+       order by t.created_at desc limit ${limit}`,
+      [q ? `%${q}%` : null, status ?? null],
+    )
+  ).map(toTopupTx);
 
 interface BalanceTxRow {
   id: string;
@@ -152,10 +181,10 @@ interface BalanceTxRow {
 }
 
 const BALANCE_TX_SELECT = `
-  SELECT b.id, b.invoice_number, b.nominal, b.qty, b.amount, b.payment_method, b.status,
-         pay.midtrans_transaction_id AS gateway_ref, b.user_id, b.created_at
-  FROM balance_topups b
-  LEFT JOIN payments pay ON pay.purpose = 'BALANCE_FILL' AND pay.ref_id = b.id`;
+  select b.id, b.invoice_number, b.nominal, b.qty, b.amount, b.payment_method, b.status,
+         pay.midtrans_transaction_id as gateway_ref, b.user_id, b.created_at
+  from balance_topups b
+  left join payments pay on pay.purpose = 'BALANCE_FILL' and pay.ref_id = b.id`;
 
 const toBalanceTx = (r: BalanceTxRow): TransactionRecord => ({
   id: r.id,
@@ -174,9 +203,18 @@ const toBalanceTx = (r: BalanceTxRow): TransactionRecord => ({
 });
 
 export async function findBalanceTx(db: Db, id: string) {
-  const row = await one<BalanceTxRow>(db, `${BALANCE_TX_SELECT} WHERE b.id = ?`, [id]);
+  const row = await one<BalanceTxRow>(db, `${BALANCE_TX_SELECT} where b.id = $1`, [id]);
   return row ? toBalanceTx(row) : null;
 }
 
 export const listUserBalanceTx = async (db: Db, userId: string) =>
-  (await all<BalanceTxRow>(db, `${BALANCE_TX_SELECT} WHERE b.user_id = ? ORDER BY b.created_at DESC LIMIT 100`, [userId])).map(toBalanceTx);
+  (await all<BalanceTxRow>(db, `${BALANCE_TX_SELECT} where b.user_id = $1 order by b.created_at desc limit 100`, [userId])).map(toBalanceTx);
+
+export const listAllBalanceTx = async (db: Db, q: string | undefined, limit = 200) =>
+  (
+    await all<BalanceTxRow>(
+      db,
+      `${BALANCE_TX_SELECT} where ($1::text is null or b.invoice_number ilike $1) order by b.created_at desc limit ${limit}`,
+      [q ? `%${q}%` : null],
+    )
+  ).map(toBalanceTx);

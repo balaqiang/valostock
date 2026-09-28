@@ -1,17 +1,25 @@
+// Supabase Auth behind the API (docs/ARCHITECTURE.md §2). Tokens live in
+// httpOnly cookies: vs_at (access JWT) and vs_rt (refresh token).
 import type { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import type { Session } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
-import { one, pool } from '../db/pool.js';
+import { all, one, pool } from '../db/pool.js';
 import { forbidden, unauthorized } from '../lib/errors.js';
+import { authClient, supabaseAdmin } from '../supabase/client.js';
 
-export const SESSION_COOKIE = 'vs_token';
-const SESSION_TTL_SECONDS = 24 * 60 * 60;
+export const ACCESS_COOKIE = 'vs_at';
+export const REFRESH_COOKIE = 'vs_rt';
+const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** Set by front/src/lib/api-server.ts on server-side (SSR) requests. */
+export const SSR_HEADER = 'x-valostock-ssr';
 
 export interface AuthUser {
   id: string;
-  name: string;
   email: string;
+  name: string;
   role: 'USER' | 'ADMIN';
+  /** Admin permissions (`modul:aksi`), loaded on demand. */
+  permissions?: Set<string>;
 }
 
 declare global {
@@ -23,38 +31,59 @@ declare global {
   }
 }
 
-/** Sets the httpOnly session cookie (JWT, 1 day). */
-export function startSession(res: Response, userId: string) {
-  const token = jwt.sign({ sub: userId }, env.JWT_SECRET, { algorithm: 'HS256', expiresIn: SESSION_TTL_SECONDS });
-  res.cookie(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: SESSION_TTL_SECONDS * 1000,
-  });
+const cookieBase = () => ({
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: env.NODE_ENV === 'production',
+  path: '/',
+});
+
+export function setSessionCookies(res: Response, session: Session) {
+  res.cookie(ACCESS_COOKIE, session.access_token, { ...cookieBase(), maxAge: session.expires_in * 1000 });
+  res.cookie(REFRESH_COOKIE, session.refresh_token, { ...cookieBase(), maxAge: REFRESH_TTL_MS });
 }
 
-export function endSession(res: Response) {
-  res.clearCookie(SESSION_COOKIE, { path: '/' });
+export function clearSessionCookies(res: Response) {
+  res.clearCookie(ACCESS_COOKIE, { path: '/' });
+  res.clearCookie(REFRESH_COOKIE, { path: '/' });
+}
+
+async function userIdFromAccessToken(token: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  return error || !data.user ? null : data.user.id;
 }
 
 /**
- * Reads the session cookie on every request. The user row is re-loaded so a
- * deleted user or a changed role takes effect immediately. Never rejects —
- * routes decide with requireUser / requireAdmin.
+ * Resolves the session on every request. An expired access token is refreshed
+ * with the refresh token — only for browser requests: refresh tokens rotate, so
+ * refreshing on a server-side (SSR) request would hand the new cookies to the
+ * Next.js server instead of the browser and log the user out.
+ * Never rejects: routes decide with requireUser / requireAdmin / requirePermission.
  */
-export async function loadUser(req: Request, _res: Response, next: NextFunction) {
-  const token: unknown = req.cookies?.[SESSION_COOKIE];
-  if (typeof token !== 'string') return next();
-  try {
-    const payload = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] });
-    if (typeof payload === 'object' && typeof payload.sub === 'string') {
-      const user = await one<AuthUser>(pool, 'SELECT id, name, email, role FROM users WHERE id = ?', [payload.sub]);
-      if (user) req.user = user;
+export async function loadUser(req: Request, res: Response, next: NextFunction) {
+  const access: unknown = req.cookies?.[ACCESS_COOKIE];
+  const refresh: unknown = req.cookies?.[REFRESH_COOKIE];
+  let userId = typeof access === 'string' ? await userIdFromAccessToken(access) : null;
+
+  if (!userId && typeof refresh === 'string' && !req.headers[SSR_HEADER]) {
+    const { data, error } = await authClient().auth.refreshSession({ refresh_token: refresh });
+    if (!error && data.session) {
+      setSessionCookies(res, data.session);
+      userId = data.session.user.id;
+    } else {
+      clearSessionCookies(res);
     }
-  } catch {
-    // Invalid or expired token → treated as a guest.
+  }
+
+  if (userId) {
+    const profile = await one<{ id: string; email: string; name: string; role: 'USER' | 'ADMIN'; is_banned: boolean }>(
+      pool,
+      'select id, email, name, role, is_banned from profiles where id = $1',
+      [userId],
+    );
+    if (profile && !profile.is_banned) {
+      req.user = { id: profile.id, email: profile.email, name: profile.name, role: profile.role };
+    }
   }
   next();
 }
@@ -65,8 +94,21 @@ export function requireUser(req: Request): AuthUser {
   return req.user;
 }
 
-export function requireAdmin(req: Request): AuthUser {
+export async function permissionsOf(userId: string): Promise<Set<string>> {
+  const rows = await all<{ permission_key: string }>(
+    pool,
+    `select distinct rp.permission_key from admin_user_roles ur
+     join role_permissions rp on rp.role_id = ur.role_id where ur.user_id = $1`,
+    [userId],
+  );
+  return new Set(rows.map((r) => r.permission_key));
+}
+
+/** Admin with a specific permission (docs/ADMIN_PANEL.md §2), or 401/403. */
+export async function requirePermission(req: Request, permission: string): Promise<AuthUser> {
   const user = requireUser(req);
   if (user.role !== 'ADMIN') throw forbidden('Khusus admin.');
+  user.permissions ??= await permissionsOf(user.id);
+  if (!user.permissions.has(permission)) throw forbidden(`Butuh izin ${permission}.`);
   return user;
 }

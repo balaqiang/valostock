@@ -1,47 +1,77 @@
+// Midtrans payments for every purpose (docs/ARCHITECTURE.md §4): record a
+// PENDING payment inside the business transaction, open Snap (or the built-in
+// simulator) after commit, then apply the final result exactly once.
 import { env } from '../../config/env.js';
 import type { GatewayMethod } from '../../config/money.js';
-import { pool, run, withTransaction, type Db } from '../../db/pool.js';
+import { json, one, pool, run, withTransaction, type Db } from '../../db/pool.js';
 import { audit } from '../../lib/audit.js';
 import { notFound } from '../../lib/errors.js';
-import { uuid } from '../../lib/ids.js';
 import * as midtrans from './midtrans.js';
-import * as repo from './payments.repository.js';
 import { settle } from './settlement.js';
 
-/** What the web app needs to send the buyer to the payment page. */
-export type PaymentSession =
-  | { mode: 'MIDTRANS_SNAP'; snapToken: string; redirectUrl: string }
-  | { mode: 'BALANCE' };
+export type PaymentPurpose = 'TOPUP' | 'BALANCE_FILL' | 'ORDER' | 'STORE_DEPOSIT' | 'SUBSCRIPTION' | 'AD' | 'LOCK';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'EXPIRED' | 'FAILED';
+
+export interface PaymentRow {
+  id: string;
+  midtrans_order_id: string;
+  purpose: PaymentPurpose;
+  ref_id: string;
+  user_id: string | null;
+  amount: number;
+  payment_method: GatewayMethod;
+  meta: Record<string, unknown>;
+  snap_token: string | null;
+  redirect_url: string | null;
+  status: PaymentStatus;
+  midtrans_transaction_id: string | null;
+  payment_type: string | null;
+  created_at: string;
+  paid_at: string | null;
+}
+
+/** What the web app needs to send the payer to the payment page. */
+export type PaymentSession = { mode: 'MIDTRANS_SNAP'; snapToken: string; redirectUrl: string } | { mode: 'BALANCE' };
 
 export interface NewPayment {
   invoice: string;
-  purpose: repo.PaymentPurpose;
+  purpose: PaymentPurpose;
   refId: string;
   userId: string | null;
   amount: number;
   method: GatewayMethod;
-  customer: { name?: string; email?: string | null; phone?: string | null };
+  meta?: Record<string, unknown>;
 }
 
-/** Step 1 (inside the caller's transaction): record the PENDING payment. */
+export const findByInvoice = (db: Db, invoice: string, forUpdate = false) =>
+  one<PaymentRow>(db, `select * from payments where midtrans_order_id = $1${forUpdate ? ' for update' : ''}`, [invoice]);
+
+export const findPendingFor = (db: Db, purpose: PaymentPurpose, refId: string) =>
+  one<PaymentRow>(
+    db,
+    `select * from payments where purpose = $1 and ref_id = $2 and status = 'PENDING' order by created_at desc limit 1`,
+    [purpose, refId],
+  );
+
+/** Step 1 (inside the caller's transaction): the PENDING payment row. */
 export async function recordPayment(db: Db, p: NewPayment): Promise<void> {
-  await repo.insertPayment(db, {
-    id: uuid(),
-    midtrans_order_id: p.invoice,
-    purpose: p.purpose,
-    ref_id: p.refId,
-    user_id: p.userId,
-    amount: p.amount,
-    payment_method: p.method,
-  });
+  await run(
+    db,
+    `insert into payments (midtrans_order_id, purpose, ref_id, user_id, amount, payment_method, meta)
+     values ($1, $2, $3, $4, $5, $6, $7)`,
+    [p.invoice, p.purpose, p.refId, p.userId, p.amount, p.method, json(p.meta ?? {})],
+  );
 }
 
 /**
  * Step 2 (after commit): create the Snap transaction — or, in simulation mode,
- * point at the built-in fake payment page. Re-uses an existing redirect.
+ * point at the built-in payment simulator page. Re-uses an existing redirect.
  */
-export async function openPaymentPage(invoice: string, customer: NewPayment['customer']): Promise<PaymentSession> {
-  const payment = await repo.findByInvoice(pool, invoice);
+export async function openPaymentPage(
+  invoice: string,
+  customer: { name?: string; email?: string | null; phone?: string | null } = {},
+): Promise<PaymentSession> {
+  const payment = await findByInvoice(pool, invoice);
   if (!payment) throw notFound('Pembayaran');
   if (payment.snap_token && payment.redirect_url) {
     return { mode: 'MIDTRANS_SNAP', snapToken: payment.snap_token, redirectUrl: payment.redirect_url };
@@ -50,7 +80,7 @@ export async function openPaymentPage(invoice: string, customer: NewPayment['cus
     env.PAYMENT_MODE === 'simulation'
       ? { token: `SIM-${payment.id}`, redirectUrl: `${env.FRONTEND_URL}/payment/simulate?invoice=${encodeURIComponent(invoice)}` }
       : await midtrans.createSnapTransaction({ orderId: invoice, amount: payment.amount, method: payment.payment_method, customer });
-  await repo.setSnap(pool, payment.id, snap.token, snap.redirectUrl);
+  await run(pool, 'update payments set snap_token = $1, redirect_url = $2 where id = $3', [snap.token, snap.redirectUrl, payment.id]);
   return { mode: 'MIDTRANS_SNAP', snapToken: snap.token, redirectUrl: snap.redirectUrl };
 }
 
@@ -62,14 +92,14 @@ export async function applyResult(
   invoice: string,
   result: midtrans.GatewayResult,
   info: { grossAmount: number | null; transactionId: string | null; paymentType: string | null },
-): Promise<repo.PaymentRow> {
-  return withTransaction(async (conn) => {
-    const payment = await repo.findByInvoice(conn, invoice, true);
+): Promise<PaymentRow> {
+  return withTransaction(async (tx) => {
+    const payment = await findByInvoice(tx, invoice, true);
     if (!payment) throw notFound('Pembayaran');
     if (payment.status !== 'PENDING' || result === 'PENDING') return payment;
 
     if (result === 'PAID' && info.grossAmount !== null && info.grossAmount !== payment.amount) {
-      await audit(conn, {
+      await audit(tx, {
         actorId: null,
         action: 'payment.amount_mismatch',
         targetType: 'payment',
@@ -79,15 +109,21 @@ export async function applyResult(
       return payment; // never settle a payment whose amount doesn't match
     }
 
-    await repo.setResult(conn, payment.id, result, info);
-    await settle(conn, payment, result);
+    await run(
+      tx,
+      `update payments set status = $1::payment_status, midtrans_transaction_id = coalesce($2, midtrans_transaction_id),
+         payment_type = coalesce($3, payment_type), paid_at = case when $1::payment_status = 'PAID' then now() else paid_at end
+       where id = $4`,
+      [result, info.transactionId, info.paymentType, payment.id],
+    );
+    await settle(tx, payment, result);
     return { ...payment, status: result };
   });
 }
 
 /** Ask Midtrans for the real status of a PENDING payment and apply it. */
-export async function syncPayment(invoice: string): Promise<repo.PaymentRow> {
-  const payment = await repo.findByInvoice(pool, invoice);
+export async function syncPayment(invoice: string): Promise<PaymentRow> {
+  const payment = await findByInvoice(pool, invoice);
   if (!payment) throw notFound('Pembayaran');
   if (payment.status !== 'PENDING' || env.PAYMENT_MODE !== 'midtrans') return payment;
   const status = await midtrans.getTransactionStatus(invoice);
@@ -95,7 +131,7 @@ export async function syncPayment(invoice: string): Promise<repo.PaymentRow> {
 }
 
 /** Where the web app sends the user after the payment page. */
-export function nextPathFor(payment: repo.PaymentRow): string {
+export function nextPathFor(payment: PaymentRow): string {
   switch (payment.purpose) {
     case 'TOPUP':
       return `/topup/invoice?q=${encodeURIComponent(payment.midtrans_order_id)}`;
@@ -104,26 +140,45 @@ export function nextPathFor(payment: repo.PaymentRow): string {
     case 'ORDER':
       return `/orders/${payment.ref_id}`;
     case 'STORE_DEPOSIT':
-      return '/sell';
+      return '/store-dashboard';
+    case 'SUBSCRIPTION':
+      return '/store-dashboard/subscription';
+    case 'AD':
+      return '/store-dashboard/ads';
+    case 'LOCK': {
+      const catalogId = typeof payment.meta.catalogId === 'string' ? payment.meta.catalogId : '';
+      return catalogId ? `/catalog/${catalogId}` : '/';
+    }
   }
 }
 
+/** Cancels the PENDING payments of a business record (e.g. an order cancelled before payment). */
+export const failPendingFor = (db: Db, purpose: PaymentPurpose, refId: string) =>
+  run(db, `update payments set status = 'FAILED' where purpose = $1 and ref_id = $2 and status = 'PENDING'`, [purpose, refId]);
+
 /** POST /webhooks/midtrans — signed notification, stored once, then re-verified via the Status API. */
 export async function handleNotification(body: Record<string, unknown>): Promise<void> {
-  const fields = body as { order_id?: string; status_code?: string; gross_amount?: string; signature_key?: string; transaction_id?: string; transaction_status?: string };
+  const fields = body as {
+    order_id?: string;
+    status_code?: string;
+    gross_amount?: string;
+    signature_key?: string;
+    transaction_id?: string;
+    transaction_status?: string;
+  };
   const signatureValid = env.PAYMENT_MODE === 'midtrans' && midtrans.verifySignature(fields);
-  const payment = fields.order_id ? await repo.findByInvoice(pool, fields.order_id) : null;
-  const externalId = `${fields.transaction_id ?? fields.order_id ?? 'unknown'}:${fields.transaction_status ?? 'unknown'}`;
+  const payment = fields.order_id ? await findByInvoice(pool, fields.order_id) : null;
+  const externalId = `${fields.transaction_id ?? fields.order_id ?? 'unknown'}:${fields.transaction_status ?? 'unknown'}`.slice(0, 120);
 
   const inserted = await run(
     pool,
-    `INSERT IGNORE INTO webhook_events (source, external_id, payment_id, payload, signature_valid)
-     VALUES ('MIDTRANS', ?, ?, ?, ?)`,
-    [externalId.slice(0, 120), payment?.id ?? null, JSON.stringify(body), signatureValid],
+    `insert into webhook_events (source, external_id, payment_id, payload, signature_valid)
+     values ('MIDTRANS', $1, $2, $3, $4) on conflict (source, external_id) do nothing`,
+    [externalId, payment?.id ?? null, json(body), signatureValid],
   );
   // Duplicate notification or forged/unknown one → nothing to do.
-  if (inserted.affectedRows === 0 || !signatureValid || !payment) return;
+  if (inserted === 0 || !signatureValid || !payment) return;
 
   await syncPayment(payment.midtrans_order_id);
-  await run(pool, 'UPDATE webhook_events SET processed = 1 WHERE source = ? AND external_id = ?', ['MIDTRANS', externalId.slice(0, 120)]);
+  await run(pool, `update webhook_events set processed = true where source = 'MIDTRANS' and external_id = $1`, [externalId]);
 }

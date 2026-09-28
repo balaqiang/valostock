@@ -6,15 +6,17 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(4000),
   FRONTEND_URL: z.url().default('http://localhost:3000'),
-  DB_HOST: z.string().default('127.0.0.1'),
-  DB_PORT: z.coerce.number().int().positive().default(3306),
-  DB_USER: z.string().min(1),
-  DB_PASSWORD: z.string().default(''),
-  DB_NAME: z.string().min(1).default('valostock'),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET minimal 32 karakter'),
+  DATABASE_URL: z.string().startsWith('postgresql://', 'DATABASE_URL harus berupa URL postgresql://'),
+  SUPABASE_URL: z.url(),
+  SUPABASE_ANON_KEY: z.string().min(20, 'isi dari `npx supabase status`'),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20, 'isi dari `npx supabase status`'),
   PAYMENT_MODE: z.enum(['simulation', 'midtrans']).default('simulation'),
   MIDTRANS_SERVER_KEY: z.string().default(''),
   MIDTRANS_CLIENT_KEY: z.string().default(''),
+  JOBS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
 });
 
 const parsed = schema.safeParse(process.env);

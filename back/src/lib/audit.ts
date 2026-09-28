@@ -1,4 +1,4 @@
-import { run, type Db } from '../db/pool.js';
+import { json, run, type Db } from '../db/pool.js';
 
 /** Records a sensitive action (admin decisions, anomalies) in audit_logs. */
 export async function audit(
@@ -7,13 +7,13 @@ export async function audit(
 ): Promise<void> {
   await run(
     db,
-    'INSERT INTO audit_logs (actor_id, action, target_type, target_id, detail, ip) VALUES (?, ?, ?, ?, ?, ?)',
+    'insert into audit_logs (actor_id, action, target_type, target_id, detail, ip) values ($1, $2, $3, $4, $5, $6)',
     [
       entry.actorId,
       entry.action,
       entry.targetType,
       entry.targetId,
-      entry.detail === undefined ? null : JSON.stringify(entry.detail),
+      entry.detail === undefined ? null : json(entry.detail),
       entry.ip ?? null,
     ],
   );

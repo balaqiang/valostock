@@ -18,10 +18,13 @@ export function originCheck(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
+/** Local development / automated tests get 10× headroom; production keeps the strict limits. */
+const LIMIT_SCALE = env.NODE_ENV === 'production' ? 1 : 10;
+
 function limiter(windowMinutes: number, limit: number) {
   return rateLimit({
     windowMs: windowMinutes * 60 * 1000,
-    limit,
+    limit: limit * LIMIT_SCALE,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     handler: (_req, _res, next) =>
@@ -29,11 +32,20 @@ function limiter(windowMinutes: number, limit: number) {
   });
 }
 
-export const authLimiter = limiter(15, 20);
-export const checkoutLimiter = limiter(5, 30);
-export const lookupLimiter = limiter(5, 60);
+export const authLimiter = limiter(15, 30);
+export const checkoutLimiter = limiter(5, 40);
+export const lookupLimiter = limiter(5, 120);
+export const uploadLimiter = limiter(5, 60);
+export const writeLimiter = limiter(5, 120);
 
-/** Last middleware: AppError → its status; anything else → 500 without internals. */
+const PG_ERRORS: Record<string, [number, string, string]> = {
+  '23505': [409, 'DUPLICATE', 'Data sudah ada.'],
+  '23503': [400, 'BAD_REFERENCE', 'Data terkait tidak ditemukan.'],
+  '23514': [400, 'CHECK_FAILED', 'Data tidak memenuhi aturan.'],
+  '22P02': [400, 'BAD_INPUT', 'Format data tidak valid.'],
+};
+
+/** Last middleware: AppError → its status; known DB/upload errors → 4xx; anything else → 500 without internals. */
 export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
   if (error instanceof AppError) {
     res.status(error.status).json({ error: { code: error.code, message: error.message } });
@@ -43,8 +55,14 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _ne
     res.status(400).json({ error: { code: 'BAD_JSON', message: 'Format JSON tidak valid.' } });
     return;
   }
-  if (typeof error === 'object' && error !== null && (error as { code?: string }).code === 'ER_DUP_ENTRY') {
-    res.status(409).json({ error: { code: 'DUPLICATE', message: 'Data sudah ada.' } });
+  const code = typeof error === 'object' && error !== null ? (error as { code?: string }).code : undefined;
+  if (code === 'LIMIT_FILE_SIZE' || code === 'LIMIT_FILE_COUNT' || code === 'LIMIT_UNEXPECTED_FILE') {
+    res.status(400).json({ error: { code: 'BAD_UPLOAD', message: 'File terlalu besar atau terlalu banyak.' } });
+    return;
+  }
+  if (code && PG_ERRORS[code]) {
+    const [status, errCode, message] = PG_ERRORS[code];
+    res.status(status).json({ error: { code: errCode, message } });
     return;
   }
   console.error(error);
