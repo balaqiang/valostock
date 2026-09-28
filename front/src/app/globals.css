@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+/* Dark mode variant — toggled via a `.dark` class on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+}
+
+/* ── Light (default) ──────────────────────────────────────────── */
+:root {
+  --background: #ffffff;
+  --surface: #fafafa;
+  --surface-elevated: #f4f4f5;
+  --primary: #7c3aed;
+  --primary-hover: #6d28d9;
+  --accent: #a855f7;
+  --text: #09090b;
+  --text-secondary: #52525b;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+}
+
+/* ── Dark (professional zinc-950 derivation, high contrast) ───── */
+.dark {
+  --background: #09090b;
+  --surface: #131316;
+  --surface-elevated: #1c1c20;
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --accent: #a855f7;
+  --text: #fafafa;
+  --text-secondary: #a1a1aa;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Typographic base ─────────────────────────────────────────── */
+@layer base {
+  /* Balanced heads avoid orphans; pretty wrap tidies paragraph rag. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
+/* Fluid display scale — tight tracking + leading for big grotesque heads.
+   Applied via `.display-1` (hero) and `.display-2` (section titles). */
+@layer components {
+  .display-1 {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.75rem, 5.4vw + 1rem, 4.75rem);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+  }
+  .display-2 {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 700;
+    font-size: clamp(2rem, 2.6vw + 1rem, 3.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.028em;
+  }
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+  /* Emphasis word inside a lede — italic, slightly heavier, in ink color. */
+  .lede-em {
+    font-style: italic;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Glossy sweep on hover — one elegant pass, then rests. */
+  .btn-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 65%
+    );
+    transform: translateX(-130%);
+  }
+  .btn-shine:hover::after {
+    animation: btn-shine-sweep 0.8s ease;
+  }
+
+  /* Filter dropdown panel entrance */
+  .dropdown-panel {
+    animation: dropdown-in 0.16s ease;
+  }
+}
+
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes btn-shine-sweep {
+  to {
+    transform: translateX(130%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine:hover::after {
+    animation: none;
+  }
+}
+
+/* Money & VP numbers — align digits in tables, balances, prices */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Dashboard shells (store/admin): muted canvas with white cards.
+   Swaps the `surface` token to `background` so existing card markup
+   (bg-surface) renders white on the gray canvas — light & dark. */
+.dashboard-canvas {
+  --surface: var(--background);
+  background-color: var(--surface-elevated);
+}

@@ -1,0 +1,10 @@
+node_modules/
+.next/
+dist/
+out/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+back/storage/private/
+.DS_Store

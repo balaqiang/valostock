@@ -1,0 +1,4 @@
+WEAPON_API=https://vinfo-api.com/json/weaponSkins2
+PLAYERCARDS_API=https://vinfo-api.com/json/playerCards
+SEASON_API=https://vinfo-api.com/json/seasons
+AGENTS_API=https://vinfo-api.com/json/characters
