@@ -5,6 +5,8 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
+  Bell,
+  Store,
   ChevronDown,
   Gamepad2,
   Menu,
@@ -153,7 +155,7 @@ function AuthActions({ solid }: { solid: boolean }) {
     <>
       {user.role === "ADMIN" && (
         <Link
-          href="/admin/stores"
+          href="/admin"
           aria-label="Panel admin"
           className={`hidden h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors duration-200 md:inline-flex ${quiet}`}
         >
@@ -161,6 +163,28 @@ function AuthActions({ solid }: { solid: boolean }) {
           <span className="hidden xl:inline">Admin</span>
         </Link>
       )}
+      {user.store && (
+        <Link
+          href={["ACTIVE", "SUSPENDED", "PENDING_REVIEW"].includes(user.store.status) ? "/store-dashboard" : "/sell"}
+          aria-label="Toko saya"
+          className={`hidden h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors duration-200 md:inline-flex ${quiet}`}
+        >
+          <Store className="h-4 w-4" />
+          <span className="hidden xl:inline">Toko Saya</span>
+        </Link>
+      )}
+      <Link
+        href="/account/messages/order"
+        aria-label={`Notifikasi${user.unreadNotifications ? ` (${user.unreadNotifications} belum dibaca)` : ""}`}
+        className={`relative inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-200 ${quiet}`}
+      >
+        <Bell className="h-4 w-4" />
+        {user.unreadNotifications > 0 && (
+          <span className="num absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+            {user.unreadNotifications > 99 ? "99+" : user.unreadNotifications}
+          </span>
+        )}
+      </Link>
       <Link
         href="/account/balance"
         className={`hidden h-9 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors duration-200 sm:inline-flex ${quiet}`}

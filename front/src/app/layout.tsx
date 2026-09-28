@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { SessionSync } from "@/components/auth/session-sync";
+import { getCurrentUser } from "@/lib/auth";
 import "./globals.css";
 
 const inter = Inter({
@@ -26,11 +28,12 @@ export const metadata: Metadata = {
 // Set the theme before paint to avoid a flash of the wrong theme.
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
   return (
     <html
       lang="id"
@@ -41,7 +44,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <SessionSync serverUserId={user?.id ?? null} />
+        </ThemeProvider>
       </body>
     </html>
   );
