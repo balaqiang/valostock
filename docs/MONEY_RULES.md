@@ -3,7 +3,7 @@
 **Single Source of Truth**
 Version 6.0 · Shopee-style · All flowcharts, ERD, state machine, and code MUST follow this document.
 
-> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach). **Prototype simplifications of these rules:** escrow is released when the buyer presses *Selesai* (no 5-hour timer); withdrawals are completed by admin approval (Iris simulated); the lock fee, protection window claims, subscriptions and ads are not charged. Fee numbers themselves are unchanged and implemented in `back/src/config/money.ts`.
+> **Scope (v8).** College-assignment project running locally with its **own Supabase project** (Postgres 17 + Supabase Auth + Storage, Docker, ports 553xx) behind an Express.js API. **Every product feature in this document is implemented**, including admin verification of stores **and of every catalog** before it is sold, offers, ratings, disputes, vouchers, flash sales, bundles, subscriptions, featured ads, inspections, external sellers, wishlist/follows, in-app notifications, loyalty points, referral, store chat and reports. **Simulated external services:** Midtrans Iris payouts, Digiflazz top-up delivery, WhatsApp/Discord/Telegram notifications (in-app notifications are real). Midtrans **Snap** runs in Sandbox or simulation mode. See `ARCHITECTURE.md` (v8), `ADMIN_PANEL.md`, and `docs/modeling/` (Data Flow approach).
 
 
 > **v6.0 changes:** **Midtrans is the only payment provider** — **Snap** for every incoming payment (orders, top-up, Balance fill, deposit, subscription, ads) and **Iris** for every payout (store withdrawal, transfer to external seller) incl. Iris account validation. Xendit (and the DOKU prototype) removed. Store funds are tracked in an internal ledger (`STORE_BALANCES` + `STORE_LEDGER`). **All fee numbers are unchanged.**
@@ -87,7 +87,7 @@ Commission is always % of the **final** price → negotiation up/down is auto-ha
 | API access | — | — | ✓ |
 | Priority support & dispute | — | Standard | ✓ |
 
-Strongest lever = lower commission + more listings + free featured (Power-Merchant logic). Paid via Midtrans Snap.
+Strongest lever = lower commission + more listings + free featured (Power-Merchant logic). Paid via Midtrans Snap (`payments.purpose = SUBSCRIPTION`), valid 30 days; the tier's commission rate is copied into each new order.
 
 ## 6. PROTECTION (Mandatory)
 
@@ -187,6 +187,13 @@ For reseller stores to pay their external sellers, **safely**:
 **Trust badges:** Identity Verified (admin-verified owner) · Verified Store (reputation) · Platinum Store (top) · Account Checked (this account inspected) · Deposit Secured (active deposit).
 **Reputation:** Seller Rating (±1 per review) + Service Score (description accuracy, attitude, delivery speed). Earned, not bought. Review manipulation forbidden.
 
+## 13b. LOYALTY POINTS & REFERRAL (closed-loop)
+
+- **Earn:** 1 point per Rp1.000 of the final item price when an account order is **COMPLETED**, and 1 point per Rp1.000 of a **SUCCESS** game top-up.
+- **Redeem:** 100 points → Rp1.000 **Balance** (`balance_ledger` type `LOYALTY_CREDIT`), in multiples of 100 points. Points and the resulting Balance stay closed-loop (top-up only, no cash-out).
+- **Referral:** a new user who registers with a referral code links to the referrer. When the referred user's **first** account order completes or first top-up succeeds, the referrer receives **Rp10.000 Balance** (`REFERRAL_CREDIT`), once per referred user.
+- Every change writes `loyalty_ledger` / `balance_ledger` with `balance_after`.
+
 ## 14. SANCTIONS & PENALTIES
 
 Tiered (scaling with severity): warning → listing restriction → **fine from deposit** → suspension (30d) → permanent ban → blacklist (device/identity/bank) → legal action. Store-error buyer refund may incur a fine (e.g. 10% of refund). Off-platform trading, fake delivery, false listings → deposit fine + ban.
@@ -195,7 +202,7 @@ Tiered (scaling with severity): warning → listing restriction → **fine from 
 
 | Item | Cost |
 |---|---|
-| Local development (XAMPP + Midtrans Sandbox) | Rp 0 |
+| Local development (Docker Supabase + Midtrans Sandbox) | Rp 0 |
 | VPS (production) | Rp 9.840.000 / year |
 | Cloudflare Pro | Rp 3.960.000 / year |
 | Email (Resend) | Rp 3.960.000 / year |

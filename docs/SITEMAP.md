@@ -3,7 +3,7 @@
 **Complete page map, route tree, per-page contents, guards & RBAC**
 Version 3.0 · Store-only marketplace + top-up + closed-loop balance · Express.js API + Midtrans
 
-> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach). Prototype-only routes: `/payment/finish` (return from Midtrans → status check), `/payment/simulate` (simulation mode), `/sell` (store form + deposit, no KYC step), `/admin/stores` and `/admin/withdrawals` (manual approvals).
+> **Scope (v8).** College-assignment project running locally with its **own Supabase project** (Postgres 17 + Supabase Auth + Storage, Docker, ports 553xx) behind an Express.js API. **Every product feature in this document is implemented**, including admin verification of stores **and of every catalog** before it is sold, offers, ratings, disputes, vouchers, flash sales, bundles, subscriptions, featured ads, inspections, external sellers, wishlist/follows, in-app notifications, loyalty points, referral, store chat and reports. **Simulated external services:** Midtrans Iris payouts, Digiflazz top-up delivery, WhatsApp/Discord/Telegram notifications (in-app notifications are real). Midtrans **Snap** runs in Sandbox or simulation mode. See `ARCHITECTURE.md` (v8), `ADMIN_PANEL.md`, and `docs/modeling/` (Data Flow approach).
 
 
 > Guard legend: `public` · `auth` (logged-in buyer) · `store` (store admin) · `admin:PERM` (permission-gated). Every money/data page is checked **server-side** (Express middleware: `auth` → `require-permission` → `require-ownership`), never UI-only. The Next.js page guard is only a redirect convenience.
@@ -105,7 +105,7 @@ Version 3.0 · Store-only marketplace + top-up + closed-loop balance · Express.
 | Help center | `/help` | Category groups, search, popular articles | Open article | public |
 | Help article | `/help/[slug]` | Body, breadcrumbs, related, "was this helpful" | — | public |
 
-> **Product types (Phase 1):** Accounts + Top-Up. Games and product types are **seeded by code** now; an admin CMS to add games/fields no-code is Phase 2. Game-specific listing fields live in `CATALOGS.attributes` (MySQL JSON, hot keys as indexed generated columns) so new games need no table redesign. Skin data (image + VP price) is synced from a 3rd-party API into the `SKINS` master; stores pick skins when listing.
+> **Product types:** Accounts + Top-Up. Games, their **catalog field templates** (rank, server, level, skins…), and top-up products are managed by admins in `/admin/games` and `/admin/topup-products` (seeded with 4 games). Game-specific values live in `catalogs.attributes` (Postgres `jsonb`, GIN index) and drive the search filters; new games need no table change. Catalog photos are uploaded to Supabase Storage.
 
 ---
 
@@ -227,6 +227,8 @@ Multi-step wizard (iGV-style 4 steps). Route shell `/sell/...`. Guard: `auth` (l
 ---
 
 ## 8. ADMIN PANEL (`/admin`) — full management
+
+> **Detailed design (v8): [`ADMIN_PANEL.md`](ADMIN_PANEL.md)** — menu structure, RBAC roles & permissions, per-page columns/filters/actions, catalog moderation queue with rejection-reason templates, and admin-controlled state machines. The tables below are the original overview.
 
 Each row is permission-gated (see §9).
 

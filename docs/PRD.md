@@ -4,7 +4,7 @@
 **Store-Only Marketplace for Game Accounts & Top-Up (Shopee-style)**
 Version 6.0 · Status: Prototype (college assignment)
 
-> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach).
+> **Scope (v8).** College-assignment project running locally with its **own Supabase project** (Postgres 17 + Supabase Auth + Storage, Docker, ports 553xx) behind an Express.js API. **Every product feature in this document is implemented**, including admin verification of stores **and of every catalog** before it is sold, offers, ratings, disputes, vouchers, flash sales, bundles, subscriptions, featured ads, inspections, external sellers, wishlist/follows, in-app notifications, loyalty points, referral, store chat and reports. **Simulated external services:** Midtrans Iris payouts, Digiflazz top-up delivery, WhatsApp/Discord/Telegram notifications (in-app notifications are real). Midtrans **Snap** runs in Sandbox or simulation mode. See `ARCHITECTURE.md` (v8), `ADMIN_PANEL.md`, and `docs/modeling/` (Data Flow approach).
 
 
 > **v5.0:** Tech reset — Express.js API + MySQL (XAMPP, local-first) + **Midtrans-only payments** (Snap in, Iris out). Xendit, NestJS, PostgreSQL, Redis/BullMQ, DOKU and SQLite removed. Product scope unchanged.
@@ -60,7 +60,9 @@ Account trading today is manual (admin bottleneck via WhatsApp groups), scam-pro
 ### 5.2 Becoming a Store
 - Register → fill store info (name, type Owner/Reseller, **owner legal name**) + accept Terms → pay **Rp500K deposit** via Midtrans Snap → **admin verifies manually** (approve/reject, audit-logged) → ACTIVE → list.
 
-### 5.3 Store — Listing & Inspection
+### 5.3 Store — Listing, Moderation & Inspection
+- **Every catalog is verified by an admin before it is sold:** DRAFT → submit → PENDING_REVIEW → admin approves (LISTED) or rejects with a reason (REJECTED → fix → resubmit). Editing key fields of a LISTED catalog sends it back to review.
+- Catalog fields follow the game's **field templates** (rank, server, level, skins…), managed by admins; photos are uploaded to Supabase Storage.
 - Create listing → platform issues **VS catalog ID** (one account = one catalog → no double-sell).
 - Choose category/game/region accurately; clear description (rank, skins/VP, access, delivery).
 - Optional **Account Inspection** (login-only checklist + media, seller keeps 2FA) → **Account Checked** badge.
@@ -121,7 +123,7 @@ Ledger-tracked funds (escrow/float never used for operations, daily reconciliati
 
 ## 8. ARCHITECTURE (summary)
 
-Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + **`back/`** (Express.js + TypeScript, **mysql2 without ORM** → **MySQL via XAMPP**, schema imported with phpMyAdmin). Payments: **Midtrans Snap** (Sandbox, or simulation mode); Iris payouts and Digiflazz fulfilment are **simulated** in the prototype. Runs fully local. Detail: **ARCHITECTURE.md**; data model: **docs/modeling/**.
+Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + **`back/`** (Express.js + TypeScript, **pg** + **supabase-js**) on a **dedicated local Supabase project** (Postgres 17, Supabase Auth, Supabase Storage; Docker, managed in Supabase Studio). Payments: **Midtrans Snap** (Sandbox or simulation mode); Iris payouts, Digiflazz fulfilment and WhatsApp/Discord/Telegram delivery are simulated. The Express backend owns all money, trust, and state; the web app renders UI and calls the API. Detail: **ARCHITECTURE.md**, **ADMIN_PANEL.md**; data model: **docs/modeling/**.
 
 ---
 
@@ -133,11 +135,11 @@ Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + 
 
 ## 10. SCOPE & PHASES
 
-- **Prototype (this assignment):** Express + mysql2 + MySQL (XAMPP), email/password auth, catalog, top-up + Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with manual admin verification + deposit, store catalogs/orders/balance/withdrawals, admin approvals. Iris/Digiflazz simulated.
+- **This project (v8):** every feature in §5 on Express + Supabase (Postgres/Auth/Storage), including admin moderation of stores and of every catalog. External services (Iris, Digiflazz, WA/Discord/Telegram) simulated.
 - **Phase 0 — Foundation (post-prototype):** OTP, refresh tokens, background jobs, realtime chat.
 - **Phase 1 — MVP:** provider KYC (optional) + deposit, VS catalog IDs, direct offers/negotiation, Midtrans Snap + ledger escrow, rekber room + chat, mandatory protection, disputes, Account Validation payout, ratings, top-up, basic admin.
 - **Phase 2 — Reseller & engagement:** external sellers + transfer requests, notifications (WA/Discord/Telegram), inspections, wishlist/follows/loyalty, vouchers/flash-sales/bundles, ads, analytics, reconciliation, observability.
-- **Phase 3 — Scale:** move off XAMPP to a VPS (MySQL server, Nginx, PM2/Docker, optional Redis/BullMQ), infra split & clustering, advanced fraud/trust, (evaluate) crypto & content layer.
+- **Phase 3 — Scale:** hosted Supabase (or VPS + Postgres), real Iris/Digiflazz/notification integrations, infra split & clustering, advanced fraud/trust, (evaluate) crypto & content layer.
 
 ---
 
@@ -151,7 +153,7 @@ Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + 
 | Buyer false dispute | Buyer Trust Score + rekber evidence + 72h + arbitration |
 | Off-platform trade (lost commission + protection) | Zero-tolerance + deposit fine + ban; chat forbids contact/txn |
 | Fund-holding regulation (Midtrans-only → platform account holds escrow) | 1:1 ledger + daily reconciliation; sandbox only until legal review; PSE registration; consider licensed escrow partner before live |
-| Local-only infra (XAMPP) not production-grade | Documented production plan (VPS, MySQL server, backups, monitoring) before any real traffic |
+| Local-only infra (Docker Supabase) not production-grade | Documented production plan (hosted Supabase, backups, monitoring, pen-test) before any real traffic |
 | Duplicate/fake webhook | Signature + idempotency |
 | Absolute-claim liability | Measurable badges only; "100% safe" forbidden |
 | Chicken-and-egg (no stores) | Recruit 5–10 stores manually; cheap/free deposit for first wave; free first-week ads |

@@ -3,7 +3,7 @@
 **Store-Only Marketplace (Shopee-style) · Seller/Store Handbook**
 Version 1.0 · Modeled ~90% on iGV, adapted to valostock.id features
 
-> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach).
+> **Scope (v8).** College-assignment project running locally with its **own Supabase project** (Postgres 17 + Supabase Auth + Storage, Docker, ports 553xx) behind an Express.js API. **Every product feature in this document is implemented**, including admin verification of stores **and of every catalog** before it is sold, offers, ratings, disputes, vouchers, flash sales, bundles, subscriptions, featured ads, inspections, external sellers, wishlist/follows, in-app notifications, loyalty points, referral, store chat and reports. **Simulated external services:** Midtrans Iris payouts, Digiflazz top-up delivery, WhatsApp/Discord/Telegram notifications (in-app notifications are real). Midtrans **Snap** runs in Sandbox or simulation mode. See `ARCHITECTURE.md` (v8), `ADMIN_PANEL.md`, and `docs/modeling/` (Data Flow approach).
 
 
 > On valostock.id, only **verified Stores** sell. Buyers browse and buy freely (no identity check). This document is the complete rulebook for stores: fees, onboarding, membership, reputation, selling, disputes, withdrawal, deposit, penalties, and notifications.
@@ -110,7 +110,9 @@ Violations → penalties up to permanent ban. Stores may **reply once** to each 
 
 **Write a clear description:** state exactly what the buyer receives — rank, skins/VP, region, agents, email access, delivery method, and any requirements. Avoid vague wording.
 
-**Account listing specifics:** the platform issues the **catalog ID** (prefix `VS`, e.g. `VS001`). One account = one catalog; it cannot be listed twice → no double-sell.
+**Account listing specifics:** the platform issues the **catalog ID** (prefix `VS`, e.g. `VS7K3QX`) when the catalog is first submitted. One account = one catalog; it cannot be listed twice → no double-sell.
+
+**Product verification (every catalog):** a new catalog is saved as **DRAFT**, then **submitted** for review (**PENDING_REVIEW**). A platform admin checks photos, game attributes, description and price, then **approves** (**LISTED**, visible to buyers) or **rejects with a reason** (**REJECTED**). Common rejection reasons: unclear or foreign photos, attributes that don't match the photos, misleading title or absolute claims, unreasonable price, contact details or off-platform links, wrong game/category, duplicate of another catalog. Fix the listing and resubmit. Editing the title, price, photos or attributes of a LISTED catalog sends it back to review. Active catalogs are limited by the store's plan (Free 15, Pro 60, Business unlimited). The admin may also **take down** a LISTED catalog (DELISTED) with a reason.
 
 **Optional account check (for trust):** the store may submit an account for **inspection** — the store logs in (login only, never changing email/password), verifies authenticity, skin list, no restrictions, matches description; the seller keeps 2FA on. Recorded with checklist + timestamp + media → **"Account Checked"** badge. Never use "100% original/safe".
 
@@ -120,7 +122,7 @@ Violations → penalties up to permanent ban. Stores may **reply once** to each 
 
 ## 7. SELLING FLOW & FEATURES
 
-1. **Listing goes live** (optionally boosted via ads/featured).
+1. **Listing goes live after admin approval** (optionally boosted via ads/featured).
 2. **Direct offer / negotiation (core feature):** a buyer taps **"Tawar"** in chat → an offer form opens → submits. The store can **Accept / Counter-offer / Reject**. Offers have an **expiry** and status (PENDING / ACCEPTED / REJECTED / EXPIRED). On Accept (Yes/No popup) → price & listing lock.
 3. **Buy:** buyer buys directly, or after an accepted offer. Optional **Lock (Rp 5.000)** reserves the account 30 minutes; buyers may also buy immediately without lock.
 4. **Payment → escrow** (buyer pays via Midtrans; the store's share is held in its escrow balance until the account is safe). After payment, a **Rekber Room** opens (ID = catalog ID, e.g. `VS001`), **supervised by admin**, separate from normal chat.

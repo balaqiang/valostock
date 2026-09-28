@@ -1,9 +1,9 @@
 # CLAUDE.md — valostock.id
 
-Trust-based marketplace for game accounts (Valorant, MLBB, etc.) + game top-up. Admin-verified stores, Midtrans payments with a per-store escrow ledger, in-app rekber room.
-**This repository is a college-assignment PROTOTYPE**, running locally on XAMPP. Keep solutions simple and demonstrable; do not add production infrastructure.
+Trust-based marketplace for game accounts (Valorant, MLBB, etc.) + game top-up. Admin-verified stores **and admin-verified products**, Midtrans payments with a per-store escrow ledger, in-app rekber room.
+**College-assignment project** running locally: its **own Supabase project in Docker** (Postgres 17 + Auth + Storage) behind an Express API, and a Next.js web app. Keep solutions demonstrable and correct; production hosting is out of scope.
 
-**Two services:** `front/` (Next.js 16) + `back/` (Express.js + mysql2, **no ORM**) on **MySQL via XAMPP** (schema imported with phpMyAdmin). All domain logic lives in the API. This file is the entry point for any developer or AI on the project.
+**Services:** `front/` (Next.js 16) · `back/` (Express.js + `pg` + `supabase-js`) · `supabase/` (local Supabase project `valostock`, ports 55321–55329). All domain logic lives in the API. This file is the entry point for any developer or AI on the project.
 
 ---
 
@@ -13,18 +13,19 @@ The docs in `/docs` are the **primary source of truth**. Do not assume when the 
 
 | Document | Contents |
 |---|---|
-| `docs/modeling/` | **Assignment model (Data Flow approach):** Diagram Konteks, DFD Level 1/2, ERD, Basis Data Konseptual, Struktur Tabel — in Indonesian |
-| `back/database/schema.sql` | Executable schema (19 tables). Must equal `docs/modeling/05-struktur-tabel.md` |
-| `docs/ARCHITECTURE.md` | Prototype architecture, API contract, payment flow, store verification, local setup |
-| `docs/MONEY_RULES.md` | All money numbers & rules (commission, fees, protection, Balance) |
+| `docs/modeling/` | **Assignment model (Data Flow approach):** Diagram Konteks, DFD Level 1/2, ERD (52 tables), Basis Data Konseptual, Struktur Tabel — in Indonesian |
+| `supabase/migrations/*.sql` | Executable schema. `docs/modeling/05-struktur-tabel.md` is generated from it |
+| `docs/ARCHITECTURE.md` | Architecture v8: services, Supabase Auth flow, Storage, jobs, catalog moderation state machine, payments, local setup |
+| `docs/ADMIN_PANEL.md` | Admin panel design: menu, RBAC roles/permissions, page specs, moderation queue, admin state machines |
+| `docs/MONEY_RULES.md` | All money numbers & rules (commission per plan, fees, protection, Balance, loyalty, referral) |
 | `docs/PRD.md` | Requirements, actors, phases, risks |
 | `docs/SITEMAP.md` | Pages, route tree, guards |
-| `docs/STORE_RULES.md` | Store handbook |
-| `docs/MEGA_FLOW.md` | End-to-end flowchart of the prototype |
+| `docs/STORE_RULES.md` | Store handbook (incl. catalog moderation rules) |
+| `docs/MEGA_FLOW.md` | End-to-end flowchart |
 | `docs/VALOSTOCK_OVERVIEW.md` | Concept overview |
-| `docs/ERD.md` | Pointer to the prototype ERD + list of future-work tables |
+| `docs/ERD.md` | Pointer to the ERD + domain list |
 
-**Modelling approach:** the assignment requires ONE approach. This project uses **Data Flow (Alur Data)**. **Do not create UML diagrams** (use case, class, sequence, activity).
+**Modelling approach:** the assignment requires ONE approach. This project uses **Data Flow (Alur Data)**. **Do not create UML diagrams** (use case, class, sequence, activity). State diagrams inside `ARCHITECTURE.md` describe status rules only.
 
 ---
 
@@ -35,8 +36,8 @@ Every implementation MUST follow this order (when relevant). Never skip or reord
 1. **Documentation** (`/docs`)
 2. **User & System Flow**
 3. **Diagrams** (Diagram Konteks / DFD / flowchart — Mermaid)
-4. **ERD / Database** (`docs/modeling/03–05` → `back/database/schema.sql`)
-5. **Architecture** (`docs/ARCHITECTURE.md`)
+4. **ERD / Database** (`docs/modeling/03–04` → new file in `supabase/migrations/` → regenerate `05-struktur-tabel.md`)
+5. **Architecture** (`docs/ARCHITECTURE.md`, `docs/ADMIN_PANEL.md`)
 6. **Folder Structure**
 7. **Business Logic** (Express modules in `back/src/modules`)
 8. **UI Components** (Next.js in `front/`)
@@ -55,52 +56,54 @@ Every implementation MUST follow this order (when relevant). Never skip or reord
 
 ---
 
-## Prototype Scope
+## Scope (v8)
 
-**Implemented:** email/password auth · games/stores/listings/help from the API · top-up (promo, Midtrans or Balance, simulated delivery, invoice check) · closed-loop Balance fill + ledger · account purchase → escrow → rekber messages → "Akun aman" → "Selesai" → escrow release with 5% commission · store onboarding (form → deposit → **manual admin verification**) · store catalogs, orders, balance, withdrawal requests · admin: verify stores, approve/reject withdrawals, analytics.
+**Everything in the docs works:** Supabase Auth (register with referral, login, reset password) · store onboarding + manual admin verification · **catalog moderation** (DRAFT → PENDING_REVIEW → LISTED / REJECTED with reason; edits of LISTED go back to review) · game field templates · photo upload (Storage) · account inspection · offers · optional lock (Rp5.000 / 30 min) · orders with escrow, rekber, auto-complete 5 h after SAFE · disputes (72 h) + admin rulings · ratings + service score + store reply · store vouchers, flash sales, bundles · subscriptions (Free/Pro/Business) · featured ads · external sellers + transfer requests · withdrawals · top-up + promo + invoice check · closed-loop Balance · wishlist, follows, recently viewed, store chat, in-app notifications · loyalty points + referral rewards · user reports · news/help CMS · admin panel with RBAC + audit log.
 
-**Simulated:** Midtrans Iris payouts (admin approval = completed), Digiflazz fulfilment (PAID top-up = SUCCESS), and — when `PAYMENT_MODE=simulation` — the Midtrans payment page itself.
+**Simulated external services:** Midtrans Iris (payout approval = completed), Digiflazz (PAID top-up = SUCCESS), WhatsApp/Discord/Telegram (not sent; in-app notifications are real), and — with `PAYMENT_MODE=simulation` — the Midtrans payment page.
 
-**Not in the prototype (UI shows demo data from `front/src/lib/mock`):** offers, ratings, disputes, wishlist/follow, loyalty, affiliate, subscriptions, ads, flash sales, bundles, external sellers/transfers, notifications, inspections. **No Sumsub/KYC provider, no Prisma, no Redis/queues, no Socket.IO, no Docker/VPS.**
+**Out of scope:** provider KYC, banner ads, 3rd-party skin sync, admin 2FA, production hosting.
 
 ---
 
 ## Tech Stack
 
-**Frontend — `front/`:** Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · lucide-react · Framer Motion · zod · Inter + Space Grotesk (`next/font`).
+**Frontend — `front/`:** Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 · lucide-react · Framer Motion · zod · Inter + Space Grotesk (`next/font`). No Supabase SDK in the browser.
 
 **Backend — `back/`:**
 | Tool | Notes |
 |---|---|
-| Node.js 20+ · Express 5 | layered: `*.routes.ts` → `*.service.ts` → `*.repository.ts` |
-| TypeScript | strict, run with `tsx` (dev) / compiled with `tsc` |
-| mysql2/promise | connection pool, **parameterised queries only**, `withTransaction()` helper |
-| MySQL (MariaDB 10.4) | XAMPP, `127.0.0.1:3306`, database `valostock` |
+| Node.js 20+ · Express 5 | `*.routes.ts` → `*.service.ts` (→ `*.repository.ts`) |
+| TypeScript | strict, `tsx` (dev) / `tsc` (build) |
+| pg (node-postgres) | pool, **parameterised queries only** (`$1`), `withTransaction()` |
+| @supabase/supabase-js | Auth (GoTrue) + Storage, **service role, server only** |
 | zod | request + `.env` validation |
-| bcryptjs · jsonwebtoken · cookie-parser | password hashing, JWT in httpOnly cookie |
-| helmet · cors · express-rate-limit | security headers, strict CORS, rate limit |
-| fetch → Midtrans | Snap `POST /snap/v1/transactions` + Status API `GET /v2/{order_id}/status` |
+| cookie-parser · helmet · cors · express-rate-limit · multer | cookies, headers, CORS, rate limit, uploads |
+| node-cron | expiries & auto-complete jobs (idempotent) |
+| fetch → Midtrans | Snap + Status API |
 
-**Package manager:** npm.
+**Database:** PostgreSQL 17 in the local Supabase project `valostock` (Studio `http://127.0.0.1:55323`). **Package manager:** npm. Supabase CLI via `npx supabase`.
 
 ---
 
 ## Commands
 
 ```bash
-# XAMPP: start "MySQL" (and "Apache" for phpMyAdmin at http://localhost/phpmyadmin)
-# phpMyAdmin → Import back/database/schema.sql, then back/database/seed.sql
+# Supabase (repo root) — Docker Desktop must be running
+npx supabase start          # project "valostock" (ports 553xx) — never the yowana project
+npx supabase status         # URLs + keys for back/.env
+npx supabase db reset       # re-apply supabase/migrations + supabase/seed.sql (valostock only)
+npx supabase stop
 
 # Backend (back/)
-npm run dev            # tsx watch → http://localhost:4000/api/health
-npm run build          # tsc → dist/
-npm run start          # node dist/server.js
-npm run db:seed:gen    # regenerate database/seed.sql from front/src/lib/mock
-npm run db:reset       # re-import schema.sql + seed.sql with the XAMPP mysql CLI
-npm run test:smoke     # end-to-end API test of all prototype flows (API running, simulation mode, fresh seed)
+npm run dev                 # http://localhost:4000/api/health
+npm run build               # tsc
+npm run db:seed:gen         # regenerate supabase/seed.sql from front/src/lib/mock
+npm run docs:tables         # regenerate docs/modeling/05-struktur-tabel.md from the database
+npm run test:smoke          # end-to-end API test (API running, simulation mode, fresh seed)
 
 # Frontend (front/)
-npm run dev            # http://localhost:3000
+npm run dev                 # http://localhost:3000
 npm run build
 npm run lint
 ```
@@ -154,13 +157,15 @@ Usage: `bg-white`, `bg-surface` (cards), `text-text`, `text-text-secondary`, `bo
 
 ---
 
+
 ## Folder Structure
 
 ```
 tugas/
-├── docs/            modeling/ (assignment model) + architecture/product docs
-├── front/           src/app  src/components  src/lib/(api.ts, api-server.ts, auth.ts, data/, mock/)  src/types  public/images
-└── back/            database/(schema.sql, seed.sql)  scripts/  src/(config, db, middlewares, lib, modules)
+├── docs/        modeling/ (assignment model) · ADMIN_PANEL.md · architecture & product docs
+├── supabase/    config.toml (project_id valostock, ports 553xx) · migrations/*.sql · seed.sql
+├── back/        scripts/ · src/(config, db, supabase, middlewares, lib, jobs, modules)
+└── front/       src/app · src/components · src/lib/(api.ts, api-server.ts, auth.ts, data/, mock/) · src/types · public/images
 ```
 
 ---
@@ -168,31 +173,30 @@ tugas/
 ## Code Conventions
 
 - **TypeScript strict** in both services. No `any` (use `unknown` + narrowing).
-- **All domain logic in the Express API.** SQL lives only in `back/src/modules/*` services/repositories (never in routes or `front/`). The web app never computes/mutates money or trust and has no DB access or secrets.
-- **SQL:** parameterised (`?` placeholders) only — never concatenate user input. Money changes inside `withTransaction()` with `SELECT … FOR UPDATE` on balance rows.
-- **Validate input** with zod on every endpoint (`.strict()` objects) and on frontend forms.
-- **Money values** are integer Rupiah (MySQL `INT`), never floats.
-- **Every balance change writes a ledger row** (`balance_ledger` / `store_ledger`) with `balance_after`, in the same transaction.
-- **Schema changes:** edit `back/database/schema.sql` + `docs/modeling/05-struktur-tabel.md` (+ ERD/DFD if relations change) together.
+- **All domain logic in the Express API.** SQL lives only in `back/src/modules/*` services/repositories (never in routes or `front/`).
+- **SQL:** parameterised (`$1`) only. Money changes inside `withTransaction()` with `SELECT … FOR UPDATE` on balance rows.
+- **Validate input** with zod on every endpoint (`.strict()` objects) and on frontend forms. Uploads: check MIME type + size (images ≤ 2 MB).
+- **Money values** are integer Rupiah (`integer`/`bigint`), never floats.
+- **Every balance change writes a ledger row** (`store_ledger` / `balance_ledger` / `loyalty_ledger`) with `balance_after`, in the same transaction.
+- **Schema changes:** a new migration in `supabase/migrations/` (never edit an applied one), then `npm run docs:tables`, then ERD/DFD if relations change.
+- **Every table has RLS enabled** (no policies) — only the API's own connection reads/writes.
 - **File naming:** `kebab-case.ts`; React components `PascalCase.tsx` (existing kebab-case component files may stay).
-- **Status enums** in sync with `schema.sql` and the DFD.
+- **Status enums** in sync with migrations, `ARCHITECTURE.md` state machines and the DFD.
 
 ---
 
 ## Environment Variables
 
-Backend `back/.env` (never commit — see `back/.env.example`):
+Backend `back/.env` (never commit — see `back/.env.example`; values from `npx supabase status`):
 ```
 PORT=4000
 FRONTEND_URL=http://localhost:3000
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_USER=valostock
-DB_PASSWORD=
-DB_NAME=valostock
-JWT_SECRET=
+DATABASE_URL=postgresql://valostock_api:<password>@127.0.0.1:55322/postgres
+SUPABASE_URL=http://127.0.0.1:55321
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 PAYMENT_MODE=simulation        # simulation | midtrans
-MIDTRANS_SERVER_KEY=           # Sandbox server key (only when PAYMENT_MODE=midtrans)
+MIDTRANS_SERVER_KEY=
 MIDTRANS_CLIENT_KEY=
 ```
 Frontend `front/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000`.
@@ -201,26 +205,29 @@ Frontend `front/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000`.
 
 ## Do Not (Rules)
 
-- **DO NOT** put money/trust logic or SQL in the web app — Express API only.
-- **DO NOT** mark anything PAID from the browser. Only the Midtrans Status API answer, a verified Midtrans webhook (SHA512 signature + `webhook_events` idempotency), or the simulation endpoint (only when `PAYMENT_MODE=simulation`) may do it.
-- **DO NOT** change `users.balance` or `store_balances` without a ledger row in the same transaction.
+- **DO NOT** touch the other Supabase project on this machine (**yowana**, containers `supabase_*_yowana`, ports 543xx): no migrations, resets, buckets, users or queries there. valostock uses only project `valostock` (ports 553xx).
+- **DO NOT** put money/trust logic, SQL, or Supabase keys in the web app — Express API only. The service-role key stays in `back/.env`.
+- **DO NOT** sell anything that an admin has not approved: store must be `ACTIVE` **and** catalog `LISTED`.
+- **DO NOT** auto-approve stores, catalogs, withdrawals, transfers or disputes — an admin decides, with a reason for every rejection, written to `audit_logs`.
+- **DO NOT** mark anything PAID from the browser. Only the Midtrans Status API, a verified Midtrans webhook (SHA512 + `webhook_events` idempotency), or the simulation endpoint (`PAYMENT_MODE=simulation`).
+- **DO NOT** change a balance or points without a ledger row in the same transaction.
 - **DO NOT** let Balance buy accounts, be cashed out, or be transferred — closed-loop, top-up only.
-- **DO NOT** auto-approve stores or withdrawals — an admin decides, and it is written to `audit_logs`.
-- **DO NOT** accept a withdrawal whose account name MISMATCHes the store's `owner_legal_name`.
-- **DO NOT** authorize by authentication alone — check ownership (buyer / store owner / admin) on every order, store and money endpoint.
-- **DO NOT** build SQL strings from user input; no ORM is used, so this is the main injection risk.
-- **DO NOT** store JWTs in localStorage — httpOnly cookie only.
+- **DO NOT** accept a withdrawal/transfer whose account name MISMATCHes.
+- **DO NOT** authorize by authentication alone — check ownership (buyer / store owner) or the admin permission on every endpoint.
+- **DO NOT** build SQL strings from user input.
+- **DO NOT** store tokens in localStorage — Supabase access/refresh tokens live in httpOnly cookies set by the API.
+- **DO NOT** serve private media (inspection, rekber, dispute evidence) from a public bucket — `private-media` + signed URLs.
 - **DO NOT** use absolute claims ("100% original/safe/guaranteed") in the UI.
 - **DO NOT** allow individual (non-store) sellers or more than one catalog per account (unique `vs_code`).
-- **DO NOT** reintroduce Prisma, Sumsub/KYC providers, SQLite, DOKU, Xendit, Redis, Socket.IO or Docker unless explicitly asked.
-- **DO NOT** create UML diagrams — the assignment uses the Data Flow approach only.
+- **DO NOT** reintroduce Prisma, MySQL/XAMPP, SQLite, DOKU, Xendit, Redis or a KYC provider unless explicitly asked.
+- **DO NOT** create UML diagrams — Data Flow approach only.
 - **DO NOT** commit secrets (`.env`, keys).
 
 ---
 
 ## Testing
 
-Automated: `npm run test:smoke` in `back/` (14 checks: payments idempotency, escrow/ledger, double-sell, IDOR, admin-only, name match, CSRF origin). Manual test scenarios (demo): register/login · top-up via Midtrans Sandbox/simulation + invoice check · Balance fill → top-up with Balance · buy account → rekber → Akun aman → Selesai → store balance · store onboarding → admin approve · withdrawal → admin approve/reject. Verify ledger rows in phpMyAdmin after each money step.
+`npm run test:smoke` in `back/` covers auth, catalog submit → admin moderation → listing, offers, orders/escrow/rekber/complete, disputes, ratings, vouchers, top-up/Balance, withdrawals/transfers, idempotency, IDOR and admin permissions. Then a browser pass through the main flows. After money steps, check the ledger tables in Supabase Studio.
 
 ## Build
 
@@ -230,17 +237,17 @@ npm run build   # in back/ and in front/ — both must compile with zero TypeScr
 
 ## Git Rules
 
-After every change, **commit before continuing**. Clear messages. Never commit secrets, `node_modules`, `.next`, or `dist`.
+After every change, **commit before continuing**. Clear messages. Never commit secrets, `node_modules`, `.next`, `dist`, or `supabase/.temp`.
 
 ## Best Coding Practices
 
 - Follow the Development Workflow (9 steps).
 - Single source of logic (Express services) — never duplicate money/trust rules.
 - Atomic & idempotent money operations (`withTransaction` + status guards + unique keys).
-- Write `audit_logs` for admin actions (store approve/reject, withdrawal approve/reject).
-- Only valid state transitions (order / catalog / payment / store / withdrawal).
+- Write `audit_logs` for every admin decision and sensitive action.
+- Only valid state transitions (store / catalog / order / offer / dispute / payment / withdrawal / transfer).
 - Stay consistent with `docs/MONEY_RULES.md` for all numbers (implemented in `back/src/config/money.ts`).
 
-## Security (prototype level)
+## Security
 
-helmet · CORS only `FRONTEND_URL` + Origin check on state-changing requests · zod strict validation · parameterised SQL · bcrypt passwords · JWT in httpOnly SameSite=Lax cookie · rate limit on auth & checkout · per-resource authorization · MySQL bound to 127.0.0.1 with a dedicated app user · Midtrans **Sandbox** keys only. Production hardening (Sentry, WAF, backups, pen-test, legal review of custody) is future work.
+helmet · CORS only `FRONTEND_URL` + Origin check on state-changing requests · zod strict validation · parameterised SQL · Supabase Auth (bcrypt, refresh-token rotation) with httpOnly cookies · RBAC permissions on admin endpoints · per-resource authorization · RLS on every table · private Storage bucket + signed URLs · upload type/size checks · rate limits on auth, checkout, uploads · Midtrans **Sandbox** keys only.

@@ -1,214 +1,175 @@
-# ARCHITECTURE — valostock.id (Prototype · Express.js API + Next.js Web · MySQL/XAMPP)
+# ARCHITECTURE — valostock.id (Express.js API + Next.js Web · Supabase Postgres/Auth/Storage)
 
 **Source of Truth: Code Structure**
-Version 7.0 · Prototype for a college assignment · Local only (XAMPP)
+Version 8.0 · College-assignment project · Runs locally with Docker (own Supabase project)
 
-> **v7.0 changes (prototype scope):**
-> - **No ORM.** Prisma removed. The schema is a plain SQL file (`back/database/schema.sql`) imported through **phpMyAdmin**; the API talks to MySQL with **`mysql2`** using parameterised queries only.
-> - **Sumsub KYC removed.** Stores are verified **manually by an admin** (approve/reject + audit log).
-> - **Midtrans Snap (Sandbox)** for every incoming payment, with a **simulation mode** for demos without keys. **Iris payouts and Digiflazz fulfilment are simulated.**
-> - **No background jobs, no Socket.IO, no Redis.** Escrow is released when the buyer presses *Selesai*; rekber chat is stored messages + polling.
-> - System modelling uses the **Data Flow approach** — see `docs/modeling/` (Diagram Konteks, DFD, ERD, Basis Data Konseptual, Struktur Tabel). No UML.
->
-> Full-scale ideas (Iris, Digiflazz, KYC provider, notifications, subscriptions, ads, production infra) are listed under **§10 Future Work** and are **not** part of the prototype.
+> **v8.0 changes:**
+> - **Database: MySQL/XAMPP → PostgreSQL 17 in a dedicated local Supabase project** (`supabase/` in this repo, project_id `valostock`, ports 55321–55329). The Supabase project of another app on this machine (`yowana`, ports 543xx) is never touched.
+> - **Auth: Supabase Auth (GoTrue).** The Express API calls GoTrue for register/login/refresh/reset and keeps the tokens in **httpOnly cookies**; each `auth.users` row has a `public.profiles` row.
+> - **Storage: Supabase Storage** — `catalog-images` (public) for listing photos, `private-media` (private, signed URLs) for inspection media, rekber/dispute attachments.
+> - **Catalog moderation:** stores submit catalogs, an **admin verifies each product** before it is sold (`DRAFT → PENDING_REVIEW → LISTED`, or `REJECTED` with a reason).
+> - **Admin panel** with RBAC — see [`ADMIN_PANEL.md`](ADMIN_PANEL.md).
+> - **All product features work:** offers, ratings + service score, disputes, store vouchers, wishlist, follows, in-app notifications, loyalty points, recently viewed, subscriptions, featured ads, flash sales, bundles, inspections, analytics, external sellers + transfer requests, store chat, user reports, affiliate, news/help CMS.
+> - **Still simulated (external services):** Midtrans Iris payouts, Digiflazz top-up delivery, WhatsApp/Discord/Telegram notifications. Midtrans **Snap** runs in Sandbox or in the built-in simulation mode.
+> - System modelling stays **Data Flow** (`docs/modeling/`), no UML.
 
 ---
 
-## 1. Two Services
+## 1. Services
 
 ```
 tugas/
-├── docs/                    → source of truth (+ docs/modeling for the assignment)
-├── front/                   → Next.js 16 web (UI + API client only)            :3000
-└── back/                    → Express.js API (all business logic)              :4000
-      └── database/          → schema.sql + seed.sql → MySQL (XAMPP/MariaDB)    :3306
+├── docs/          → source of truth (+ docs/modeling for the assignment)
+├── supabase/      → local Supabase project "valostock": config.toml, migrations/*.sql, seed.sql
+├── back/          → Express.js API (all business logic)                       :4000
+└── front/         → Next.js 16 web (UI + API client only)                     :3000
 ```
+
+| Supabase service (project `valostock`) | Local URL |
+|---|---|
+| API gateway (Auth, Storage, REST) | `http://127.0.0.1:55321` |
+| Postgres | `postgresql://postgres:postgres@127.0.0.1:55322/postgres` |
+| Studio (table editor, SQL, storage browser) | `http://127.0.0.1:55323` |
+| Mailpit (auth emails: confirm, reset password) | `http://127.0.0.1:55324` |
 
 ```mermaid
 flowchart LR
     B[Browser] -->|pages| F[front · Next.js :3000]
-    B -->|fetch + httpOnly cookie| A[back · Express :4000]
-    F -->|server-side fetch, forwards cookie| A
-    A -->|mysql2, parameterised SQL| DB[(MySQL · XAMPP :3306)]
-    A -->|Snap create + Status API| MT[Midtrans Sandbox]
-    MT -.->|notification webhook (optional, needs tunnel)| A
-    AD[Admin via phpMyAdmin] -.->|inspect data| DB
+    B -->|fetch + httpOnly cookies| A[back · Express :4000]
+    F -->|server fetch, forwards cookies| A
+    A -->|pg · parameterised SQL| DB[(Postgres · Supabase :55322)]
+    A -->|supabase-js · service role| AU[Supabase Auth / GoTrue]
+    A -->|supabase-js · service role| ST[Supabase Storage]
+    AU --- DB
+    A -->|Snap + Status API| MT[Midtrans Sandbox]
+    MT -.->|webhook, optional| A
+    ADM[Developer] -.->|Studio :55323| DB
 ```
 
-The web app never touches the database or payment keys. All money, trust and state rules live in `back/`.
+The web app has **no Supabase keys and no database access**. Everything goes through the Express API. The browser never talks to Supabase directly, so all business rules stay in one place.
 
 ---
 
-## 2. Frontend — `front/` (Next.js 16)
+## 2. Authentication — Supabase Auth behind the API
 
-**Stack:** Next.js 16 · React 19 · TypeScript (strict) · Tailwind CSS v4 · lucide-react · Framer Motion · zod.
-
-```
-front/src/
-├── app/                      # routes (marketplace, auth, buyer, store-dashboard, admin, payment, legal)
-├── components/               # UI
-├── lib/
-│   ├── api.ts                # browser → API (credentials: include, typed errors)
-│   ├── api-server.ts         # Server Components → API (forwards the visitor's cookie)
-│   ├── auth.ts               # getCurrentUser / requireUser / requireAdmin (via GET /api/auth/me)
-│   ├── data/                 # page data readers — API-backed; demo-only features still read lib/mock
-│   ├── mock/                 # demo data for out-of-scope features + seed source for back/database/seed.sql
-│   └── fees.ts               # display-only fee previews (the API recomputes every amount)
-└── types/api.ts              # response shapes of the API
-```
-
----
-
-## 3. Backend — `back/` (Express.js, no ORM)
-
-**Stack:** Node.js 20+ · Express 5 · TypeScript (strict, run with `tsx`) · **mysql2/promise** · zod · bcryptjs · jsonwebtoken · cookie-parser · helmet · cors · express-rate-limit. Midtrans is called with `fetch` (Snap + Status API) — no SDK.
-
-```
-back/
-├── database/
-│   ├── schema.sql            # CREATE DATABASE + 19 tables (= docs/modeling/05-struktur-tabel.md)
-│   ├── seed.sql              # demo data (generated from front/src/lib/mock)
-│   ├── create-user.sql       # dedicated MySQL user for the app
-│   └── README.md             # phpMyAdmin import steps
-├── scripts/
-│   ├── generate-seed.ts      # front/src/lib/mock → database/seed.sql
-│   ├── db-reset.ts           # re-import schema.sql + seed.sql (XAMPP mysql CLI)
-│   └── smoke-test.ts         # end-to-end API test of every prototype flow (npm run test:smoke)
-├── src/
-│   ├── server.ts             # start HTTP server
-│   ├── app.ts                # middleware chain + routers + error handler
-│   ├── config/
-│   │   ├── env.ts            # zod-validated .env (fails fast)
-│   │   └── money.ts          # MONEY_RULES constants + fee/commission functions (integer Rupiah)
-│   ├── db/
-│   │   └── pool.ts           # mysql2 pool, query helpers, withTransaction()
-│   ├── middlewares/          # auth, require-role, validate(zod), origin-check, rate-limit, error-handler
-│   ├── lib/                  # AppError, ids & invoice numbers, audit log, name matching
-│   └── modules/              # one folder per domain:  *.routes.ts → *.service.ts → *.repository.ts
-│       ├── auth/  catalog/  topup/  balance/  payments/
-│       ├── orders/  stores/  me/  admin/
-└── .env / .env.example
-```
-
-**Layering:** `routes` parse + validate the request (zod) and shape the response → `service` holds business rules and opens DB transactions → `repository` holds reusable queries and row→JSON mappers. Prototype simplification: small modules keep their SQL inside the service; SQL never appears in routes or in `front/`.
-
-### 3.1 Database access rules (mysql2)
-- **Always parameterised:** `pool.execute('SELECT … WHERE id = ?', [id])`. Never build SQL by string concatenation with user input.
-- **Transactions** for every money change: `withTransaction(async (conn) => { … })` = `BEGIN` → work → `COMMIT` (or `ROLLBACK` on error).
-- **Row locks:** balance rows are read with `SELECT … FOR UPDATE` inside the transaction before being changed.
-- **Ledger first:** every change of `users.balance` or `store_balances` writes a `balance_ledger` / `store_ledger` row with `balance_after` in the same transaction.
-- **Idempotency:** unique keys (`payments.midtrans_order_id`, `webhook_events(source, external_id)`, `balance_topups(user_id, idempotency_key)`) plus "only move from PENDING" status guards.
-
-### 3.2 Request pipeline
-```
-helmet → cors(FRONTEND_URL, credentials) → json(limit 100kb) → cookie-parser
-→ origin-check (POST/PATCH/DELETE must come from FRONTEND_URL) → rate-limit (auth, checkout)
-→ auth (JWT cookie → req.user) → require-role → validate(zod) → handler → error-handler
-```
-
-### 3.3 API contract
-
-Base `/api`, JSON, money in integer Rupiah. Errors: `{ "error": { "code": "…", "message": "…" } }`.
-
-| Area | Endpoints |
+| Step | What happens |
 |---|---|
-| Auth | `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` · `GET /auth/me` |
-| Public catalog | `GET /games` · `GET /games/:slug` · `GET /games/:slug/topup-products` · `GET /stores` · `GET /stores/:slug` · `GET /listings?game=&store=` · `GET /listings/:id` · `GET /help` · `GET /help/:slug` |
-| Top-up | `GET /topup/promo?code=` · `POST /topup/checkout` · `GET /topup/invoice?q=` |
-| Balance | `POST /balance/topup` |
-| Me | `GET /me/transactions` · `GET /me/balance-ledger` · `GET /me/orders` |
-| Orders | `POST /orders` · `GET /orders/:id` (buyer, store owner or admin) · `POST /orders/:id/pay` · `POST /orders/:id/cancel` · `GET /orders/:id/messages` · `POST /orders/:id/messages` · `POST /orders/:id/safe` · `POST /orders/:id/complete` |
-| Payments | `GET /payments/:invoice/status` · `POST /payments/:invoice/simulate` (simulation mode only) · `POST /webhooks/midtrans` |
-| Store (owner) | `POST /stores` · `GET /stores/me` · `POST /stores/me/deposit` · `GET /stores/me/catalogs` · `POST /stores/me/catalogs` · `PATCH /stores/me/catalogs/:id` · `GET /stores/me/orders` · `GET /stores/me/balance` · `GET /stores/me/withdrawals` · `POST /stores/me/withdrawals` |
-| Admin | `GET /admin/stores?status=` · `POST /admin/stores/:id/approve` · `POST /admin/stores/:id/reject` · `GET /admin/withdrawals?status=` · `POST /admin/withdrawals/:id/approve` · `POST /admin/withdrawals/:id/reject` · `GET /admin/analytics` |
+| Register | `POST /api/auth/register` → API calls GoTrue `signUp` (email + password, `data: { name, phone, ref }`). A DB trigger `on_auth_user_created` inserts `public.profiles`. Local config: email confirmation **off** for easy demos (on in production). |
+| Login | `POST /api/auth/login` → GoTrue `signInWithPassword` → API sets `vs_at` (access token, httpOnly, ~1h) + `vs_rt` (refresh token, httpOnly, 30d). |
+| Each request | `loadUser` verifies `vs_at` with `supabase.auth.getClaims()` (JWKS / JWT secret of the local project). If expired, it uses `vs_rt` → `refreshSession` → new cookies. Then loads `profiles` (role, ban flag). |
+| Logout | GoTrue `signOut` (revokes the refresh token) + clear cookies. |
+| Forgot password | `POST /api/auth/forgot` → GoTrue sends the reset email (visible in Mailpit locally) → `/reset-password` page → `POST /api/auth/reset`. |
+| Admin roles | `profiles.role = 'ADMIN'` + RBAC tables (`admin_roles`, `permissions`, …). Checked by `requirePermission('catalogs:moderate')` on every admin endpoint. |
 
-Every `/me`, `/orders/:id`, `/stores/me/*` query is scoped to `req.user` (anti-IDOR): an order is visible only to its buyer, the owner of its store, or an admin.
+Why not the browser SDK: tokens stay in httpOnly cookies (never readable by JavaScript), and the frontend stays a plain API client.
 
 ---
 
-## 4. Database — MySQL (MariaDB 10.4 via XAMPP)
+## 3. Backend — `back/` (Express.js)
 
-- Schema: `back/database/schema.sql` (19 tables, InnoDB, `utf8mb4_unicode_ci`). Documented in `docs/modeling/05-struktur-tabel.md`.
-- IDs: `VARCHAR(36)` UUIDs generated by the API (`crypto.randomUUID()`); seed rows use readable ids (e.g. `vl-001`). Small master tables (`games`, `promo_codes`, `help_articles`) use `INT AUTO_INCREMENT`.
-- Money: `INT` Rupiah. Never `FLOAT`/`DOUBLE`.
-- JSON columns (`catalogs.images`, `catalogs.attributes`, `help_articles.body`) are parsed by the API.
-- Times are stored in **UTC** (`SET time_zone = '+00:00'` per connection) and shown as WIB in the UI.
+**Stack:** Node.js 20+ · Express 5 · TypeScript strict (`tsx` / `tsc`) · **pg** (node-postgres) · **@supabase/supabase-js** (Auth + Storage, service role) · zod · helmet · cors · cookie-parser · express-rate-limit · multer (uploads, memory storage) · node-cron (light jobs).
 
----
+```
+back/src/
+├── server.ts  app.ts
+├── config/        env.ts (zod), money.ts (MONEY_RULES), constants.ts
+├── db/            pool.ts (pg Pool, query helpers, withTransaction)
+├── supabase/      client.ts (service-role client), storage.ts (upload, signed URLs)
+├── middlewares/   auth (loadUser/refresh), require-permission, security (origin, rate limits, errors), upload
+├── lib/           errors, ids, ledger (store & balance & loyalty), audit, notify (in-app notifications), name-match
+├── jobs/          scheduler.ts — expiries & window closers (offers, locks, flash sales, featured, subscriptions)
+└── modules/       auth · catalog (public) · games · store-catalogs · moderation · orders · offers · chat · rekber
+                   disputes · ratings · payments · topup · balance · stores · subscriptions · promotions (vouchers,
+                   flash sales, bundles) · ads · inspections · resellers (external sellers, transfers) · engagement
+                   (wishlist, follows, recently viewed, notifications, loyalty) · affiliate · reports · cms (news, help)
+                   · withdrawals · admin (dashboard, users, rbac, audit, finance)
+```
 
-## 5. Payments — Midtrans Snap (Sandbox) + simulation mode
+Layering: `*.routes.ts` (zod validation, response shape) → `*.service.ts` (rules + transactions) → SQL in the service or a `*.repository.ts`. SQL never appears in routes or in `front/`.
 
-| Flow | `payments.purpose` | On PAID |
-|---|---|---|
-| Game top-up | `TOPUP` | `topup_orders` → PAID → (simulated provider) → SUCCESS |
-| Balance fill | `BALANCE_FILL` | `balance_topups` → PAID; `users.balance += credit` + `balance_ledger TOPUP_CREDIT` |
-| Account purchase | `ORDER` | `orders` → PAID; catalog → IN_ORDER; `store_balances.escrow += item_price` + `store_ledger ESCROW_HOLD`; system rekber message |
-| Store deposit | `STORE_DEPOSIT` | `stores.deposit_status = HELD`, `status = PENDING_REVIEW` (then admin review) |
+**Database rules**
+- Parameterised SQL only (`$1, $2 …`). One `withTransaction` per money operation; balance rows locked with `SELECT … FOR UPDATE`.
+- Every balance change writes a ledger row with `balance_after` (`store_ledger`, `balance_ledger`, `loyalty_ledger`).
+- Idempotency: unique keys (`payments.midtrans_order_id`, `webhook_events(source, external_id)`, `balance_topups(user_id, idempotency_key)`) + "only move out of PENDING" guards.
+- **RLS is enabled on every table with no policies** → the anon/authenticated roles of Supabase's REST API cannot read anything. Only the API's own Postgres connection (dedicated role `valostock_api`) and the service role can.
 
-**`PAYMENT_MODE=midtrans`** (needs Sandbox keys):
-1. API inserts the invoice row + `payments` row (PENDING), then calls Snap `POST /snap/v1/transactions` with `order_id` = invoice number, `gross_amount`, `enabled_payments` for the chosen method, and `callbacks.finish` = `FRONTEND_URL/payment/finish`.
-2. The browser is redirected to Midtrans' `redirect_url`.
-3. On return, `/payment/finish` calls `GET /api/payments/:invoice/status`; the API asks **Midtrans Status API** (`GET /v2/{order_id}/status`, server key) — the browser's word is never trusted — checks `gross_amount`, and applies the transition.
-4. Optional: `POST /api/webhooks/midtrans` (needs a public tunnel URL) verifies `signature_key = SHA512(order_id + status_code + gross_amount + SERVER_KEY)`, stores the event in `webhook_events` (unique → replay-safe) and applies the same transition.
-
-**`PAYMENT_MODE=simulation`** (default; for demos without Midtrans keys): the API returns `redirect_url = FRONTEND_URL/payment/simulate?invoice=…`, where the user chooses *Bayar* or *Gagalkan*; `POST /api/payments/:invoice/simulate` applies the same transition. The endpoint returns 404 unless simulation mode is on.
-
-Transitions are idempotent: they only run while `payments.status = 'PENDING'` (row locked `FOR UPDATE`). `expire`/`cancel`/`deny` → FAILED/EXPIRED; an unpaid order is cancelled and its catalog is listed again.
-
-**Simulated in the prototype:** Digiflazz fulfilment (a PAID top-up becomes SUCCESS immediately) and Midtrans Iris payouts (admin approval marks a withdrawal COMPLETED).
-
-> Custody note: in this design buyer funds would sit in the platform's merchant account until release. It is acceptable for a sandbox prototype; a real launch needs legal review (see MONEY_RULES §3).
+**Jobs (node-cron, every minute, idempotent SQL):** expire offers (`expires_at`), release catalogs of unpaid orders after 60 min, expire paid locks (30 min), auto-complete orders 5 h after SAFE (escrow release), end flash sales, expire featured listings and subscriptions, mark dispute deadlines as overdue. Everything a job does is also safe if it runs late or twice.
 
 ---
 
-## 6. Auth & Security (prototype level)
+## 4. Frontend — `front/` (Next.js 16)
 
-- Email + password (bcrypt, cost 10). JWT (HS256, 1 day) in an **httpOnly, SameSite=Lax** cookie `vs_token`. No OTP, no Google, no refresh tokens (future work).
-- `localhost:3000` and `localhost:4000` are the same site, so the cookie is sent to both.
-- CORS allows only `FRONTEND_URL`; state-changing requests with another `Origin` are rejected.
-- zod `.strict()` on every body/query → unknown fields rejected.
-- Rate limit on login/register and checkout endpoints.
-- Roles: `USER` (buyer; store owner if they own a store) and `ADMIN`. Admin actions write `audit_logs` with IP.
-- Passwords, JWT secret and Midtrans keys only in `back/.env` (git-ignored).
+- `src/lib/api.ts` (browser) and `src/lib/api-server.ts` (Server Components, forwards cookies) are the only ways to reach the backend.
+- All pages read real data from the API. `src/lib/mock` is only the **seed source** for `supabase/seed.sql` (generated by `back/scripts/generate-seed.ts`).
+- Admin panel: `/admin/*` with a sidebar layout (see `ADMIN_PANEL.md`). Store dashboard: `/store-dashboard/*`. Buyer area: `/account/*`.
+- Images: site images from `public/images`; catalog photos from Supabase Storage public URLs (`127.0.0.1:55321/storage/v1/object/public/catalog-images/...`, allowed in `next.config.ts`).
 
 ---
 
-## 7. Store Verification (replaces KYC)
+## 5. Key flows
 
-1. Logged-in user fills the store form (`POST /stores`): name, type, **owner_legal_name**, description → status `PENDING_DEPOSIT`.
-2. Pays the Rp500.000 deposit via Midtrans (`POST /stores/me/deposit`) → PAID → status `PENDING_REVIEW`.
-3. Admin reviews in `/admin/stores` and **approves** (→ `ACTIVE`, `identity_verified = 1`, `store_balances` row created) or **rejects** with a note. Both write `audit_logs`.
-4. Only `ACTIVE` stores can create catalogs, and only their `LISTED` catalogs are public.
+### 5.1 Catalog moderation (new)
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: store saves
+    DRAFT --> PENDING_REVIEW: store submits (store ACTIVE, listing quota)
+    PENDING_REVIEW --> LISTED: admin approves
+    PENDING_REVIEW --> REJECTED: admin rejects + reason
+    REJECTED --> PENDING_REVIEW: store edits & resubmits
+    LISTED --> PENDING_REVIEW: store edits title/price/photos/attributes
+    LISTED --> DELISTED: store hides / admin takes down
+    DELISTED --> PENDING_REVIEW: store resubmits
+    LISTED --> LOCKED: buyer creates order
+    LOCKED --> LISTED: order cancelled / unpaid 60 min
+    LOCKED --> IN_ORDER: payment PAID
+    IN_ORDER --> SOLD: order completed
+    IN_ORDER --> LISTED: order refunded (dispute won by buyer)
+```
+
+Every decision is stored in `catalog_reviews` (who, when, decision, reason) and `audit_logs`. The VS code is issued when the catalog is first submitted.
+
+### 5.2 Account purchase
+
+`LISTED` catalog (optionally reserved first with a paid **Lock** Rp5.000 / 30 min; price = accepted offer / bundle / flash-sale price, minus store voucher) → order `PENDING_PAYMENT` (catalogs `LOCKED`) → Midtrans Snap → `PAID` (escrow hold) → store sends account in rekber → `IN_REKBER` → buyer "Akun aman" → `SAFE` → buyer "Selesai" (or automatically **5 hours after SAFE**, per MONEY_RULES §9) → `COMPLETED`: escrow released, commission by the store's subscription tier (5% / 4.5% / 4%), loyalty points earned, rating unlocked. A dispute can be opened while the order is `PAID/IN_REKBER/SAFE` (escrow still held) or during the 14/30-day protection window after completion.
+
+### 5.3 Payments — Midtrans Snap (Sandbox) + simulation mode
+
+Unchanged from v7: one `payments` row per payment, `purpose` ∈ `TOPUP · BALANCE_FILL · ORDER · STORE_DEPOSIT · SUBSCRIPTION · AD · LOCK`. Status only comes from the Midtrans Status API, a signed webhook, or (simulation mode only) the simulate endpoint.
+
+### 5.4 Store verification
+
+Profile → deposit (Midtrans) → `PENDING_REVIEW` → admin approves (`ACTIVE`) or rejects with a note. No KYC provider.
 
 ---
 
-## 8. Local Development (XAMPP)
+## 6. Local development
 
-1. XAMPP Control Panel → start **MySQL** (Apache only if you want phpMyAdmin at `http://localhost/phpmyadmin`).
-2. phpMyAdmin → *Import* `back/database/schema.sql`, then `back/database/seed.sql`, then (optional) `create-user.sql`.
-3. `cd back && cp .env.example .env && npm install && npm run dev` → `http://localhost:4000/api/health`.
-4. `cd front && cp .env.example .env.local && npm install && npm run dev` → `http://localhost:3000`.
-5. Demo accounts are listed in `back/database/README.md`.
-6. Real Midtrans Sandbox: set `PAYMENT_MODE=midtrans` + `MIDTRANS_SERVER_KEY` / `MIDTRANS_CLIENT_KEY` in `back/.env`.
+```bash
+# 1. Supabase project for valostock (own containers, ports 553xx)
+npx supabase start            # in the repo root (reads supabase/config.toml)
+npx supabase db reset         # applies supabase/migrations + supabase/seed.sql
+# 2. API
+cd back && cp .env.example .env && npm install && npm run dev      # :4000
+# 3. Web
+cd front && cp .env.example .env.local && npm install && npm run dev # :3000
+```
 
----
-
-## 9. Architectural Principles
-
-1. **Backend owns everything** — the web app never computes or mutates money/trust.
-2. **Ledger-first money** — every balance change has a ledger row with `balance_after`, in one transaction.
-3. **Payment status comes from Midtrans** (Status API or signed webhook), never from the browser.
-4. **Anti double-sell** — unique `vs_code` + `LISTED → LOCKED → IN_ORDER → SOLD`.
-5. **Store accountability** — only admin-verified stores sell; withdrawals only to an account whose name matches `owner_legal_name`.
-6. **Parameterised SQL only**; per-resource authorisation on every data endpoint.
-7. **Balance is closed-loop** — top-up only; never buys accounts, never cashed out, never transferred.
+`npx supabase status` prints the local keys for `back/.env` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`).
 
 ---
 
-## 10. Future Work (not in the prototype)
+## 7. Principles
 
-- Provider KYC (e.g. Sumsub), OTP login, Google OAuth, 2FA, refresh-token rotation, granular RBAC.
-- Real Midtrans Iris payouts + account validation; real Digiflazz fulfilment; 5-hour delayed escrow release (jobs).
-- Offers/negotiation, ratings & service scores, disputes, sanctions, inspections, external sellers & transfer requests.
-- Subscriptions, ads, flash sales, bundles, affiliate, loyalty, WhatsApp/Discord/Telegram notifications, Socket.IO realtime.
-- Production: VPS + Nginx + MySQL server (not XAMPP) + backups + monitoring (Sentry) + Cloudflare; legal review of custody.
+1. Backend owns everything; the web app never computes or mutates money/trust.
+2. Ledger-first money; every change in one transaction with a ledger row.
+3. Payment status only from Midtrans (or simulation mode).
+4. Nothing is sold before an admin approved the store **and** the product.
+5. Anti double-sell: unique VS code + catalog state machine.
+6. Per-resource authorisation (buyer / store owner / admin permission) on every endpoint; RLS as a second wall.
+7. Balance is closed-loop (top-up only).
+8. Every admin decision is audit-logged.
+
+## 8. Future work
+
+Real Midtrans Iris payouts + account validation, real Digiflazz fulfilment, WhatsApp/Discord/Telegram delivery, Google OAuth, 2FA for admins, production hosting (managed Supabase or VPS), legal review of escrow custody, penetration test.

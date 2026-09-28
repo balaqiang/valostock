@@ -1,9 +1,9 @@
 # valostock.id — Project Overview
 
 **A Store-Only Marketplace for Game Accounts & Top-Up (Shopee-style)**
-Version 7.0 · Concept Overview (Prototype: Express.js + MySQL/XAMPP + Midtrans)
+Version 8.0 · Concept Overview (Express.js + Supabase Postgres/Auth/Storage + Midtrans)
 
-> **Prototype scope (v7).** This project is a college-assignment prototype running locally on XAMPP. Implemented: auth (email + password), catalog, top-up + closed-loop Balance + invoice check, account purchase → escrow → rekber → complete, store onboarding with **manual admin verification** (no KYC provider), store catalogs/orders/balance/withdrawal requests, admin approvals. **Simulated:** Digiflazz fulfilment and Midtrans Iris payouts. **Midtrans Snap** runs in Sandbox (or a built-in simulation mode). Everything else in this document is **future work** — see `ARCHITECTURE.md` §10. System modelling: `docs/modeling/` (Data Flow approach).
+> **Scope (v8).** College-assignment project running locally with its **own Supabase project** (Postgres 17 + Supabase Auth + Storage, Docker, ports 553xx) behind an Express.js API. **Every product feature in this document is implemented**, including admin verification of stores **and of every catalog** before it is sold, offers, ratings, disputes, vouchers, flash sales, bundles, subscriptions, featured ads, inspections, external sellers, wishlist/follows, in-app notifications, loyalty points, referral, store chat and reports. **Simulated external services:** Midtrans Iris payouts, Digiflazz top-up delivery, WhatsApp/Discord/Telegram notifications (in-app notifications are real). Midtrans **Snap** runs in Sandbox or simulation mode. See `ARCHITECTURE.md` (v8), `ADMIN_PANEL.md`, and `docs/modeling/` (Data Flow approach).
 
 
 ---
@@ -78,7 +78,7 @@ Ledger-tracked escrow (never used for operations, reconciled vs Midtrans) · Mid
 
 ## 10. Technology
 
-Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + **`back/`** (Express.js + TypeScript, **mysql2 without ORM**). Database: **MySQL (MariaDB) via XAMPP**, managed with phpMyAdmin. Payments: **Midtrans Snap** (Sandbox or simulation mode); Iris payouts and Digiflazz fulfilment are simulated in the prototype. Notifications, realtime chat and production infrastructure are future work. The Express backend owns all money, trust, and state; the web app renders UI and calls the API.
+Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + **`back/`** (Express.js + TypeScript, **pg** + **supabase-js**) on a **dedicated local Supabase project** (Postgres 17, Supabase Auth, Supabase Storage; Docker, managed in Supabase Studio). Payments: **Midtrans Snap** (Sandbox or simulation mode); Iris payouts, Digiflazz fulfilment and WhatsApp/Discord/Telegram delivery are simulated. The Express backend owns all money, trust, and state; the web app renders UI and calls the API. Detail: **ARCHITECTURE.md**, **ADMIN_PANEL.md**; data model: **docs/modeling/**.
 
 ---
 
@@ -90,8 +90,7 @@ Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + 
 
 ## 12. Roadmap
 
-- **Phase 0 — Foundation:** Express + MySQL (XAMPP) scaffold, auth, config, security middleware, jobs; front wired to the API.
-- **Prototype (now):** see the scope note at the top.
+- **This project (v8):** see the scope note at the top — all features implemented, external services simulated.
 - **Phase 1 — MVP:** store verification + deposit, VS catalog IDs, offers/negotiation, Midtrans Snap + ledger escrow, rekber + chat, protection, disputes, payout, ratings, top-up.
 - **Phase 2 — Reseller & engagement:** external sellers + transfer, notifications (WA/Discord/Telegram), inspections, wishlist/follows/loyalty, vouchers/flash-sales/bundles, ads, analytics.
 - **Phase 3 — Scale:** infra clustering, advanced fraud/trust, (evaluate) crypto & content layer.
@@ -100,7 +99,7 @@ Two services: **`front/`** (Next.js 16, React 19, Tailwind v4, Framer Motion) + 
 
 ## 13. Decision Status
 
-**Decided:** store-only (manual admin verification + Rp500K deposit); 5% commission + ~3.5% handling; mandatory 14/30-day protection; Midtrans-only (Snap in, Iris out) with per-store ledger escrow; Owner/Reseller types + external-seller transfer (from store balance via Iris); direct offers/negotiation + rekber rooms; badges + ratings + service scores; VS catalog IDs (anti double-sell); notifications WA/Discord/Telegram (one-way); all Shopee-style engagement features; Express.js + mysql2 + MySQL (XAMPP) + Next.js; Data Flow modelling (docs/modeling).
+**Decided:** store-only (manual admin verification + Rp500K deposit); 5% commission + ~3.5% handling; mandatory 14/30-day protection; Midtrans-only (Snap in, Iris out) with per-store ledger escrow; Owner/Reseller types + external-seller transfer (from store balance via Iris); direct offers/negotiation + rekber rooms; badges + ratings + service scores; VS catalog IDs (anti double-sell); notifications WA/Discord/Telegram (one-way); all Shopee-style engagement features; Express.js + Supabase (Postgres/Auth/Storage) + Next.js; admin moderation of every catalog; Data Flow modelling (docs/modeling).
 
 **Still to validate:** legality of holding escrow in the platform's Midtrans account + Iris payout terms + PSE/legal; Iris per-payout pricing; premium commission rates; trust/service formulas; cancellation-fee; Digiflazz margins; loyalty economics.
 

@@ -1,13 +1,13 @@
-# Mega Flowchart — valostock.id (v7.0, Prototype)
+# Mega Flowchart — valostock.id (v8.0)
 
-End-to-end flow of the **prototype**: Buyer, Store, Admin, and Midtrans, across `front/` (Next.js), `back/` (Express + mysql2) and MySQL (XAMPP). Store verification is **manual by an admin** (no KYC provider). Midtrans Snap runs in Sandbox (or simulation mode). Top-up fulfilment and payouts are **simulated**.
+End-to-end flow across `front/` (Next.js), `back/` (Express) and the local Supabase project (Postgres + Auth + Storage). Stores **and every catalog** are verified by an admin. Midtrans Snap runs in Sandbox or simulation mode; Iris payouts, Digiflazz delivery and WhatsApp/Discord/Telegram are simulated.
 
-> For the assignment's formal model (Diagram Konteks, DFD, ERD, conceptual DB, table structure) see [`docs/modeling/`](modeling/README.md). This page is an end-to-end overview flowchart. Paste the code into mermaid.live to view it.
+> The assignment's formal model (Diagram Konteks, DFD, ERD, conceptual DB, table structure) is in [`docs/modeling/`](modeling/README.md). Admin screens: [`ADMIN_PANEL.md`](ADMIN_PANEL.md). Paste the code into mermaid.live to view it.
 
 ```mermaid
 flowchart TD
     Start([User opens valostock.id]) --> Auth{"Logged in?"}
-    Auth -- No --> Reg["Register / Login<br/>(email + password, JWT httpOnly cookie)"]
+    Auth -- No --> Reg["Register (optional referral code) / Login<br/>Supabase Auth via API · httpOnly cookies"]
     Reg --> Role
     Auth -- Yes --> Role{"Intent?"}
     Role -- "Top-up" --> TU_Start
@@ -15,82 +15,102 @@ flowchart TD
     Role -- "Open a store" --> S_Form
 
     %% ================= STORE ONBOARDING =================
-    subgraph STORE_ONB["OPEN A STORE (manual verification)"]
-        S_Form["Store form: name, type OWNER/RESELLER,<br/>owner legal name, description<br/>status = PENDING_DEPOSIT"]
-        S_Form --> S_Dep["Pay deposit Rp500.000 (payment flow)"]
-        S_Dep --> S_Review["Deposit PAID → status PENDING_REVIEW"]
-        S_Review --> A_Store{"Admin reviews store data"}
-        A_Store -- Reject --> S_Rej["status REJECTED + note<br/>(audit log)"]
-        A_Store -- Approve --> S_Active["status ACTIVE, identity_verified = 1<br/>store_balances row created (audit log)"]
+    subgraph STORE_ONB["OPEN A STORE"]
+        S_Form["Store profile: name, type OWNER/RESELLER, owner legal name<br/>PENDING_DEPOSIT"]
+        S_Form --> S_Dep["Deposit Rp500.000 (payment)"] --> S_Review["PENDING_REVIEW"]
+        S_Review --> A_Store{"Admin verifies store"}
+        A_Store -- Reject + reason --> S_Rej["REJECTED"]
+        A_Store -- Approve --> S_Active["ACTIVE · Free plan (5%)<br/>store balance opened"]
     end
-    S_Active --> C_Create
+    S_Active --> C_Draft
 
-    %% ================= LISTING =================
-    subgraph LIST["STORE: CATALOG"]
-        C_Create["Create catalog: game, title, price, attributes"]
-        C_Create --> C_Id["Platform issues unique VS code<br/>status LISTED"]
+    %% ================= CATALOG + MODERATION =================
+    subgraph LIST["CATALOG + ADMIN MODERATION"]
+        C_Draft["Create catalog: game → fields from game template,<br/>title, price, description, photos (Storage) → DRAFT"]
+        C_Draft --> C_Insp{"Inspect account? (optional)"}
+        C_Insp -- Yes --> C_Check["Checklist + private media → Account Checked"]
+        C_Insp -- No --> C_Submit
+        C_Check --> C_Submit["Submit → VS code issued · PENDING_REVIEW<br/>(plan quota: Free 15 / Pro 60 / Business ∞)"]
+        C_Submit --> A_Cat{"Admin reviews product"}
+        A_Cat -- "Reject + reasons" --> C_Rej["REJECTED · store notified"]
+        C_Rej -- "fix & resubmit" --> C_Submit
+        A_Cat -- Approve --> C_Live["LISTED · visible to buyers"]
+        C_Live -- "edit title/price/photos/attributes" --> C_Submit
+        C_Live --> C_Promo["Promote: store voucher, flash sale, bundle,<br/>featured ad (paid), subscription (paid)"]
     end
-    C_Id --> B_Browse
+    C_Live --> B_Browse
 
-    %% ================= BUY ACCOUNT =================
-    subgraph BUY["BUYER: BUY AN ACCOUNT"]
-        B_Browse["Browse / search / listing detail"]
-        B_Browse --> B_Order["Buy → order PENDING_PAYMENT<br/>catalog LOCKED (anti double-sell)<br/>total = price + handling max(3.5%, Rp4.000) + protection Rp5.000"]
-        B_Order --> B_Method["Choose payment method"]
-        B_Method --> PAY
+    %% ================= BUYER =================
+    subgraph BUY["BUYER: DISCOVER, NEGOTIATE, BUY"]
+        B_Browse["Search & filter (game fields), featured first,<br/>wishlist, follow store, recently viewed, chat store"]
+        B_Browse --> B_Choice{"How to buy?"}
+        B_Choice -- "Offer" --> O_Offer["Offer → store accept / counter / reject<br/>(expires 24 h)"]
+        O_Offer -- accepted --> B_Order
+        B_Choice -- "Lock first" --> B_Lock["Lock Rp5.000 · 30 min (payment)"] --> B_Order
+        B_Choice -- "Buy now / bundle" --> B_Order
+        B_Order["Order PENDING_PAYMENT · catalogs LOCKED<br/>price (offer / flash sale / bundle) − store voucher<br/>+ handling max(3.5%, Rp4.000) + protection Rp5.000"]
+        B_Order --> PAY
     end
 
     %% ================= PAYMENT =================
-    subgraph PAYFLOW["PAYMENT (shared by order / top-up / Balance / deposit)"]
-        PAY["API creates payments row (PENDING)<br/>+ Midtrans Snap transaction (or simulation URL)"]
-        PAY --> PAY_Redirect["Browser → Midtrans payment page"]
-        PAY_Redirect --> PAY_Return["Return to /payment/finish"]
-        PAY_Return --> PAY_Check{"API asks Midtrans Status API<br/>(amount must match)"}
-        PAY_Hook["Optional: signed webhook<br/>(SHA512 + webhook_events idempotency)"] -.-> PAY_Check
-        PAY_Check -- "settlement / capture" --> PAY_OK["payments PAID → apply by purpose"]
-        PAY_Check -- "pending" --> PAY_Wait["Still pending — check again later"]
-        PAY_Check -- "expire / cancel / deny" --> PAY_Fail["payments FAILED/EXPIRED<br/>order CANCELLED, catalog LISTED again"]
+    subgraph PAYFLOW["PAYMENT (all purposes)"]
+        PAY["payments row PENDING + Midtrans Snap (or simulation)"]
+        PAY --> PAY_Check{"Status from Midtrans Status API / signed webhook"}
+        PAY_Check -- settlement --> PAY_OK["PAID → apply by purpose"]
+        PAY_Check -- "expire / cancel" --> PAY_Fail["FAILED/EXPIRED → order CANCELLED, catalog LISTED"]
     end
-    PAY_OK -- "ORDER" --> RK_Open
-    PAY_OK -- "TOPUP" --> TU_Deliver
-    PAY_OK -- "BALANCE_FILL" --> BL_Credit
+    PAY_OK -- ORDER --> RK_Open
+    PAY_OK -- TOPUP --> TU_Deliver
+    PAY_OK -- BALANCE_FILL --> BL_Credit
     PAY_OK -- "STORE_DEPOSIT" --> S_Review
+    PAY_OK -- "SUBSCRIPTION / AD / LOCK" --> PAY_Other["activate plan · start featured ad · lock catalog 30 min"]
 
     %% ================= REKBER =================
-    subgraph REKBER["ESCROW + REKBER ROOM (code = VS code)"]
-        RK_Open["order PAID, catalog IN_ORDER<br/>store escrow += price (store_ledger ESCROW_HOLD)<br/>system message: rekber opened"]
-        RK_Open --> RK_Deliver["Store sends account access in rekber messages<br/>order IN_REKBER"]
-        RK_Deliver --> RK_Safe["Buyer changes email/password → clicks 'Akun aman'<br/>order SAFE"]
-        RK_Safe --> RK_Done["Buyer clicks 'Selesai' → order COMPLETED, catalog SOLD"]
-        RK_Done --> RK_Release[["Escrow release (one DB transaction):<br/>escrow −price · available +price · available −5% commission<br/>(store_ledger ESCROW_RELEASE + COMMISSION)"]]
+    subgraph REKBER["ESCROW + REKBER"]
+        RK_Open["PAID · escrow +price (ESCROW_HOLD) · catalog IN_ORDER"]
+        RK_Open --> RK_Deliver["Store sends account in rekber → IN_REKBER"]
+        RK_Deliver --> RK_Safe["Buyer secures account → 'Akun aman' → SAFE"]
+        RK_Safe --> RK_Done["Buyer 'Selesai' or auto 5 h after SAFE → COMPLETED"]
+        RK_Done --> RK_Release[["Escrow release: available += price − commission (tier rate)<br/>loyalty points · referral reward · rating unlocked"]]
+    end
+    RK_Deliver -. "problem" .-> DSP
+    RK_Safe -. "problem" .-> DSP
+    RK_Release -. "within 14/30-day protection" .-> DSP
+
+    %% ================= DISPUTE & RATING =================
+    subgraph DISP["DISPUTE & RATING"]
+        DSP["Dispute OPEN (reason + evidence) · store deadline 72 h"]
+        DSP --> DSP_Resp["Store statement + evidence"] --> A_Dsp{"Admin decides"}
+        A_Dsp -- Buyer wins --> DSP_B["Refund escrow (or compensation from store balance) · catalog LISTED"]
+        A_Dsp -- Store wins --> DSP_S["Order completes · escrow released"]
+        RK_Release --> RATE["Rating ±1 + 3 service scores · store replies once"]
     end
 
-    %% ================= WITHDRAW =================
-    subgraph PAYOUT["WITHDRAWAL (Iris simulated)"]
-        RK_Release --> W_Req["Store requests withdrawal: amount, bank, account, name"]
-        W_Req --> W_Match{"Account name vs owner legal name"}
-        W_Match -- MISMATCH --> W_Block["Rejected immediately"]
-        W_Match -- "MATCH / REVIEW" --> W_Debit["available −amount (WITHDRAW + WITHDRAW_FEE)<br/>withdrawal PENDING"]
-        W_Debit --> A_W{"Admin decision"}
-        A_W -- Approve --> W_Done["COMPLETED (simulated transfer)"]
-        A_W -- Reject --> W_Rev["REJECTED → PAYOUT_REVERSAL +amount"]
+    %% ================= PAYOUT =================
+    subgraph PAYOUT["STORE PAYOUTS (Iris simulated)"]
+        RK_Release --> W_Req["Withdraw: name must match owner legal name<br/>available −amount → PENDING"]
+        RK_Release --> T_Req["Reseller: transfer to external seller → PENDING"]
+        W_Req --> A_Pay{"Admin decision"}
+        T_Req --> A_Pay
+        A_Pay -- Approve --> W_Done["COMPLETED"]
+        A_Pay -- Reject --> W_Rev["REJECTED · PAYOUT_REVERSAL"]
     end
 
     %% ================= TOP-UP =================
     subgraph TOPUP["TOP-UP + CLOSED-LOOP BALANCE"]
-        TU_Start["Pick game → UID (+zone) → nominal<br/>→ optional promo → contact"]
-        TU_Start --> TU_Src{"Pay with?"}
-        TU_Src -- "Midtrans (QRIS/VA/retail/e-wallet/CC)" --> PAY
-        TU_Src -- "Balance (login)" --> TU_Bal["balance −total (balance_ledger SPEND_TOPUP)"]
-        TU_Bal --> TU_Deliver["Simulated provider → status SUCCESS"]
-        TU_Deliver --> TU_Invoice["Invoice check page (game ID masked)"]
-        BL_Fill["Buy Balance vouchers (nominal × qty)"] --> PAY
-        BL_Credit["balance +credit (balance_ledger TOPUP_CREDIT)"]
+        TU_Start["Game → UID → nominal → promo → contact"] --> TU_Src{"Pay with?"}
+        TU_Src -- Midtrans --> PAY
+        TU_Src -- Balance --> TU_Bal["SPEND_TOPUP"] --> TU_Deliver
+        TU_Deliver["Delivery (simulated) → SUCCESS · points earned"] --> TU_Inv["Invoice check (masked game ID)"]
+        BL_Fill["Buy Balance vouchers"] --> PAY
+        BL_Credit["TOPUP_CREDIT"]
+        PTS["Redeem 100 points → Rp1.000 Balance"]
     end
 ```
 
 ## How to read it
 
-- **One payment flow for everything.** Orders, top-ups, Balance fills and store deposits all create a `payments` row. Only Midtrans' own answer (Status API or signed webhook) can mark it PAID, and the effect depends on `purpose`.
-- **Money always leaves a trail.** Every change to `users.balance` or `store_balances` writes a ledger row (`balance_ledger` / `store_ledger`) with `balance_after`, inside the same DB transaction.
-- **Prototype simplifications:** escrow is released on *Selesai* (no 5-hour timer); withdrawals are completed by admin approval (Iris simulated); top-up delivery is simulated; disputes, offers, ratings and notifications are future work.
+- **Two admin gates before anything is sold:** the store (identity + deposit) and **every catalog** (photos, game fields, description, price). Rejections always carry a reason, and the store can fix and resubmit.
+- **One payment flow** for orders, top-ups, Balance, deposits, subscriptions, featured ads and locks. Only Midtrans' answer (or simulation mode) marks a payment PAID.
+- **Money always leaves a trail:** `store_ledger`, `balance_ledger`, `loyalty_ledger` with `balance_after`, in the same DB transaction as the state change.
+- **Timers are jobs:** unpaid orders (60 min), locks (30 min), offers (24 h), auto-complete (5 h after SAFE), flash sales, featured ads, subscriptions, dispute deadlines (72 h).
