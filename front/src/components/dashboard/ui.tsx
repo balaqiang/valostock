@@ -82,7 +82,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-2xl border border-border bg-surface", className)}>
+    <section className={cn("min-w-0 rounded-2xl border border-border bg-surface", className)}>
       {(title || actions) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
           <div>
