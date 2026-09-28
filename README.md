@@ -35,6 +35,7 @@ Kebutuhan: **Docker Desktop**, **Node.js 20+**, npm.
 
 - `PAYMENT_MODE=simulation` (bawaan): tanpa akun Midtrans. Tombol bayar membuka **Simulasi Pembayaran** (Bayar / Gagalkan).
 - `PAYMENT_MODE=midtrans`: isi `MIDTRANS_SERVER_KEY` dan `MIDTRANS_CLIENT_KEY` dari **Midtrans Sandbox**. Status diambil dari Status API Midtrans (atau webhook bertanda tangan).
+  Uji tanpa uang sungguhan: di halaman Snap pilih QRIS → salin URL gambar QR → tempel di [simulator QRIS Sandbox](https://simulator.sandbox.midtrans.com/v2/qris/index) → **Pay** → kembali ke aplikasi, halaman status/invoice menyinkronkan PAID lewat Status API (webhook tidak dibutuhkan secara lokal). VA: simulator `…/v2/bca/va/index` dsb.
 
 ## Akun demo (password semua: `valostock-demo`)
 
