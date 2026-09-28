@@ -156,7 +156,7 @@ export function TopupForm({
   return (
     <>
       <form
-        className="grid gap-8 lg:grid-cols-[1fr_360px]"
+        className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]"
         onSubmit={handleSubmit}
       >
         <div className="min-w-0 space-y-8">

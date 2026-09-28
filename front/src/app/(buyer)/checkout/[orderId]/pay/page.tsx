@@ -67,7 +67,7 @@ export default async function CheckoutPayPage({
             No. pesanan: {order.orderNumber}
           </p>
 
-          <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+          <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
             {/* Method selector */}
             <div className="min-w-0">
               {unpaid ? (

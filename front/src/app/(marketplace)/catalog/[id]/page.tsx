@@ -270,7 +270,7 @@ export default async function CatalogDetailPage({
             <span className="truncate text-text">{listing.title}</span>
           </nav>
 
-          <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_360px]">
+          <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_360px]">
             {/* ── Left column ────────────────────────────────────── */}
             <div className="min-w-0">
               {/* Account Checked banner — only when the store's inspection passed */}
