@@ -71,7 +71,9 @@ back/
 │   ├── create-user.sql       # dedicated MySQL user for the app
 │   └── README.md             # phpMyAdmin import steps
 ├── scripts/
-│   └── generate-seed.ts      # front/src/lib/mock → database/seed.sql
+│   ├── generate-seed.ts      # front/src/lib/mock → database/seed.sql
+│   ├── db-reset.ts           # re-import schema.sql + seed.sql (XAMPP mysql CLI)
+│   └── smoke-test.ts         # end-to-end API test of every prototype flow (npm run test:smoke)
 ├── src/
 │   ├── server.ts             # start HTTP server
 │   ├── app.ts                # middleware chain + routers + error handler
@@ -88,7 +90,7 @@ back/
 └── .env / .env.example
 ```
 
-**Layering:** `routes` parse + validate the request (zod) and shape the response → `service` holds business rules and opens DB transactions → `repository` is the only place with SQL.
+**Layering:** `routes` parse + validate the request (zod) and shape the response → `service` holds business rules and opens DB transactions → `repository` holds reusable queries and row→JSON mappers. Prototype simplification: small modules keep their SQL inside the service; SQL never appears in routes or in `front/`.
 
 ### 3.1 Database access rules (mysql2)
 - **Always parameterised:** `pool.execute('SELECT … WHERE id = ?', [id])`. Never build SQL by string concatenation with user input.
@@ -114,10 +116,10 @@ Base `/api`, JSON, money in integer Rupiah. Errors: `{ "error": { "code": "…",
 | Public catalog | `GET /games` · `GET /games/:slug` · `GET /games/:slug/topup-products` · `GET /stores` · `GET /stores/:slug` · `GET /listings?game=&store=` · `GET /listings/:id` · `GET /help` · `GET /help/:slug` |
 | Top-up | `GET /topup/promo?code=` · `POST /topup/checkout` · `GET /topup/invoice?q=` |
 | Balance | `POST /balance/topup` |
-| Me | `GET /me/transactions` · `GET /me/balance-ledger` · `GET /me/orders` · `GET /me/orders/:id` |
-| Orders | `POST /orders` · `POST /orders/:id/pay` · `POST /orders/:id/cancel` · `GET /orders/:id/messages` · `POST /orders/:id/messages` · `POST /orders/:id/safe` · `POST /orders/:id/complete` |
+| Me | `GET /me/transactions` · `GET /me/balance-ledger` · `GET /me/orders` |
+| Orders | `POST /orders` · `GET /orders/:id` (buyer, store owner or admin) · `POST /orders/:id/pay` · `POST /orders/:id/cancel` · `GET /orders/:id/messages` · `POST /orders/:id/messages` · `POST /orders/:id/safe` · `POST /orders/:id/complete` |
 | Payments | `GET /payments/:invoice/status` · `POST /payments/:invoice/simulate` (simulation mode only) · `POST /webhooks/midtrans` |
-| Store (owner) | `POST /stores` · `GET /stores/me` · `POST /stores/me/deposit` · `GET /stores/me/catalogs` · `POST /stores/me/catalogs` · `PATCH /stores/me/catalogs/:id` · `GET /stores/me/orders` · `GET /stores/me/orders/:id` · `GET /stores/me/balance` · `GET /stores/me/withdrawals` · `POST /stores/me/withdrawals` |
+| Store (owner) | `POST /stores` · `GET /stores/me` · `POST /stores/me/deposit` · `GET /stores/me/catalogs` · `POST /stores/me/catalogs` · `PATCH /stores/me/catalogs/:id` · `GET /stores/me/orders` · `GET /stores/me/balance` · `GET /stores/me/withdrawals` · `POST /stores/me/withdrawals` |
 | Admin | `GET /admin/stores?status=` · `POST /admin/stores/:id/approve` · `POST /admin/stores/:id/reject` · `GET /admin/withdrawals?status=` · `POST /admin/withdrawals/:id/approve` · `POST /admin/withdrawals/:id/reject` · `GET /admin/analytics` |
 
 Every `/me`, `/orders/:id`, `/stores/me/*` query is scoped to `req.user` (anti-IDOR): an order is visible only to its buyer, the owner of its store, or an admin.

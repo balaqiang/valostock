@@ -97,6 +97,7 @@ npm run build          # tsc → dist/
 npm run start          # node dist/server.js
 npm run db:seed:gen    # regenerate database/seed.sql from front/src/lib/mock
 npm run db:reset       # re-import schema.sql + seed.sql with the XAMPP mysql CLI
+npm run test:smoke     # end-to-end API test of all prototype flows (API running, simulation mode, fresh seed)
 
 # Frontend (front/)
 npm run dev            # http://localhost:3000
@@ -167,7 +168,7 @@ tugas/
 ## Code Conventions
 
 - **TypeScript strict** in both services. No `any` (use `unknown` + narrowing).
-- **All domain logic in the Express API.** Only repositories contain SQL. The web app never computes/mutates money or trust and has no DB access or secrets.
+- **All domain logic in the Express API.** SQL lives only in `back/src/modules/*` services/repositories (never in routes or `front/`). The web app never computes/mutates money or trust and has no DB access or secrets.
 - **SQL:** parameterised (`?` placeholders) only — never concatenate user input. Money changes inside `withTransaction()` with `SELECT … FOR UPDATE` on balance rows.
 - **Validate input** with zod on every endpoint (`.strict()` objects) and on frontend forms.
 - **Money values** are integer Rupiah (MySQL `INT`), never floats.
@@ -219,7 +220,7 @@ Frontend `front/.env.local`: `NEXT_PUBLIC_API_URL=http://localhost:4000`.
 
 ## Testing
 
-Manual test scenarios (demo): register/login · top-up via Midtrans Sandbox/simulation + invoice check · Balance fill → top-up with Balance · buy account → rekber → Akun aman → Selesai → store balance · store onboarding → admin approve · withdrawal → admin approve/reject. Verify ledger rows in phpMyAdmin after each money step.
+Automated: `npm run test:smoke` in `back/` (14 checks: payments idempotency, escrow/ledger, double-sell, IDOR, admin-only, name match, CSRF origin). Manual test scenarios (demo): register/login · top-up via Midtrans Sandbox/simulation + invoice check · Balance fill → top-up with Balance · buy account → rekber → Akun aman → Selesai → store balance · store onboarding → admin approve · withdrawal → admin approve/reject. Verify ledger rows in phpMyAdmin after each money step.
 
 ## Build
 
