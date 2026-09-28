@@ -166,3 +166,5 @@ Dashboard kit (`components/dashboard`: header, stat card, panel, table, status t
 ## 9. Page states
 
 Every list has an empty state; admin pages without the needed permission show "Tidak ada akses" (the API answers 403); unauthenticated visits to `auth` pages redirect to `/login?next=…`; non-admins get 404 on `/admin`.
+
+System pages: unknown URLs and unlisted catalogs/stores render `not-found.tsx` (Indonesian 404 with navbar); render errors show `error.tsx` (retry, money unaffected) and `global-error.tsx`. When `/api/health` fails, every page shows a bottom banner (API down → start `back/`; database down → start Docker/Supabase) and admin panels say the server is down instead of "Tidak ada akses".
