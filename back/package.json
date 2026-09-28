@@ -14,7 +14,8 @@
     "docs:tables": "tsx scripts/generate-table-docs.ts",
     "test:features": "tsx scripts/feature-test.ts",
     "test:sweep": "tsx scripts/endpoint-sweep.ts",
-    "dev:sim": "tsx watch --env-file=.env --env-file=.env.simulation src/server.ts"
+    "dev:sim": "tsx watch --env-file=.env --env-file=.env.simulation src/server.ts",
+    "test:unit": "tsx --test tests/money.test.ts tests/name-match.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
