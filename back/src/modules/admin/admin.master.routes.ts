@@ -326,6 +326,20 @@ adminMasterRouter.patch('/admin/topup-products/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Hard delete only while no invoice points at the product; otherwise it can only be deactivated.
+adminMasterRouter.delete('/admin/topup-products/:id', async (req, res) => {
+  const user = await admin(req, 'master:manage');
+  const id = parse(z.string().regex(/^[a-z0-9-]{2,36}$/), req.params.id);
+  const product = await one<{ name: string; amount_label: string }>(pool, 'select name, amount_label from topup_products where id = $1', [id]);
+  if (!product) throw notFound('Produk');
+  if (await one(pool, 'select 1 from topup_orders where product_id = $1 limit 1', [id])) {
+    throw conflict('Produk sudah pernah dipesan, nonaktifkan saja agar riwayat invoice tetap utuh.', 'PRODUCT_IN_USE');
+  }
+  await run(pool, 'delete from topup_products where id = $1', [id]);
+  await audit(pool, { actorId: user.id, action: 'topup_product.delete', targetType: 'topup_product', targetId: id, detail: product, ip: ipOf(req) });
+  res.json({ ok: true });
+});
+
 // ── Promo codes (top-up) ──
 
 adminMasterRouter.get('/admin/promo-codes', async (req, res) => {

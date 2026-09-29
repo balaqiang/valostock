@@ -177,7 +177,7 @@ Kolom: nomor, toko, jumlah, biaya, rekening, **kecocokan nama** (MATCH/REVIEW), 
 
 ### 3.9 Data Master
 - **Game:** CRUD game (slug, nama, dukung akun/top-up, urutan, gradien, label UID, label + pilihan kolom tambahan — mis. server Genshin). **Template kolom** per game: key, label, tipe (TEXT / NUMBER / SELECT / TAGS), wajib/opsional, opsi, urutan, dipakai sebagai filter atau tidak. Template ini yang menentukan form katalog toko dan filter pencarian.
-- **Produk top-up:** CRUD per game (nama, label nominal, **harga modal Digiflazz**, harga jual, ikon, bagian *Item Spesial* / *Top Up Instan*, populer, aktif). Harga jual kosong → API menghitung modal + 3% dibulatkan ke atas Rp100 (MONEY_RULES §8); harga jual di bawah modal ditolak. Daftar menampilkan margin per produk.
+- **Produk top-up:** CRUD per game (nama, label nominal, **harga modal Digiflazz**, harga jual, ikon, bagian *Item Spesial* / *Top Up Instan*, populer, aktif). Harga jual kosong → API menghitung modal + 3% dibulatkan ke atas Rp100 (MONEY_RULES §8); harga jual di bawah modal ditolak. Daftar menampilkan margin per produk. **Hapus** hanya untuk produk yang belum pernah dipesan (belum ada `topup_orders`); produk yang sudah pernah dipesan cukup dinonaktifkan agar riwayat invoice tetap utuh. Setiap tambah/ubah/hapus tercatat di `audit_logs`.
 - **Kode promo:** CRUD (jenis, nilai, minimal belanja, kuota, masa berlaku, aktif) + jumlah terpakai.
 
 ### 3.10 Konten

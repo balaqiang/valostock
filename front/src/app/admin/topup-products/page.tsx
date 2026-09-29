@@ -83,6 +83,14 @@ export default async function AdminTopupProductsPage() {
               <ActionButton variant="ghost" method="PATCH" endpoint={`/api/admin/topup-products/${p.id}`} body={{ isActive: !p.isActive }}>
                 {p.isActive ? "Nonaktifkan" : "Aktifkan"}
               </ActionButton>
+              <ActionButton
+                variant="ghost"
+                method="DELETE"
+                endpoint={`/api/admin/topup-products/${p.id}`}
+                confirm={`Hapus produk ${p.amountLabel}? Produk yang sudah pernah dipesan tidak bisa dihapus, hanya dinonaktifkan.`}
+              >
+                Hapus
+              </ActionButton>
             </Td>
           </tr>
         ))}
