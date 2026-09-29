@@ -38,7 +38,7 @@ Struktur tabel lengkap ada di [`docs/modeling/05-struktur-tabel.md`](../docs/mod
 - API Express terhubung sebagai role **`valostock_api`** (hanya baca/tulis data, bypass RLS). Tabel ledger dan audit bersifat **append-only** untuk role ini.
 - Bucket `catalog-images` publik (foto katalog, maks. 2 MB). Bucket `private-media` privat (inspeksi, lampiran rekber/sengketa, diakses dengan signed URL).
 
-## Akun demo (password semua: `valostock-demo`, hanya untuk lokal)
+## Akun demo (password `valostock-demo` kecuali akun pribadi di bawah, hanya untuk lokal)
 
 | Email | Peran |
 |---|---|
@@ -51,6 +51,14 @@ Struktur tabel lengkap ada di [`docs/modeling/05-struktur-tabel.md`](../docs/mod
 | `nusagame@email.com` | Pemilik **NusaGame** (paket Pro, reseller) |
 | `astralstore@valostock.test`, `verdantshop@…`, `gudangakun@…`, `skyvault@…` | Pemilik toko lain (ACTIVE) |
 | `tokobaru@valostock.test` | Pemilik **TokoBaru** (menunggu verifikasi admin) |
+
+**Akun demo pribadi** (password sendiri, hanya untuk lokal):
+
+| Email | Password | Peran |
+|---|---|---|
+| `adminjati@email.com` | `adminjati123` | Super Admin (semua izin) |
+| `buyersatya@email.com` | `buyersatya123` | Pembeli (Balance 0) |
+| `storebala@email.com` | `storebala123` | Pemilik **Bala Store** (ACTIVE, deposit Rp500.000 ditahan, paket Free, belum ada katalog) |
 
 Password role database `valostock_api` untuk lokal diatur di `seed.sql`.
 

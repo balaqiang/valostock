@@ -37,7 +37,7 @@ Kebutuhan: **Docker Desktop**, **Node.js 20+**, npm.
 - `PAYMENT_MODE=midtrans`: isi `MIDTRANS_SERVER_KEY` dan `MIDTRANS_CLIENT_KEY` dari **Midtrans Sandbox**. Status diambil dari Status API Midtrans (atau webhook bertanda tangan).
   Uji tanpa uang sungguhan: di halaman Snap pilih QRIS → salin URL gambar QR → tempel di [simulator QRIS Sandbox](https://simulator.sandbox.midtrans.com/v2/qris/index) → **Pay** → kembali ke aplikasi, halaman status/invoice menyinkronkan PAID lewat Status API (webhook tidak dibutuhkan secara lokal). VA: simulator `…/v2/bca/va/index` dsb.
 
-## Akun demo (password semua: `valostock-demo`)
+## Akun demo (password `valostock-demo`, kecuali akun pribadi di bawah)
 
 | Email | Peran |
 |---|---|
@@ -48,6 +48,14 @@ Kebutuhan: **Docker Desktop**, **Node.js 20+**, npm.
 | `raven@email.com` | Pembeli |
 | `nusagame@email.com`, `<slug>@valostock.test` (mis. `verdantshop@valostock.test`) | Pemilik toko |
 | `tokobaru@valostock.test` | Toko yang menunggu verifikasi |
+
+**Akun demo pribadi** (password sendiri, hanya untuk lokal):
+
+| Email | Password | Peran |
+|---|---|---|
+| `adminjati@email.com` | `adminjati123` | Super Admin (semua izin) |
+| `buyersatya@email.com` | `buyersatya123` | Pembeli (Balance 0) |
+| `storebala@email.com` | `storebala123` | Pemilik **Bala Store** (ACTIVE, deposit Rp500.000 ditahan, paket Free, belum ada katalog) |
 
 ## Skenario demo (alur inti)
 
