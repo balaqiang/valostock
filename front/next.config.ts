@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       // Catalog photos: public bucket of the local Supabase project "valostock".
       { protocol: "http", hostname: "127.0.0.1", port: "55321", pathname: "/storage/v1/object/public/**" },
       { protocol: "http", hostname: "localhost", port: "55321", pathname: "/storage/v1/object/public/**" },
+      // Same bucket on a Supabase Cloud project (docs/SETUP_CLOUD.md).
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
     ],
     // next/image refuses private-network upstreams by default; the local Supabase is one.
     dangerouslyAllowLocalIP: true,
