@@ -4,7 +4,7 @@
 
 Kolom **Kunci**: **PK** = primary key · **FK** = foreign key (`schema.tabel.kolom`) · **UK** = unique. **Null** = boleh kosong. Uang dalam **Rupiah bulat** (`integer`). Semua tabel memakai **Row Level Security** tanpa policy, sehingga hanya API yang bisa mengakses.
 
-Jumlah tabel: **53**.
+Jumlah tabel: **55**.
 
 ## 5.1 Tabel `profiles`
 
@@ -235,7 +235,7 @@ Master data game.
 | 14 | `uid_extra_label` | text | Ya | — | — | Label kolom tambahan (mis. Zone ID) |
 | 15 | `gradient` | text | Tidak | — | — | Kelas warna gradien (Tailwind) |
 | 16 | `topup_currency` | text | Ya | — | — | Mata uang dalam game |
-| 17 | `image` | text | Ya | — | — | Gambar |
+| 17 | `image` | text | Ya | — | — | Banner game (kartu + header halaman game): /images/… statis atau cms/… di bucket site-media. |
 | 18 | `sort_order` | integer | Tidak | 0 | — | Urutan tampil |
 | 19 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 | 20 | `uid_extra_options` | text[] | Ya | — | — | Pilihan tetap untuk kolom tambahan (mis. server Genshin); kosong = isian bebas. |
@@ -830,7 +830,39 @@ Artikel berita (CMS).
 | 11 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 | 12 | `updated_at` | timestamptz | Tidak | now() | — | Waktu terakhir diubah |
 
-## 5.51 Tabel `help_articles`
+## 5.51 Tabel `site_settings`
+
+Teks situs yang diubah lewat CMS; kunci yang tidak ada memakai nilai bawaan API.
+
+| No | Kolom | Tipe | Null | Default | Kunci | Keterangan |
+|---|---|---|---|---|---|---|
+| 1 | `key` | text | Tidak | — | PK | Kunci teks terdaftar (mis. home.hero.title) |
+| 2 | `value` | text | Tidak | — | — | Nilai diskon (persen/Rupiah) |
+| 3 | `updated_by` | uuid | Ya | — | FK → `public.profiles.id` | Admin yang terakhir mengubah |
+| 4 | `updated_at` | timestamptz | Tidak | now() | — | Waktu terakhir diubah |
+
+## 5.52 Tabel `banners`
+
+Banner beranda milik platform (promosi internal, bukan iklan berbayar) dengan jadwal tampil.
+
+| No | Kolom | Tipe | Null | Default | Kunci | Keterangan |
+|---|---|---|---|---|---|---|
+| 1 | `id` | uuid | Tidak | gen_random_uuid() | PK | ID unik baris |
+| 2 | `placement` | enum banner_placement | Tidak | 'HOME_HERO' | — | Posisi banner |
+| 3 | `title` | text | Tidak | — | — | Judul |
+| 4 | `subtitle` | text | Ya | — | — | Subjudul |
+| 5 | `image` | text | Tidak | — | — | Gambar |
+| 6 | `cta_label` | text | Ya | — | — | Label tombol (wajib bersama link) |
+| 7 | `link_url` | text | Ya | — | — | Tujuan tombol: path situs atau https:// |
+| 8 | `sort_order` | integer | Tidak | 0 | — | Urutan tampil |
+| 9 | `is_active` | boolean | Tidak | true | — | Aktif (true/false) |
+| 10 | `starts_at` | timestamptz | Ya | — | — | Waktu mulai |
+| 11 | `ends_at` | timestamptz | Ya | — | — | Waktu selesai |
+| 12 | `created_by` | uuid | Ya | — | FK → `public.profiles.id` | Admin pembuat |
+| 13 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
+| 14 | `updated_at` | timestamptz | Tidak | now() | — | Waktu terakhir diubah |
+
+## 5.53 Tabel `help_articles`
 
 Artikel pusat bantuan (CMS).
 
@@ -848,7 +880,7 @@ Artikel pusat bantuan (CMS).
 | 10 | `sort_order` | integer | Tidak | 0 | — | Urutan tampil |
 | 11 | `updated_at` | timestamptz | Tidak | now() | — | Waktu terakhir diubah |
 
-## 5.52 Tabel `reports`
+## 5.54 Tabel `reports`
 
 Laporan pengguna terhadap katalog, toko, atau pengguna lain.
 
@@ -866,7 +898,7 @@ Laporan pengguna terhadap katalog, toko, atau pengguna lain.
 | 10 | `handled_at` | timestamptz | Ya | — | — | Waktu ditangani |
 | 11 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.53 Tabel `audit_logs`
+## 5.55 Tabel `audit_logs`
 
 Jejak keputusan admin dan aksi sensitif (append-only).
 
@@ -888,6 +920,7 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | `article_status` | DRAFT, PUBLISHED |
 | `balance_ledger_type` | TOPUP_CREDIT, SPEND_TOPUP, REFUND_CREDIT, LOYALTY_CREDIT, REFERRAL_CREDIT, ADJUSTMENT |
 | `balance_topup_status` | PENDING, PAID, FAILED, EXPIRED |
+| `banner_placement` | HOME_HERO |
 | `bundle_status` | ACTIVE, INACTIVE, SOLD |
 | `catalog_status` | DRAFT, PENDING_REVIEW, REJECTED, LISTED, LOCKED, IN_ORDER, SOLD, DELISTED |
 | `deposit_status` | UNPAID, HELD, RELEASED |
@@ -938,6 +971,13 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | balance_topups | `balance_topups_check1` | `CHECK ((amount = (credit + surcharge)))` |
 | balance_topups | `balance_topups_nominal_check` | `CHECK ((nominal > 0))` |
 | balance_topups | `balance_topups_qty_check` | `CHECK (((qty >= 1) AND (qty <= 10)))` |
+| banners | `banners_cta_check` | `CHECK (((cta_label IS NULL) = (link_url IS NULL)))` |
+| banners | `banners_cta_label_check` | `CHECK ((char_length(cta_label) <= 40))` |
+| banners | `banners_image_check` | `CHECK ((image ~ '^(/images/\|cms/)[A-Za-z0-9/_.()-]+$'::text))` |
+| banners | `banners_link_url_check` | `CHECK (((link_url IS NULL) OR (link_url ~ '^(/\|https://)'::text)))` |
+| banners | `banners_subtitle_check` | `CHECK ((char_length(subtitle) <= 240))` |
+| banners | `banners_title_check` | `CHECK (((char_length(title) >= 2) AND (char_length(title) <= 120)))` |
+| banners | `banners_window_check` | `CHECK (((starts_at IS NULL) OR (ends_at IS NULL) OR (ends_at > starts_at)))` |
 | bundles | `bundles_bundle_price_check` | `CHECK ((bundle_price >= 10000))` |
 | bundles | `bundles_title_check` | `CHECK (((char_length(title) >= 5) AND (char_length(title) <= 200)))` |
 | catalogs | `catalogs_old_price_check` | `CHECK (((old_price IS NULL) OR (old_price > 0)))` |
@@ -952,6 +992,7 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | flash_sales | `flash_sales_check` | `CHECK ((ends_at > starts_at))` |
 | flash_sales | `flash_sales_sale_price_check` | `CHECK ((sale_price >= 10000))` |
 | game_field_templates | `game_field_templates_key_check` | `CHECK ((key ~ '^[a-zA-Z][a-zA-Z0-9_]{0,40}$'::text))` |
+| games | `games_image_check` | `CHECK (((image IS NULL) OR (image ~ '^(/images/\|cms/)[A-Za-z0-9/_.()-]+$'::text)))` |
 | games | `games_slug_check` | `CHECK ((slug ~ '^[a-z0-9-]{2,50}$'::text))` |
 | games | `games_uid_extra_options_check` | `CHECK (((uid_extra_options IS NULL) OR ((cardinality(uid_extra_options) >= 1) AND (cardinality(uid_extra_options) <= 20))))` |
 | help_articles | `help_articles_slug_check` | `CHECK ((slug ~ '^[a-z0-9-]{2,120}$'::text))` |
@@ -982,6 +1023,8 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | ratings | `ratings_overall_check` | `CHECK ((overall = ANY (ARRAY['-1'::integer, 0, 1])))` |
 | refunds | `refunds_amount_check` | `CHECK ((amount > 0))` |
 | rekber_messages | `rekber_messages_body_check` | `CHECK (((char_length(body) >= 1) AND (char_length(body) <= 2000)))` |
+| site_settings | `site_settings_key_check` | `CHECK ((key ~ '^[a-z0-9_.]{3,60}$'::text))` |
+| site_settings | `site_settings_value_check` | `CHECK ((char_length(value) <= 2000))` |
 | store_balances | `store_balances_available_check` | `CHECK ((available >= 0))` |
 | store_balances | `store_balances_deposit_check` | `CHECK ((deposit >= 0))` |
 | store_balances | `store_balances_escrow_check` | `CHECK ((escrow >= 0))` |

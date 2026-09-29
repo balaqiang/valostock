@@ -325,12 +325,30 @@ const featuredRows = astral
   ? [{ store_id: storeId('astralstore'), catalog_id: catalogId(astral.id), duration_days: 7, price: 0, is_free: true, status: 'ACTIVE', starts_at: ago('1 day'), ends_at: ahead('6 days') }]
   : [];
 
+// CMS demo content (docs/ADMIN_PANEL.md §3.10): two games keep the gradient fallback on purpose.
+const GAME_BANNERS: Record<string, string> = {
+  valorant: '/images/Astra_--_TEASER_01.png',
+  'mobile-legends': '/images/games/mobile-legends-1.png',
+};
+const bannerRows = [
+  {
+    placement: 'HOME_HERO', title: 'Akun impianmu, dananya ditahan sampai kamu konfirmasi',
+    subtitle: 'Semua toko diverifikasi admin. Serah terima lewat Rekber Room yang diawasi admin.',
+    image: '/images/Astra_--_TEASER_01.png', cta_label: 'Jelajahi Akun', link_url: '/search', sort_order: 0, created_by: uid('admin'),
+  },
+  {
+    placement: 'HOME_HERO', title: 'Top-up VP, Diamond, dan Crystal',
+    subtitle: 'Bayar QRIS, Virtual Account, e-wallet, retail, atau Balance — struk langsung ke email.',
+    image: '/images/Pride_2023.png', cta_label: 'Top-Up Sekarang', link_url: '/topup', sort_order: 1, created_by: uid('admin'),
+  },
+];
+
 const gameRows = games.map((g) => ({
   slug: g.slug, name: g.name, publisher: g.publisher, tagline: g.tagline, description: g.description,
   supports_account: g.supportsAccount, supports_topup: g.supportsTopup, has_skin_api: g.hasSkinApi, is_hot: g.isHot,
   uid_label: g.uidLabel, uid_hint: g.uidHint, uid_extra_label: g.uidExtraLabel ?? null,
   uid_extra_options: g.uidExtraOptions ? textArray(g.uidExtraOptions) : null, gradient: g.gradient,
-  topup_currency: g.topupCurrency ?? null, sort_order: g.sortOrder,
+  topup_currency: g.topupCurrency ?? null, sort_order: g.sortOrder, image: GAME_BANNERS[g.slug] ?? null,
 }));
 const templateRows = Object.entries(templates).flatMap(([slug, list]) =>
   list.map((t, i) => ({
@@ -376,7 +394,7 @@ ${insert('games', gameRows)}${insert('game_field_templates', templateRows)}${ins
 -- ── Promotions ──
 ${insert('store_vouchers', voucherRows)}${insert('flash_sales', flashRows)}${insert('bundles', bundleRows)}${insert('bundle_items', bundleItemRows)}${insert('featured_listings', featuredRows)}
 -- ── Top-up, content ──
-${insert('topup_products', productRows)}${insert('promo_codes', promoRows)}${insert('help_articles', helpRows)}${insert('news_articles', newsRows)}
+${insert('topup_products', productRows)}${insert('promo_codes', promoRows)}${insert('help_articles', helpRows)}${insert('news_articles', newsRows)}${insert('banners', bannerRows)}
 -- ── Opening Balance for the demo buyer (with its ledger row) ──
 update public.profiles set balance = ${BUYER_OPENING_BALANCE} where id = ${q(uid('nightfall'))};
 ${insert('balance_ledger', [{ user_id: uid('nightfall'), type: 'ADJUSTMENT', amount: BUYER_OPENING_BALANCE, balance_after: BUYER_OPENING_BALANCE, reference: 'SEED-SALDO-AWAL' }])}`;

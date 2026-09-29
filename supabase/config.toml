@@ -123,6 +123,11 @@ public = true
 file_size_limit = "2MiB"
 allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
 
+[storage.buckets.site-media]
+public = true
+file_size_limit = "2MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
+
 [storage.buckets.private-media]
 public = false
 file_size_limit = "10MiB"
