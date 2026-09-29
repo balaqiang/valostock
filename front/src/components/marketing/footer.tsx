@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Mail, MessageCircle } from "lucide-react";
 import { Container } from "@/components/ui/container";
+import { siteText } from "@/lib/data/site";
 
 const columns = [
   {
@@ -33,22 +34,20 @@ const columns = [
   },
 ];
 
-export function Footer() {
+export async function Footer() {
+  const t = await siteText();
+  const email = t("footer.email");
+  const whatsapp = t("footer.whatsapp");
   return (
     <footer className="overflow-hidden bg-[#0a0a0c] text-white">
       {/* Newsletter */}
       <Container className="pt-20">
         <div className="grid items-center gap-8 border-b border-white/10 pb-16 lg:grid-cols-2">
           <div>
-            <h2 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
-              Daftar duluan,
-              <br />
-              dapat info peluncuran.
+            <h2 className="whitespace-pre-line font-display text-3xl font-bold tracking-tight sm:text-4xl">
+              {t("footer.newsletter.title")}
             </h2>
-            <p className="mt-4 max-w-md text-zinc-400">
-              Kami kirim update fitur dan promo toko terverifikasi — tanpa
-              spam.
-            </p>
+            <p className="mt-4 max-w-md text-zinc-400">{t("footer.newsletter.subtitle")}</p>
           </div>
           <form className="flex w-full max-w-md gap-3 lg:ml-auto">
             <input
@@ -79,10 +78,27 @@ export function Footer() {
               width={146}
               height={30}
             />
-            <p className="mt-5 text-sm leading-relaxed text-zinc-400">
-              Marketplace akun game dengan toko dan produk yang diverifikasi
-              admin. Toko yang berjualan, kami yang menjaga.
-            </p>
+            <p className="mt-5 text-sm leading-relaxed text-zinc-400">{t("footer.tagline")}</p>
+            {(email || whatsapp) && (
+              <ul className="mt-5 space-y-2 text-sm text-zinc-400">
+                {email && (
+                  <li>
+                    <a href={`mailto:${email}`} className="inline-flex items-center gap-2 transition-colors hover:text-white">
+                      <Mail className="h-4 w-4" />
+                      {email}
+                    </a>
+                  </li>
+                )}
+                {whatsapp && (
+                  <li>
+                    <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 transition-colors hover:text-white">
+                      <MessageCircle className="h-4 w-4" />
+                      +{whatsapp}
+                    </a>
+                  </li>
+                )}
+              </ul>
+            )}
           </div>
 
           {columns.map((col) => (
@@ -109,9 +125,7 @@ export function Footer() {
             © {new Date().getFullYear()} valostock.id. Seluruh hak cipta
             dilindungi.
           </p>
-          <p className="text-sm text-zinc-500">
-            Dibangun untuk transaksi yang aman.
-          </p>
+          {t("footer.bottom") && <p className="text-sm text-zinc-500">{t("footer.bottom")}</p>}
         </div>
       </Container>
 

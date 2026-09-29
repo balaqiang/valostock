@@ -18,6 +18,7 @@ import {
   Megaphone,
   Menu,
   Newspaper,
+  LayoutTemplate,
   Package,
   Receipt,
   ScrollText,
@@ -77,6 +78,7 @@ const SECTIONS: { title?: string; items: Item[] }[] = [
       { label: "Kode Promo", href: "/admin/promo-codes", icon: Ticket, perm: "master:manage" },
       { label: "Berita", href: "/admin/news", icon: Newspaper, perm: "content:manage" },
       { label: "Pusat Bantuan", href: "/admin/help", icon: LifeBuoy, perm: "content:manage" },
+      { label: "CMS Situs", href: "/admin/cms", icon: LayoutTemplate, perm: "content:manage" },
     ],
   },
   {

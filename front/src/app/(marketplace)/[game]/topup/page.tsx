@@ -5,6 +5,7 @@ import { FileSearch, Gamepad2, ShieldCheck, Zap } from "lucide-react";
 import { Navbar } from "@/components/marketing/navbar";
 import { Footer } from "@/components/marketing/footer";
 import { Container } from "@/components/ui/container";
+import { GameBannerBackdrop } from "@/components/games/game-banner";
 import { Button } from "@/components/ui/button";
 import { TopupForm } from "@/components/topup/topup-form";
 import { getGame, topupProductsByGame } from "@/lib/data/catalog";
@@ -49,13 +50,9 @@ export default async function GameTopupPage({
 
       <main className="flex-1">
         {/* Game banner */}
-        <section
-          className={`relative overflow-hidden bg-gradient-to-br ${game.gradient}`}
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-black/30"
-          />
+        <section className="relative overflow-hidden">
+          <GameBannerBackdrop image={game.image} gradient={game.gradient} sizes="100vw" priority />
+          {!game.image && <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/30" />}
           <Container className="relative py-12 sm:py-16">
             <p className="eyebrow text-white/70">{game.publisher}</p>
             <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">

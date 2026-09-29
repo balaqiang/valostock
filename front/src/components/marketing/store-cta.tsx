@@ -2,48 +2,40 @@ import { BarChart3, BellRing, Wallet } from "lucide-react";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { SectionLabel } from "@/components/ui/section-label";
+import { siteText } from "@/lib/data/site";
 
-const perks = [
-  {
-    icon: Wallet,
-    title: "Saldo milik toko sendiri",
-    body: "Dana masuk ke saldo tokomu — bisa ditarik 5 jam setelah akun aman. Komisi 5%, lebih rendah dengan Premium.",
-  },
-  {
-    icon: BellRing,
-    title: "Notifikasi WA / Discord / Telegram",
-    body: "Dapat alert pembeli, penawaran, dan pesanan baru — transaksi tetap aman di dalam platform.",
-  },
-  {
-    icon: BarChart3,
-    title: "Dashboard lengkap",
-    body: "Kelola katalog, penawaran, inspeksi, penarikan, dan analitik dari satu tempat.",
-  },
-];
+const perkIcons = [Wallet, BellRing, BarChart3];
 
-export function StoreCta() {
+/** "Untuk toko" section — texts from the CMS (Admin → CMS Situs). */
+export async function StoreCta() {
+  const t = await siteText();
+  const perks = perkIcons.map((icon, i) => ({ icon, title: t(`store_cta.perk${i + 1}.title`), body: t(`store_cta.perk${i + 1}.body`) }));
+  const highlight = t("store_cta.title_highlight");
   return (
     <section className="bg-violet-50 py-24 dark:bg-violet-950/20 sm:py-32">
       <Container>
         <div className="grid items-end gap-8 lg:grid-cols-[1fr_auto]">
           <div className="max-w-2xl">
-            <SectionLabel>Untuk toko</SectionLabel>
+            <SectionLabel>{t("store_cta.label")}</SectionLabel>
             <h2 className="display-2 mt-5 text-text">
-              Punya toko akun game? Jadi{" "}
-              <span className="text-primary">mitra terverifikasi.</span>
+              {t("store_cta.title")}
+              {highlight && (
+                <>
+                  {" "}
+                  <span className="text-primary">{highlight}</span>
+                </>
+              )}
             </h2>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-text-secondary">
-              Verifikasi identitas gratis oleh admin + deposit Rp500 ribu. Kami
-              sediakan escrow, Rekber Room, ID katalog anti double-sell, dan
-              perlindungan sengketa.
+              {t("store_cta.subtitle")}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:pb-2">
             <Button href="/sell" variant="primary" size="lg">
-              Daftarkan toko
+              {t("store_cta.button_primary")}
             </Button>
             <Button href="/help/cara-membuka-toko" variant="secondary" size="lg">
-              Pelajari dulu
+              {t("store_cta.button_secondary")}
             </Button>
           </div>
         </div>

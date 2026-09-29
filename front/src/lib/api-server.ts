@@ -50,7 +50,8 @@ export type ApiStatus = "ok" | "api-down" | "db-down";
  */
 export const getApiStatus = cache(async (): Promise<ApiStatus> => {
   try {
-    const res = await fetch(`${API_URL}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(2000) });
+    // Generous timeout: the first query after idle may open a new connection to a remote (Cloud) database.
+    const res = await fetch(`${API_URL}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
     return res.ok ? "ok" : "db-down";
   } catch {
     return "api-down";

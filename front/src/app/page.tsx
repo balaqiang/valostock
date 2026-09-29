@@ -23,12 +23,13 @@ import { NewsCard } from "@/components/news/news-card";
 import { getHome, getNewsArticles } from "@/lib/data/catalog";
 import { getRecommendations } from "@/lib/data/buyer";
 import { getCurrentUser } from "@/lib/auth";
+import { getSite, siteText } from "@/lib/data/site";
+import { HeroBanners } from "@/components/home/hero-banners";
 
-export const metadata: Metadata = {
-  title: "valostock.id — Marketplace Akun Game & Top-Up",
-  description:
-    "Beli akun game dari toko terverifikasi dengan escrow, atau top-up instan. Dana ditahan sampai kamu mengonfirmasi akunnya aman.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await siteText();
+  return { title: t("seo.home.title") || "valostock.id", description: t("seo.home.description") || undefined };
+}
 
 function SectionHeading({
   title,
@@ -57,15 +58,12 @@ function SectionHeading({
   );
 }
 
-const trustPoints = [
-  { icon: ShieldCheck, label: "Escrow di setiap transaksi" },
-  { icon: BadgeCheck, label: "Toko terverifikasi + deposit" },
-  { icon: ScanLine, label: "Akun bisa diinspeksi (Account Checked)" },
-  { icon: Lock, label: "Serah terima diawasi admin" },
-];
+const trustIcons = [ShieldCheck, BadgeCheck, ScanLine, Lock];
 
 export default async function Home() {
-  const [{ games, listings, featured: promoted }, news, user] = await Promise.all([getHome(), getNewsArticles(), getCurrentUser()]);
+  const [{ games, listings, featured: promoted }, news, user, site] = await Promise.all([getHome(), getNewsArticles(), getCurrentUser(), getSite()]);
+  const t = (key: string) => site.texts[key] ?? "";
+  const trustPoints = trustIcons.map((icon, i) => ({ icon, label: t(`home.trust.${i + 1}`) }));
   const hotGames = games.filter((game) => game.isHot);
   // Featured = paid/free featured listings first, topped up with the newest.
   const featured = [...promoted, ...listings.filter((l) => !l.featured)].slice(0, 4);
@@ -80,29 +78,26 @@ export default async function Home() {
       <Navbar variant="solid" />
 
       <main className="flex-1">
-        {/* ── Hero / banner ads slot ─────────────────────────────── */}
+        {/* ── Hero: CMS banners (slider) or the text hero ───────────── */}
         <section className="border-b border-border bg-surface">
           <Container className="py-8 sm:py-10">
+            {site.banners.length > 0 ? (
+              <HeroBanners banners={site.banners} />
+            ) : (
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-violet-600 to-fuchsia-600 px-6 py-12 sm:px-12 sm:py-16">
               <div
                 aria-hidden
                 className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-2xl"
               />
-              <p className="eyebrow text-white/70">
-                Marketplace akun game & top-up
-              </p>
+              <p className="eyebrow text-white/70">{t("home.hero.eyebrow")}</p>
               <h1 className="mt-3 max-w-2xl font-display text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
-                Beli akun impianmu, dananya kami jaga sampai aman.
+                {t("home.hero.title")}
               </h1>
-              <p className="mt-4 max-w-xl text-white/80">
-                Semua penjual adalah toko terverifikasi (verifikasi admin + deposit). Dana
-                ditahan di escrow dan serah terima diawasi admin di Rekber
-                Room.
-              </p>
+              <p className="mt-4 max-w-xl text-white/80">{t("home.hero.subtitle")}</p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Button href="/search" variant="invert" size="lg" className="bg-white text-zinc-900 hover:bg-white/90">
                   <Search className="h-4 w-4" />
-                  Jelajahi Akun
+                  {t("home.hero.cta_primary")}
                 </Button>
                 <Button
                   href="/topup"
@@ -111,16 +106,18 @@ export default async function Home() {
                   className="border border-white/30 text-white hover:bg-white/10 hover:text-white"
                 >
                   <Wallet className="h-4 w-4" />
-                  Top-Up Instan
+                  {t("home.hero.cta_secondary")}
                 </Button>
               </div>
             </div>
+            )}
+            {site.banners.length > 0 && <h1 className="sr-only">{t("home.hero.title")}</h1>}
 
             {/* Trust strip */}
             <ul className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
               {trustPoints.map((point) => (
                 <li
-                  key={point.label}
+                  key={point.icon.displayName ?? point.label}
                   className="flex items-center gap-2.5 rounded-xl border border-border bg-background px-4 py-3 text-sm text-text-secondary"
                 >
                   <point.icon className="h-4 w-4 flex-none text-primary" />
@@ -143,12 +140,8 @@ export default async function Home() {
                   <Gamepad2 className="h-7 w-7" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-display text-lg font-bold text-text">
-                    Akun Game
-                  </span>
-                  <span className="block text-sm text-text-secondary">
-                    Jelajahi akun dari toko terverifikasi — semua lewat escrow.
-                  </span>
+                  <span className="block font-display text-lg font-bold text-text">{t("home.card.account.title")}</span>
+                  <span className="block text-sm text-text-secondary">{t("home.card.account.desc")}</span>
                 </span>
                 <ArrowRight className="h-5 w-5 flex-none text-text-secondary transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" />
               </Link>
@@ -160,12 +153,8 @@ export default async function Home() {
                   <Wallet className="h-7 w-7" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-display text-lg font-bold text-text">
-                    Top-Up
-                  </span>
-                  <span className="block text-sm text-text-secondary">
-                    VP, Diamond, dan lainnya — instan, struk ke email/WA.
-                  </span>
+                  <span className="block font-display text-lg font-bold text-text">{t("home.card.topup.title")}</span>
+                  <span className="block text-sm text-text-secondary">{t("home.card.topup.desc")}</span>
                 </span>
                 <ArrowRight className="h-5 w-5 flex-none text-text-secondary transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary" />
               </Link>
@@ -175,10 +164,8 @@ export default async function Home() {
           {/* ── Recommendations (recently viewed / wishlist games) ─── */}
           {recommended.length > 0 && (
             <Reveal className="mt-14">
-              <SectionHeading title="Rekomendasi Untukmu" href="/search" />
-              <p className="mt-1 text-sm text-text-secondary">
-                Berdasarkan akun yang kamu lihat dan simpan.
-              </p>
+              <SectionHeading title={t("home.section.recommended")} href="/search" />
+              <p className="mt-1 text-sm text-text-secondary">{t("home.section.recommended_hint")}</p>
               <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
                 {recommended.map((listing) => (
                   <ListingCard key={listing.id} listing={listing} />
@@ -189,7 +176,7 @@ export default async function Home() {
 
           {/* ── Hot Games ─────────────────────────────────────────── */}
           <Reveal className="mt-14">
-            <SectionHeading title="Game Populer" />
+            <SectionHeading title={t("home.section.games")} />
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[...hotGames, ...games.filter((game) => !game.isHot)].map(
                 (game) => (
@@ -201,7 +188,7 @@ export default async function Home() {
 
           {/* ── Featured listings ─────────────────────────────────── */}
           <Reveal className="mt-14">
-            <SectionHeading title="Akun Unggulan" href="/search" />
+            <SectionHeading title={t("home.section.featured")} href="/search" />
             <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
               {featured.map((listing, index) => (
                 <ListingCard
@@ -215,7 +202,7 @@ export default async function Home() {
 
           {/* ── Newest listings ───────────────────────────────────── */}
           <Reveal className="mt-14">
-            <SectionHeading title="Baru Ditambahkan" href="/search" />
+            <SectionHeading title={t("home.section.newest")} href="/search" />
             <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
               {newest.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
@@ -225,7 +212,7 @@ export default async function Home() {
 
           {/* ── News strip ────────────────────────────────────────── */}
           <Reveal className="mt-14">
-            <SectionHeading title="Berita Terbaru" href="/news" />
+            <SectionHeading title={t("home.section.news")} href="/news" />
             <div className="mt-6 grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
               {latestNews.map((article) => (
                 <NewsCard key={article.slug} article={article} />
@@ -234,11 +221,12 @@ export default async function Home() {
           </Reveal>
 
           {/* Instant-delivery note */}
-          <p className="mt-12 flex items-center justify-center gap-2 text-center text-xs text-text-secondary">
-            <Zap className="h-3.5 w-3.5 text-primary" />
-            Payout toko cair 5 jam setelah akun aman — proteksi pembeli 14/30
-            hari di setiap pesanan.
-          </p>
+          {t("home.footnote") && (
+            <p className="mt-12 flex items-center justify-center gap-2 text-center text-xs text-text-secondary">
+              <Zap className="h-3.5 w-3.5 flex-none text-primary" />
+              {t("home.footnote")}
+            </p>
+          )}
         </Container>
 
         <StoreCta />

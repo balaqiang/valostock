@@ -119,6 +119,36 @@ export type AdminProduct = {
   sortOrder: number;
   sold: number;
 };
+export type CmsTextItem = {
+  key: string;
+  label: string;
+  kind: "text" | "multiline" | "url" | "email" | "phone" | "toggle";
+  max: number;
+  optional: boolean;
+  hint: string | null;
+  defaultValue: string;
+  value: string;
+  changed: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+};
+export type CmsTextGroup = { id: string; label: string; description: string; items: CmsTextItem[] };
+export type CmsBanner = {
+  id: string;
+  placement: "HOME_HERO";
+  title: string;
+  subtitle: string | null;
+  image: string;
+  imageUrl: string;
+  ctaLabel: string | null;
+  linkUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  status: "LIVE" | "SCHEDULED" | "ENDED" | "INACTIVE";
+  updatedAt: string;
+};
 export type AdminPromo = {
   id: number;
   code: string;

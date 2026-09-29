@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowRight,
   BarChart3,
   Bell,
+  Megaphone,
   Store,
   ChevronDown,
   Gamepad2,
@@ -214,9 +216,12 @@ function AuthActions({ solid }: { solid: boolean }) {
 export function NavbarClient({
   variant = "overlay",
   games,
+  announcement,
 }: {
   variant?: "overlay" | "solid";
   games: MockGame[];
+  /** CMS announcement bar (Admin → CMS Situs). */
+  announcement?: { text: string; link: string | null } | null;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -240,6 +245,22 @@ export function NavbarClient({
           : "border-b border-transparent bg-transparent"
       }`}
     >
+      {announcement && (
+        <div className="flex h-9 items-center justify-center bg-primary px-4 text-center text-xs font-medium text-white sm:text-sm">
+          {announcement.link ? (
+            <Link href={announcement.link} className="inline-flex min-w-0 items-center gap-1.5 hover:underline">
+              <Megaphone className="h-3.5 w-3.5 flex-none" />
+              <span className="truncate">{announcement.text}</span>
+              <ArrowRight className="h-3.5 w-3.5 flex-none" />
+            </Link>
+          ) : (
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <Megaphone className="h-3.5 w-3.5 flex-none" />
+              <span className="truncate">{announcement.text}</span>
+            </span>
+          )}
+        </div>
+      )}
       <Container className="flex h-16 items-center justify-between gap-6">
         <div className="flex min-w-0 items-center gap-8">
           <Logo white={!solid} />

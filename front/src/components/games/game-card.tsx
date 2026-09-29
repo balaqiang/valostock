@@ -1,21 +1,21 @@
 import Link from "next/link";
 import { Flame, Gamepad2, Wallet } from "lucide-react";
 import type { Game as MockGame } from "@/types/domain";
+import { GameBannerBackdrop } from "@/components/games/game-banner";
 
 /** Per-game card on home/top-up hub — links to /[game]/account & /[game]/topup. */
 export function GameCard({ game }: { game: MockGame }) {
   return (
     <article className="group overflow-hidden rounded-2xl border border-border bg-surface transition-colors duration-200 hover:border-primary/40">
-      <div
-        className={`relative flex aspect-[5/2] items-end bg-gradient-to-br p-4 ${game.gradient}`}
-      >
+      <div className="relative flex aspect-[5/2] items-end overflow-hidden p-4">
+        <GameBannerBackdrop image={game.image} gradient={game.gradient} sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" />
         {game.isHot && (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md bg-black/50 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+          <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-md bg-black/50 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
             <Flame className="h-3 w-3" />
             Hot
           </span>
         )}
-        <div>
+        <div className="relative">
           <h3 className="font-display text-xl font-bold tracking-tight text-white">
             {game.name}
           </h3>
