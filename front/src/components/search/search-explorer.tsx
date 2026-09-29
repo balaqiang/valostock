@@ -11,35 +11,28 @@ import type { Game as MockGame } from "@/types/domain";
 import type { StoreLevel } from "@/types/domain";
 import type { Listing as MockListing } from "@/types/domain";
 import { storeLevelLabel } from "@/lib/labels";
+import { rankTier } from "@/lib/rank-tiers";
 
 const PAGE_SIZE = 8;
 
-// SITEMAP §1 /search sidebar: game, rank, price range, skins/VP, region,
-// badges, store level. Filtering is client-side over the listings the API returned —
-// (the per-game pages filter server-side through the field templates).
-const rankGroups = [
-  "Radiant",
-  "Immortal",
-  "Ascendant",
-  "Diamond",
-  "Platinum",
-  "Gold",
-  "Silver",
-] as const;
+// SITEMAP §1 /search sidebar: game, rank, price range, skins, region,
+// badges, store level. Filtering is client-side over the listings the API returned
+// (the per-game pages filter server-side through the field templates). Rank tiers
+// come from each game's "rank" template, so every account game gets its own ranks.
 
 const priceRanges = [
   { label: "Semua harga", min: 0, max: Infinity },
   { label: "< Rp 500 rb", min: 0, max: 500_000 },
-  { label: "Rp 500 rb – 1 jt", min: 500_000, max: 1_000_000 },
-  { label: "Rp 1 – 3 jt", min: 1_000_000, max: 3_000_000 },
+  { label: "Rp 500 rb sampai 1 jt", min: 500_000, max: 1_000_000 },
+  { label: "Rp 1 jt sampai 3 jt", min: 1_000_000, max: 3_000_000 },
   { label: "> Rp 3 jt", min: 3_000_000, max: Infinity },
 ] as const;
 
 const skinRanges = [
   { label: "Semua", min: 0, max: Infinity },
   { label: "< 25 skin", min: 0, max: 25 },
-  { label: "25 – 50 skin", min: 25, max: 50 },
-  { label: "50 – 100 skin", min: 50, max: 100 },
+  { label: "25 sampai 50 skin", min: 25, max: 50 },
+  { label: "50 sampai 100 skin", min: 50, max: 100 },
   { label: "100+ skin", min: 100, max: Infinity },
 ] as const;
 
@@ -133,14 +126,18 @@ function RadioRow({
 export function SearchExplorer({
   listings,
   games: accountGames,
+  rankTiers,
   storeLevels,
 }: {
   listings: MockListing[];
   games: MockGame[];
+  /** Tiers per game slug, highest first (from the "rank" field template). */
+  rankTiers: Record<string, string[]>;
   storeLevels: Record<string, StoreLevel>;
 }) {
   const [query, setQuery] = useState("");
   const [game, setGame] = useState<string>("all");
+  // Selected ranks as "game:tier", so e.g. "Mythic" never matches "Mythical Glory".
   const [ranks, setRanks] = useState<Set<string>>(new Set());
   const [priceIdx, setPriceIdx] = useState(0);
   const [skinIdx, setSkinIdx] = useState(0);
@@ -152,9 +149,21 @@ export function SearchExplorer({
   const [mobileFilters, setMobileFilters] = useState(false);
 
   const serverOptions = useMemo(
-    () => [...new Set(listings.map((listing) => listing.server))],
-    [listings],
+    () => [...new Set(listings.filter((listing) => game === "all" || listing.game === game).map((listing) => listing.server).filter(Boolean))],
+    [listings, game],
   );
+  const rankGames = accountGames.filter((item) => (game === "all" || item.slug === game) && (rankTiers[item.slug]?.length ?? 0) > 0);
+
+  /** Switch game; ranks and servers of other games no longer apply. */
+  const selectGame = (slug: string) => {
+    setGame(slug);
+    if (slug !== "all") {
+      setRanks((current) => new Set([...current].filter((key) => key.startsWith(`${slug}:`))));
+      const allowed = new Set(listings.filter((listing) => listing.game === slug).map((listing) => listing.server));
+      setServers((current) => new Set([...current].filter((server) => allowed.has(server))));
+    }
+    setPage(1);
+  };
 
   const toggle = <T,>(set: Set<T>, value: T, update: (next: Set<T>) => void) => {
     const next = new Set(set);
@@ -189,8 +198,7 @@ export function SearchExplorer({
       )
         return false;
       if (game !== "all" && listing.game !== game) return false;
-      if (ranks.size > 0 && ![...ranks].some((rank) => listing.rank.startsWith(rank)))
-        return false;
+      if (ranks.size > 0 && !ranks.has(`${listing.game}:${rankTier(listing.rank)}`)) return false;
       if (listing.price < price.min || listing.price >= price.max) return false;
       if (listing.skins < skin.min || listing.skins >= skin.max) return false;
       if (servers.size > 0 && !servers.has(listing.server)) return false;
@@ -239,10 +247,7 @@ export function SearchExplorer({
             name="game"
             label="Semua game"
             checked={game === "all"}
-            onChange={() => {
-              setGame("all");
-              setPage(1);
-            }}
+            onChange={() => selectGame("all")}
           />
           {accountGames.map((item) => (
             <RadioRow
@@ -250,24 +255,26 @@ export function SearchExplorer({
               name="game"
               label={item.name}
               checked={game === item.slug}
-              onChange={() => {
-                setGame(item.slug);
-                setPage(1);
-              }}
+              onChange={() => selectGame(item.slug)}
             />
           ))}
         </FilterGroup>
 
-        <FilterGroup title="Rank">
-          {rankGroups.map((rank) => (
-            <CheckRow
-              key={rank}
-              label={rank}
-              checked={ranks.has(rank)}
-              onChange={() => toggle(ranks, rank, setRanks)}
-            />
-          ))}
-        </FilterGroup>
+        {rankGames.length > 0 && (
+          <FilterGroup title="Rank">
+            {rankGames.map((item) => (
+              <div key={item.slug} className="space-y-2">
+                {rankGames.length > 1 && (
+                  <p className="pt-1 text-[11px] font-semibold uppercase tracking-wide text-text-secondary/80">{item.name}</p>
+                )}
+                {rankTiers[item.slug]!.map((tier) => {
+                  const key = `${item.slug}:${tier}`;
+                  return <CheckRow key={key} label={tier} checked={ranks.has(key)} onChange={() => toggle(ranks, key, setRanks)} />;
+                })}
+              </div>
+            ))}
+          </FilterGroup>
+        )}
 
         <FilterGroup title="Harga">
           {priceRanges.map((range, index) => (
@@ -300,6 +307,7 @@ export function SearchExplorer({
         </FilterGroup>
 
         <FilterGroup title="Region / Server">
+          {serverOptions.length === 0 && <p className="text-xs text-text-secondary">Belum ada akun untuk game ini.</p>}
           {serverOptions.map((server) => (
             <CheckRow
               key={server}

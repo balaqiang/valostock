@@ -3,10 +3,11 @@ import { Navbar } from "@/components/marketing/navbar";
 import { Footer } from "@/components/marketing/footer";
 import { Container } from "@/components/ui/container";
 import { SearchExplorer } from "@/components/search/search-explorer";
-import { getGames, getListings, getStores } from "@/lib/data/catalog";
+import { getGameFields, getGames, getListings, getStores } from "@/lib/data/catalog";
+import { tiersFromOptions } from "@/lib/rank-tiers";
 
 export const metadata: Metadata = {
-  title: "Cari Akun — valostock.id",
+  title: "Cari Akun | valostock.id",
   description:
     "Cari akun game dengan filter lengkap: game, rank, harga, skin, region, badge, dan level toko. Semua transaksi lewat escrow.",
 };
@@ -17,6 +18,12 @@ export default async function SearchPage() {
   // Store rating/sold per listing, for the "Rating toko" sort and the cards.
   const byStore = new Map(stores.map((store) => [store.slug, store]));
   const listings = all.map((l) => ({ ...l, rating: byStore.get(l.storeSlug)?.rating ?? 0, sold: byStore.get(l.storeSlug)?.sold ?? 0 }));
+  // Rank filter per game, from each game's "rank" field template (Valorant tiers, MLBB tiers, …).
+  const accountGames = games.filter((game) => game.supportsAccount);
+  const fields = await Promise.all(accountGames.map((game) => getGameFields(game.slug)));
+  const rankTiers = Object.fromEntries(
+    accountGames.map((game, i) => [game.slug, tiersFromOptions(fields[i]?.find((f) => f.key === "rank")?.options ?? [])]),
+  );
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background pt-16">
@@ -38,7 +45,8 @@ export default async function SearchPage() {
         <Container className="py-8 sm:py-10">
           <SearchExplorer
             listings={listings}
-            games={games.filter((game) => game.supportsAccount)}
+            games={accountGames}
+            rankTiers={rankTiers}
             storeLevels={storeLevels}
           />
         </Container>
