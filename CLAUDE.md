@@ -24,6 +24,7 @@ The docs in `/docs` are the **primary source of truth**. Do not assume when the 
 | `docs/MEGA_FLOW.md` | End-to-end flowchart |
 | `docs/VALOSTOCK_OVERVIEW.md` | Concept overview |
 | `docs/ERD.md` | Pointer to the ERD + domain list |
+| `docs/SETUP_CLOUD.md` | Running without Docker on a Supabase Cloud project (Indonesian guide) |
 
 **Modelling approach:** the assignment requires ONE approach. This project uses **Data Flow (Alur Data)**. **Do not create UML diagrams** (use case, class, sequence, activity). State diagrams inside `ARCHITECTURE.md` describe status rules only.
 
@@ -94,6 +95,8 @@ npx supabase start          # project "valostock" (ports 553xx) — never the yo
 npx supabase status         # URLs + keys for back/.env
 npx supabase db reset       # re-apply supabase/migrations + supabase/seed.sql (valostock only)
 npx supabase stop
+# No Docker? Supabase Cloud project instead (docs/SETUP_CLOUD.md):
+#   cd back && npm run cloud:setup -- "<session pooler URL>" [--reset]
 
 # Backend (back/)
 npm run dev                 # http://localhost:4000/api/health
@@ -199,6 +202,7 @@ DATABASE_URL=postgresql://valostock_api:<password>@127.0.0.1:55322/postgres
 SUPABASE_URL=http://127.0.0.1:55321
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_SSL=off               # off (local Docker) | require (Supabase Cloud)
 PAYMENT_MODE=simulation        # simulation | midtrans
 MIDTRANS_SERVER_KEY=
 MIDTRANS_CLIENT_KEY=

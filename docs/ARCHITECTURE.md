@@ -206,6 +206,16 @@ cd front && cp .env.example .env.local && npm install && npm run dev # :3000
 
 `npx supabase status` prints the local keys for `back/.env` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`).
 
+### 6.1 Without Docker — Supabase Cloud
+
+The same code runs against a free **Supabase Cloud** project; only `back/.env` changes (step-by-step guide in Indonesian: [`SETUP_CLOUD.md`](SETUP_CLOUD.md)).
+
+- `npm run cloud:setup -- "<session pooler URL as postgres>" [--reset]` pushes `supabase/migrations` + `seed.sql` with the Supabase CLI (`db push --db-url`, no Docker), replaces the public dev password of `valostock_api` with a random one, checks the role (BYPASSRLS) and both Storage buckets, and writes `DATABASE_URL` (pooler, user `valostock_api.<ref>`) + `DATABASE_SSL=require` into `back/.env`.
+- Storage buckets are created by a migration (same limits as `config.toml`), so a Cloud project gets them from `db push`.
+- `DATABASE_SSL`: `off` (default, local Docker) or `require` (encrypted; the Supabase CA is not in Node's trust store, so the certificate chain is not verified).
+- Auth settings that `config.toml` sets locally must be set in the dashboard: **Confirm email off**, Site URL `http://localhost:3000`.
+- Security model is unchanged: RLS on every table without policies, the API connects as `valostock_api`; the `anon` key cannot read data.
+
 ---
 
 ## 7. Principles

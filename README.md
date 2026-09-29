@@ -14,6 +14,8 @@ Marketplace akun game + top-up (tugas kuliah). Toko **dan setiap katalog** diver
 
 Kebutuhan: **Docker Desktop**, **Node.js 20+**, npm.
 
+> **Tidak punya Docker?** Pakai project **Supabase Cloud** gratis — kodenya sama, hanya `back/.env` yang berbeda. Ikuti [`docs/SETUP_CLOUD.md`](docs/SETUP_CLOUD.md).
+
 1. **Database (Supabase).** Dari root repo: `npx supabase start`, lalu `npx supabase db reset` (migrasi + data demo). Studio: <http://127.0.0.1:55323>, Mailpit (email reset password): <http://127.0.0.1:55324>.
    Port, keamanan, dan akun demo: [`supabase/README.md`](supabase/README.md). Project ini **tidak** menyentuh project Supabase lain di mesin yang sama.
 2. **Backend:**
