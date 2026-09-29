@@ -13,7 +13,7 @@ The docs in `/docs` are the **primary source of truth**. Do not assume when the 
 
 | Document | Contents |
 |---|---|
-| `docs/modeling/` | **Assignment model (Data Flow approach):** Diagram Konteks, DFD Level 1/2, ERD (53 tables), Basis Data Konseptual, Struktur Tabel — in Indonesian |
+| `docs/modeling/` | **Assignment model (Data Flow approach):** Diagram Konteks, DFD Level 1/2, ERD (55 tables), Basis Data Konseptual, Struktur Tabel — in Indonesian |
 | `supabase/migrations/*.sql` | Executable schema. `docs/modeling/05-struktur-tabel.md` is generated from it |
 | `docs/ARCHITECTURE.md` | Architecture v8: services, Supabase Auth flow, Storage, jobs, catalog moderation state machine, payments, local setup |
 | `docs/ADMIN_PANEL.md` | Admin panel design: menu, RBAC roles/permissions, page specs, moderation queue, admin state machines |

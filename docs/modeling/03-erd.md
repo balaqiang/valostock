@@ -1,6 +1,6 @@
 # 3. Entity Relationship Diagram (ERD)
 
-Basis data PostgreSQL 17 pada project Supabase lokal **valostock** (schema `public`). Terdiri dari **53 tabel** dalam 7 domain. Supaya tetap terbaca, ERD dipecah per domain; tabel yang muncul di lebih dari satu diagram adalah tabel yang sama.
+Basis data PostgreSQL 17 pada project Supabase lokal **valostock** (schema `public`). Terdiri dari **55 tabel** dalam 7 domain. Supaya tetap terbaca, ERD dipecah per domain; tabel yang muncul di lebih dari satu diagram adalah tabel yang sama.
 
 - Tipe data: `uuid`, `text`, `int` (uang dalam Rupiah bulat), `numeric` (rasio/skor), `bool`, `timestamptz`, `jsonb`, `enum`.
 - Kardinalitas (crow's foot): `||` tepat satu · `o|` nol/satu · `|{` satu/lebih · `o{` nol/lebih.
@@ -534,6 +534,8 @@ erDiagram
 ```mermaid
 erDiagram
     PROFILES ||--o{ NEWS_ARTICLES : "menulis"
+    PROFILES |o--o{ SITE_SETTINGS : "mengubah"
+    PROFILES |o--o{ BANNERS : "mengelola"
     PROFILES ||--o{ REPORTS : "melapor"
     PROFILES |o--o{ AUDIT_LOGS : "melakukan"
 
@@ -545,6 +547,23 @@ erDiagram
         enum status "DRAFT / PUBLISHED"
         uuid author_id FK
         timestamptz published_at
+    }
+    SITE_SETTINGS {
+        text key PK "mis. home.hero.title"
+        text value
+        uuid updated_by FK
+        timestamptz updated_at
+    }
+    BANNERS {
+        uuid id PK
+        enum placement "HOME_HERO"
+        text title
+        text image "path di bucket site-media"
+        text link_url
+        int sort_order
+        bool is_active
+        timestamptz starts_at
+        timestamptz ends_at
     }
     HELP_ARTICLES {
         int id PK

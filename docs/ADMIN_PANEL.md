@@ -39,7 +39,8 @@ Admin panel adalah tempat platform **mengambil keputusan**: memverifikasi toko d
 │   ├── /admin/topup-products           Produk top-up per game
 │   ├── /admin/promo-codes              Kode promo top-up
 │   ├── /admin/news                     Artikel berita (CMS)
-│   └── /admin/help                     Artikel pusat bantuan (CMS)
+│   ├── /admin/help                     Artikel pusat bantuan (CMS)
+│   └── /admin/cms                      Teks situs, banner beranda, banner game
 ├── Pengguna & Akses
 │   ├── /admin/users                    Pengguna (cari, blokir/aktifkan, riwayat)
 │   └── /admin/admins                   Admin & peran (RBAC)
@@ -90,7 +91,7 @@ Izin berformat `modul:aksi`. Satu admin bisa punya lebih dari satu peran. Hanya 
 | `finance:view` · `payouts:approve` | Melihat laporan keuangan, dan menyetujui penarikan/transfer |
 | `ads:manage` | Mengelola iklan, featured listing, dan langganan |
 | `master:manage` | Mengelola game, template kolom, produk top-up, dan kode promo |
-| `content:manage` | Mengelola berita dan artikel bantuan |
+| `content:manage` | Mengelola berita, artikel bantuan, teks situs, dan banner (CMS) |
 | `users:view` · `users:ban` | Melihat pengguna, dan memblokir/mengaktifkan akun |
 | `audit:view` | Melihat audit log dan analitik |
 | `rbac:manage` | Mengelola admin dan peran |
@@ -181,6 +182,13 @@ Kolom: nomor, toko, jumlah, biaya, rekening, **kecocokan nama** (MATCH/REVIEW), 
 
 ### 3.10 Konten
 Berita dan artikel bantuan: daftar, buat, ubah, publish/unpublish. Isi artikel berupa blok (paragraf / judul / daftar), sama dengan format yang dipakai halaman publik.
+
+**CMS situs (`/admin/cms`, `content:manage`):**
+- **Teks situs:** daftar teks yang terdaftar di API, dikelompokkan per bagian — beranda (hero, poin keunggulan, kartu Akun/Top-Up, judul bagian, catatan kaki), CTA toko, footer (tagline, email, WhatsApp), bar pengumuman (teks, link, aktif), SEO beranda (title, description). Setiap teks punya batas panjang, penanda "diubah", dan tombol **Kembalikan bawaan**. Teks yang tidak diubah memakai nilai bawaan.
+- **Banner beranda:** daftar dengan pratinjau; buat/ubah (judul, subjudul, gambar, label + link tombol, urutan, aktif, jadwal mulai/selesai) dan hapus. Beranda menampilkan banner aktif sebagai slider; tanpa banner aktif, hero teks yang tampil. Ini promosi milik platform, **bukan** slot iklan berbayar (di luar cakupan).
+- **Banner game:** unggah/hapus gambar per game — dipakai di kartu game dan header halaman game (gradien sebagai cadangan).
+- **Unggah gambar:** png/jpeg/webp ≤ 2 MB, tipe dicek dari isi file; disimpan di bucket publik `site-media`.
+- Semua perubahan dicatat di `audit_logs`.
 
 ### 3.11 Pengguna & Admin
 - **Pengguna:** cari (nama/email), lihat ringkasan (pesanan, top-up, Balance, laporan), blokir/aktifkan (alasan wajib). Pengguna yang diblokir tidak bisa login atau bertransaksi. **Penyesuaian Balance** (`payouts:approve`): tambah/kurangi dengan alasan → ledger `ADJUSTMENT` (koreksi saja, bukan pencairan).

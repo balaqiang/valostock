@@ -25,7 +25,7 @@ Tabel yang berhubungan erat digabung dalam satu data store supaya diagram tetap 
 | D17 | Pencairan | `withdrawals`, `transfer_requests`, `external_sellers` |
 | D18 | Interaksi | `wishlists`, `store_follows`, `recently_viewed`, `conversations`, `chat_messages` |
 | D19 | Notifikasi & Loyalitas | `notifications`, `loyalty_ledger`, `referral_rewards` |
-| D20 | Konten & Log | `news_articles`, `help_articles`, `reports`, `audit_logs` |
+| D20 | Konten & Log | `news_articles`, `help_articles`, `site_settings`, `banners`, `reports`, `audit_logs` |
 | D21 | Refund | `refunds` |
 
 ---
@@ -395,3 +395,39 @@ flowchart LR
 ```
 
 **Aturan:** deposit dicatat sebagai kantong `DEPOSIT` di saldo toko. Denda tidak pernah melebihi deposit yang ditahan; jika deposit kurang dari Rp500.000, badge *Deposit Secured* hilang dan toko bisa membayar kekurangannya. Penutupan hanya bisa diminta bila semua pesanan selesai dan lewat masa proteksi, tidak ada sengketa terbuka, tidak ada penarikan/transfer tertunda, dan saldo sudah ditarik.
+
+## 2.7 DFD Level 2 — Proses 10.0 Kelola Konten Situs (CMS)
+
+```mermaid
+flowchart LR
+    A[Admin<br/>Editor Konten]
+    PG[Pengunjung]
+
+    P101((10.1 Ubah teks<br/>situs))
+    P102((10.2 Unggah<br/>gambar))
+    P103((10.3 Kelola<br/>banner beranda))
+    P104((10.4 Banner<br/>game))
+    P105((10.5 Tampilkan<br/>konten))
+
+    D2[(D2 Game)]
+    D20[(D20 Konten & Log)]
+    ST[(Storage site-media)]
+
+    A -- "teks baru / kembalikan bawaan" --> P101
+    P101 -- "site_settings" --> D20
+    A -- "file gambar" --> P102
+    P102 -- "cek tipe & ukuran ≤ 2 MB" --> ST
+    A -- "judul, gambar, link, urutan, jadwal, aktif" --> P103
+    P103 -- "banners" --> D20
+    A -- "gambar banner" --> P104
+    P104 -- "games.image" --> D2
+    D20 -- "teks + banner aktif sesuai jadwal" --> P105
+    D2 -- "banner game" --> P105
+    ST -- "URL publik" --> P105
+    P105 -- "beranda, halaman game, footer, pengumuman" --> PG
+    P101 --> D20
+    P103 --> D20
+    P104 --> D20
+```
+
+**Aturan:** hanya teks yang terdaftar di API yang bisa diubah; teks yang tidak diubah memakai nilai bawaan, sehingga situs tidak pernah kosong. Banner tampil bila aktif dan waktu sekarang berada di antara `starts_at` dan `ends_at`; bila tidak ada banner aktif, beranda memakai hero teks. Banner ini milik platform (promosi internal), **bukan** iklan berbayar. Setiap perubahan dicatat di `audit_logs`.

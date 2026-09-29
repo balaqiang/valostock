@@ -59,6 +59,8 @@ Model konseptual menggambarkan **entitas, atribut kunci, dan hubungan** tanpa de
 | 50 | Laporan (`reports`) | Laporan pengguna | id | target, alasan, status |
 | 51 | Log Audit (`audit_logs`) | Jejak aksi sensitif | id | pelaku, aksi, target, detail, IP |
 | 52 | Refund (`refunds`) | Uang masuk yang harus dikembalikan | id | pembayaran, jumlah, sumber, status |
+| 53 | Pengaturan Situs (`site_settings`) | Teks situs yang diubah lewat CMS | key | nilai, pengubah |
+| 54 | Banner (`banners`) | Banner beranda (promosi internal) | id | judul, gambar, link, urutan, jadwal, aktif |
 
 ## 4.2 Relasi dan Kardinalitas
 
@@ -96,6 +98,7 @@ Model konseptual menggambarkan **entitas, atribut kunci, dan hubungan** tanpa de
 | 30 | Profil | menyimpan / mengikuti / melihat | Katalog / Toko / Katalog | M : N |
 | 31 | Profil | membuat | Laporan, Berita, Log Audit | 1 : N |
 | 32 | Pembayaran | dikembalikan lewat | Refund | 1 : 0..1 |
+| 33 | Profil (admin) | mengubah / mengelola | Pengaturan Situs, Banner | 1 : N |
 
 ## 4.3 Diagram Konseptual (ringkas)
 

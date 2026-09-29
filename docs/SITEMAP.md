@@ -70,7 +70,7 @@ Version 4.0 (v8) · Next.js 16 web (`front/`) over the Express API (`back/`) · 
     ├── withdrawals  transfers  refunds  finance   finance:view / payments:view · payouts:approve
     ├── ads                         ads:manage
     ├── games · games/[id]  topup-products  promo-codes   master:manage
-    ├── news  help                  content:manage
+    ├── news  help  cms             content:manage
     ├── users · users/[id]          users:view / ban
     ├── admins                      rbac:manage
     └── audit  analytics            audit:view
@@ -82,7 +82,7 @@ Version 4.0 (v8) · Next.js 16 web (`front/`) over the Express API (`back/`) · 
 
 | Page | Route | Contents | Actions |
 |---|---|---|---|
-| Home | `/` | Hero, trust points, popular games, featured listings (paid/free ads first), newest listings, **recommendations** (logged in: games of recently viewed / wishlisted accounts), latest news | Open game / listing / news |
+| Home | `/` | Announcement bar (CMS), hero banner slider (CMS; text hero when no banner is active), trust points, popular games, featured listings (paid/free ads first), newest listings, **recommendations** (logged in: games of recently viewed / wishlisted accounts), latest news | Open game / listing / news |
 | Search | `/search` | Sidebar filters over all listings (game, rank group, price range, skins, server, badges, store level), sort, pagination | Filter, open listing |
 | Game accounts | `/[game]/account` | Game banner; **filters generated from the game's field templates** (`filterable` columns: SELECT → exact, NUMBER → minimum) + text, price range, sort — filtered by the API | Filter, open listing |
 | Listing detail | `/catalog/[id]` | Gallery, VS code, store badges, description; Valorant: spec tiles, skin collection, agents; other games: attribute sheet from templates; Account Checked banner (only when the store's inspection passed); bundles containing this account; real store reviews; FAQ | **Buy** (with store voucher), **offer / accept counter / buy at agreed price**, **paid lock Rp5.000 / 30 min**, wishlist, chat store, report |
