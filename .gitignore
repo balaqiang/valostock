@@ -9,3 +9,6 @@ out/
 !.env.simulation
 back/storage/private/
 .DS_Store
+
+# Local HTML/design references (not part of the app)
+example/
