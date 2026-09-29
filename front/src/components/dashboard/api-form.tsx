@@ -13,7 +13,8 @@ export type FieldDef =
   | { name: string; label: string; type: "select"; options: { value: string; label: string }[]; required?: boolean; hint?: string; defaultValue?: string; numeric?: boolean }
   | { name: string; label: string; type: "checkbox"; hint?: string; defaultValue?: boolean }
   | { name: string; label: string; type: "datetime"; required?: boolean; hint?: string; defaultValue?: string }
-  | { name: string; label: string; type: "multiselect"; options: { value: string; label: string }[]; hint?: string; defaultValue?: string[] };
+  | { name: string; label: string; type: "multiselect"; options: { value: string; label: string }[]; hint?: string; defaultValue?: string[] }
+  | { name: string; label: string; type: "list"; placeholder?: string; hint?: string; defaultValue?: string[] | null };
 
 type Value = string | number | boolean | string[] | null;
 
@@ -35,6 +36,7 @@ function initial(fields: FieldDef[]): Record<string, Value> {
     else if (f.type === "multiselect") values[f.name] = f.defaultValue ?? [];
     else if (f.type === "number" || f.type === "money") values[f.name] = f.defaultValue ?? null;
     else if (f.type === "datetime") values[f.name] = toLocalInput(f.defaultValue);
+    else if (f.type === "list") values[f.name] = (f.defaultValue ?? []).join(", ");
     else values[f.name] = f.defaultValue ?? "";
   }
   return values;
@@ -84,7 +86,13 @@ export function ApiForm({
     const body: Record<string, unknown> = { ...extra };
     for (const f of fields) {
       const v = values[f.name];
-      if (f.type === "datetime") {
+      if (f.type === "list") {
+        const items = String(v ?? "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+        body[f.name] = items.length > 0 ? items : null;
+      } else if (f.type === "datetime") {
         if (v) body[f.name] = new Date(String(v)).toISOString();
         else if (nullEmpty) body[f.name] = null;
       } else if (v === "" || v === null) {
@@ -171,6 +179,14 @@ export function ApiForm({
                     value={values[f.name] === null ? "" : String(values[f.name])}
                     onChange={(e) => set(f.name, e.target.value === "" ? null : Number(e.target.value))}
                     className={cn(inputClass, "num")}
+                  />
+                ) : f.type === "list" ? (
+                  <input
+                    type="text"
+                    placeholder={f.placeholder}
+                    value={String(values[f.name] ?? "")}
+                    onChange={(e) => set(f.name, e.target.value)}
+                    className={inputClass}
                   />
                 ) : f.type === "datetime" ? (
                   <input type="datetime-local" required={f.required} value={String(values[f.name] ?? "")} onChange={(e) => set(f.name, e.target.value)} className={inputClass} />

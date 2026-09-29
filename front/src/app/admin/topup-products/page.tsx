@@ -15,18 +15,32 @@ export default async function AdminTopupProductsPage() {
 
   return (
     <div className="space-y-6">
-      <DashHeader title="Produk Top-Up" description="Nominal top-up per game dan harga jual (Rupiah). Pengiriman ke Digiflazz disimulasikan." />
-      <Table head={["Produk", "Game", "Harga", "Terjual", "Status", ""]}>
+      <DashHeader
+        title="Produk Top-Up"
+        description="Nominal top-up per game. Harga modal dari daftar harga Digiflazz; harga jual default = modal + 3% dibulatkan ke atas Rp100 dan tidak boleh di bawah modal (MONEY_RULES §8). Pengiriman ke Digiflazz disimulasikan."
+      />
+      <Table head={["Produk", "Game", "Modal", "Harga jual", "Margin", "Terjual", "Status", ""]}>
         {data.products.map((p) => (
           <tr key={p.id}>
             <Td>
-              <span className="font-medium text-text">{p.amountLabel}</span>
-              <span className="block text-xs text-text-secondary">
-                {p.id} · {p.name}
-                {p.popular && " · populer"}
+              <span className="flex items-center gap-2.5">
+                {p.icon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.icon} alt="" className="h-8 w-8 flex-none object-contain" />
+                ) : (
+                  <span className="h-8 w-8 flex-none rounded-lg bg-surface-elevated" />
+                )}
+                <span>
+                  <span className="font-medium text-text">{p.amountLabel}</span>
+                  <span className="block text-xs text-text-secondary">
+                    {p.id} · {p.section === "SPECIAL" ? "Item Spesial" : "Top Up Instan"}
+                    {p.popular && " · populer"}
+                  </span>
+                </span>
               </span>
             </Td>
             <Td className="text-xs">{p.gameName}</Td>
+            <Td className="num text-text-secondary">{formatRupiah(p.supplierPrice)}</Td>
             <Td className="num">
               <details>
                 <summary className="cursor-pointer">{formatRupiah(p.retailPrice)}</summary>
@@ -37,13 +51,29 @@ export default async function AdminTopupProductsPage() {
                     columns={1}
                     resetOnSuccess={false}
                     fields={[
-                      { name: "retailPrice", label: "Harga jual", type: "money", required: true, defaultValue: p.retailPrice },
+                      { name: "supplierPrice", label: "Harga modal Digiflazz", type: "money", required: true, defaultValue: p.supplierPrice },
+                      { name: "retailPrice", label: "Harga jual", type: "money", defaultValue: p.retailPrice, hint: "Kosongkan untuk modal + 3%." },
+                      {
+                        name: "section",
+                        label: "Bagian",
+                        type: "select",
+                        defaultValue: p.section,
+                        options: [
+                          { value: "INSTANT", label: "Top Up Instan" },
+                          { value: "SPECIAL", label: "Item Spesial" },
+                        ],
+                      },
+                      { name: "icon", label: "Ikon", type: "text", defaultValue: p.icon ?? "", placeholder: "/images/topup-icon/…" },
                       { name: "sortOrder", label: "Urutan", type: "number", defaultValue: p.sortOrder },
                       { name: "popular", label: "Populer", type: "checkbox", defaultValue: p.popular },
                     ]}
                   />
                 </div>
               </details>
+            </Td>
+            <Td className={p.margin > 0 ? "num text-emerald-600 dark:text-emerald-400" : "num text-text-secondary"}>
+              {formatRupiah(p.margin)}
+              <span className="block text-[11px] text-text-secondary">{((p.margin / p.supplierPrice) * 100).toFixed(1)}%</span>
             </Td>
             <Td className="num">{p.sold}</Td>
             <Td>
@@ -67,7 +97,19 @@ export default async function AdminTopupProductsPage() {
             { name: "gameId", label: "Game", type: "select", numeric: true, required: true, defaultValue: String(topupGames[0]?.id ?? ""), options: topupGames.map((g) => ({ value: String(g.id), label: g.name })) },
             { name: "name", label: "Nama", type: "text", required: true, placeholder: "Valorant Points" },
             { name: "amountLabel", label: "Label nominal", type: "text", required: true, placeholder: "5350 VP" },
-            { name: "retailPrice", label: "Harga jual (Rp)", type: "money", required: true, min: 1 },
+            { name: "supplierPrice", label: "Harga modal Digiflazz (Rp)", type: "money", required: true, min: 1 },
+            { name: "retailPrice", label: "Harga jual (Rp)", type: "money", min: 1, hint: "Kosongkan untuk modal + 3%, dibulatkan ke atas Rp100." },
+            {
+              name: "section",
+              label: "Bagian",
+              type: "select",
+              defaultValue: "INSTANT",
+              options: [
+                { value: "INSTANT", label: "Top Up Instan" },
+                { value: "SPECIAL", label: "Item Spesial" },
+              ],
+            },
+            { name: "icon", label: "Ikon", type: "text", placeholder: "/images/topup-icon/valorant/vp.webp" },
             { name: "popular", label: "Populer", type: "checkbox" },
           ]}
         />

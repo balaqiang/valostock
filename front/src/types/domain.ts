@@ -20,6 +20,8 @@ export type Game = {
   uidLabel: string;
   uidHint: string;
   uidExtraLabel?: string;
+  /** Fixed choices for the extra field (e.g. Genshin server) — rendered as a dropdown. */
+  uidExtraOptions?: string[];
   gradient: string;
   topupCurrency?: string;
   image?: string | null;
@@ -129,6 +131,9 @@ export type TopupProduct = {
   name: string;
   amountLabel: string;
   retailPrice: number;
+  /** SPECIAL = passes, memberships, Welkin; INSTANT = currency packs. */
+  section: "SPECIAL" | "INSTANT";
+  icon?: string;
   popular?: boolean;
 };
 

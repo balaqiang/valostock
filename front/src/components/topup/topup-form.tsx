@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -10,14 +11,18 @@ import {
   Check,
   Copy,
   ExternalLink,
+  Gamepad2,
   Info,
   Loader2,
   Lock,
   Mail,
   MessageCircle,
   Receipt,
+  ShoppingBag,
+  Sparkles,
   Ticket,
   X,
+  Zap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,6 +34,7 @@ import { setSessionUser, useSession } from "@/lib/hooks/use-session";
 import type { PromoCode as MockPromoCode, TopupProduct as MockTopupProduct } from "@/types/domain";
 import { discountFor, paymentMethods, surchargeFor, type PaymentMethodKind } from "@/lib/fees";
 import { apiFetch } from "@/lib/api";
+import { PaymentLogos } from "@/components/payment/payment-logos";
 import { topupStatus } from "@/lib/topup-status";
 import type { PaymentSession, TransactionRecord } from "@/types/api";
 
@@ -68,6 +74,8 @@ export function TopupForm({
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResponse | null>(null);
 
   const product = products.find((item) => item.id === productId) ?? null;
+  const special = products.filter((item) => item.section === "SPECIAL");
+  const instant = products.filter((item) => item.section !== "SPECIAL");
   const discount = product && promo ? discountFor(promo, product.retailPrice) : 0;
   const base = product ? product.retailPrice - discount : 0;
   const surcharge = product && method ? surchargeFor(method, base) : 0;
@@ -159,58 +167,10 @@ export function TopupForm({
         className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]"
         onSubmit={handleSubmit}
       >
-        <div className="min-w-0 space-y-8">
-          {/* 1 — Nominal */}
-          <section>
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary font-bold">
-                1
-              </span>
-              Pilih Nominal
-            </h2>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {products.map((item) => (
-                <motion.button
-                  key={item.id}
-                  type="button"
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setProductId(item.id)}
-                  aria-pressed={productId === item.id}
-                  className={cn(
-                    "relative rounded-xl border p-4 text-left transition-all duration-200 cursor-pointer",
-                    productId === item.id
-                      ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/30"
-                      : "border-border bg-surface hover:border-primary/40",
-                  )}
-                >
-                  {item.popular && (
-                    <Badge className="absolute -top-2 right-3 bg-primary text-white text-[10px]">
-                      Populer
-                    </Badge>
-                  )}
-                  <span className="block text-sm font-semibold text-text">
-                    {item.amountLabel}
-                  </span>
-                  <span className="num mt-1 block text-sm text-text-secondary font-mono">
-                    {formatRupiah(item.retailPrice)}
-                  </span>
-                  {productId === item.id && (
-                    <Check className="absolute bottom-3 right-3 h-4 w-4 text-primary" />
-                  )}
-                </motion.button>
-              ))}
-            </div>
-          </section>
-
-          {/* 2 — Player ID */}
-          <section>
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary font-bold">
-                2
-              </span>
-              Data Akun
-            </h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="min-w-0 space-y-6">
+          {/* 1 — Player ID */}
+          <Step number={1} title="Data Akun">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className={game.uidExtraLabel ? "" : "sm:col-span-2"}>
                 <label
                   htmlFor="uid"
@@ -223,12 +183,8 @@ export function TopupForm({
                   required
                   value={uid}
                   onChange={(e) => setUid(e.target.value)}
-                  placeholder={game.uidLabel}
+                  placeholder={`Masukkan ${game.uidLabel}`}
                 />
-                <p className="mt-1.5 flex items-start gap-1 text-xs text-text-secondary">
-                  <Info className="mt-0.5 h-3 w-3 flex-none" />
-                  {game.uidHint}
-                </p>
               </div>
               {game.uidExtraLabel && (
                 <div>
@@ -238,28 +194,62 @@ export function TopupForm({
                   >
                     {game.uidExtraLabel}
                   </label>
-                  <Input
-                    id="zone"
-                    required
-                    value={zone}
-                    onChange={(e) => setZone(e.target.value)}
-                    placeholder={game.uidExtraLabel}
-                  />
+                  {game.uidExtraOptions ? (
+                    <select
+                      id="zone"
+                      required
+                      value={zone}
+                      onChange={(e) => setZone(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-border bg-background px-3.5 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="" disabled>
+                        Pilih {game.uidExtraLabel}
+                      </option>
+                      {game.uidExtraOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input
+                      id="zone"
+                      required
+                      value={zone}
+                      onChange={(e) => setZone(e.target.value)}
+                      placeholder={`Masukkan ${game.uidExtraLabel}`}
+                    />
+                  )}
                 </div>
               )}
             </div>
-          </section>
+            <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-surface-elevated px-3 py-2 text-xs text-text-secondary">
+              <Info className="mt-0.5 h-3.5 w-3.5 flex-none" />
+              {game.uidHint}. Pastikan data akun benar — salah isi tidak bisa dibatalkan setelah dikirim.
+            </p>
+          </Step>
+
+          {/* 2 — Nominal */}
+          <Step number={2} title="Pilih Nominal">
+            {special.length > 0 && (
+              <>
+                <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-text">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  Item Spesial
+                </h3>
+                <ProductGrid items={special} selected={productId} onSelect={setProductId} />
+                <h3 className="mb-3 mt-6 flex items-center gap-1.5 text-sm font-semibold text-text">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Top Up Instan
+                </h3>
+              </>
+            )}
+            <ProductGrid items={instant} selected={productId} onSelect={setProductId} />
+          </Step>
 
           {/* 3 — Promo code */}
-          <section>
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary font-bold">
-                3
-              </span>
-              Kode Promo{" "}
-              <span className="font-normal text-text-secondary">(opsional)</span>
-            </h2>
-            <div className="mt-4 flex gap-2">
+          <Step number={3} title="Kode Promo" optional>
+            <div className="flex gap-2">
               <div className="relative flex-1">
                 <Ticket className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary" />
                 <Input
@@ -282,17 +272,11 @@ export function TopupForm({
             {promoError && (
               <p className="mt-2 text-xs text-red-600 dark:text-red-400">{promoError}</p>
             )}
-          </section>
+          </Step>
 
           {/* 4 — Contact */}
-          <section>
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary font-bold">
-                4
-              </span>
-              Kontak
-            </h2>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Step number={4} title="Kontak">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label
                   htmlFor="email"
@@ -332,17 +316,11 @@ export function TopupForm({
                 </p>
               </div>
             </div>
-          </section>
+          </Step>
 
           {/* 5 — Payment method */}
-          <section>
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
-              <span className="num flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs text-primary font-bold">
-                5
-              </span>
-              Metode Pembayaran
-            </h2>
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+          <Step number={5} title="Metode Pembayaran">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {paymentMethods.map((item) => (
                 <button
                   key={item.kind}
@@ -350,75 +328,79 @@ export function TopupForm({
                   onClick={() => setMethod(item.kind)}
                   aria-pressed={method === item.kind}
                   className={cn(
-                    "flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition-all duration-200 cursor-pointer",
+                    "flex cursor-pointer flex-col gap-2.5 rounded-xl border p-4 text-left transition-all duration-200",
                     method === item.kind
                       ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                       : "border-border bg-surface hover:border-primary/40",
                   )}
                 >
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-1.5 text-sm font-semibold text-text">
-                      {item.label}
-                      {item.requiresAuth && (
-                        <Lock className="h-3 w-3 text-text-secondary" />
-                      )}
+                  <span className="flex w-full items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-1.5 text-sm font-semibold text-text">
+                        {item.label}
+                        {item.requiresAuth && <Lock className="h-3 w-3 text-text-secondary" />}
+                      </span>
+                      <span className="block text-xs text-text-secondary">{item.detail}</span>
                     </span>
-                    <span className="block truncate text-xs text-text-secondary">
-                      {item.detail}
+                    <span className="num flex-none text-xs font-medium text-text-secondary">
+                      {item.feeLabel}
                     </span>
                   </span>
-                  <span className="num flex-none text-xs font-medium text-text-secondary">
-                    {item.feeLabel}
-                  </span>
+                  <PaymentLogos method={item} />
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-text-secondary">
+            <p className="mt-3 text-xs text-text-secondary">
               {session.user
                 ? `Top-up ini tercatat di akunmu (${session.user.name}). Saldo Balance: ${session.user.balance.toLocaleString("id-ID")} BLC.`
                 : "Tanpa login pun bisa top-up. Masuk agar riwayat top-up tersimpan di akunmu."}
             </p>
-          </section>
+          </Step>
         </div>
 
         {/* Summary sidebar */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
             <h2 className="text-sm font-semibold text-text">Ringkasan Pesanan</h2>
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-border-strong bg-background p-3">
+              <span className="flex h-12 w-12 flex-none items-center justify-center rounded-lg bg-surface-elevated">
+                {product?.icon ? (
+                  <Image src={product.icon} alt="" width={40} height={40} className="h-10 w-10 object-contain" />
+                ) : (
+                  <Gamepad2 className="h-5 w-5 text-text-secondary" />
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-text">{game.name}</span>
+                <span className="block truncate text-xs text-text-secondary">
+                  {product ? product.amountLabel : "Pilih nominal"}
+                </span>
+              </span>
+            </div>
             <dl className="mt-4 space-y-2.5 text-sm">
               <div className="flex justify-between text-text-secondary">
-                <dt>Game</dt>
-                <dd className="font-medium text-text">{game.name}</dd>
-              </div>
-              <div className="flex justify-between text-text-secondary">
-                <dt>Nominal</dt>
+                <dt>Metode Pembayaran</dt>
                 <dd className="font-medium text-text">
-                  {product ? product.amountLabel : "—"}
+                  {paymentMethods.find((item) => item.kind === method)?.label ?? "—"}
                 </dd>
               </div>
               <div className="flex justify-between text-text-secondary">
-                <dt>Harga Normal</dt>
-                <dd className="num font-mono">
-                  {product ? formatRupiah(product.retailPrice) : "—"}
-                </dd>
+                <dt>Harga</dt>
+                <dd className="num">{product ? formatRupiah(product.retailPrice) : "—"}</dd>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                   <dt>Diskon Promo</dt>
-                  <dd className="num font-mono">−{formatRupiah(discount)}</dd>
+                  <dd className="num">−{formatRupiah(discount)}</dd>
                 </div>
               )}
               <div className="flex justify-between text-text-secondary">
                 <dt>Biaya Layanan</dt>
-                <dd className="num font-mono">
-                  {product && method ? formatRupiah(surcharge) : "—"}
-                </dd>
+                <dd className="num">{product && method ? formatRupiah(surcharge) : "—"}</dd>
               </div>
-              <div className="flex justify-between border-t border-border pt-3 font-semibold text-text text-base">
+              <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-text">
                 <dt>Total Bayar</dt>
-                <dd className="num font-mono text-primary font-bold">
-                  {product ? formatRupiah(total) : "—"}
-                </dd>
+                <dd className="num font-bold text-primary">{product ? formatRupiah(total) : "—"}</dd>
               </div>
             </dl>
 
@@ -438,11 +420,14 @@ export function TopupForm({
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Menyiapkan pembayaran...
                 </>
               ) : (
-                "Bayar Sekarang"
+                <>
+                  <ShoppingBag className="h-4 w-4" />
+                  Pesan Sekarang
+                </>
               )}
             </Button>
             <p className="mt-3 text-center text-xs text-text-secondary">
@@ -597,5 +582,92 @@ export function TopupForm({
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+/** Numbered form step, same card look on every step. */
+function Step({
+  number,
+  title,
+  optional,
+  children,
+}: {
+  number: number;
+  title: string;
+  optional?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <h2 className="flex items-center gap-3 border-b border-border bg-surface-elevated/60 px-5 py-3 text-sm font-semibold text-text">
+        <span className="num flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-xs font-bold text-white">
+          {number}
+        </span>
+        {title}
+        {optional && <span className="font-normal text-text-secondary">(opsional)</span>}
+      </h2>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
+/** Nominal cards: item icon + price, with the instant-delivery strip. */
+function ProductGrid({
+  items,
+  selected,
+  onSelect,
+}: {
+  items: MockTopupProduct[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {items.map((item) => {
+        const active = selected === item.id;
+        return (
+          <motion.button
+            key={item.id}
+            type="button"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => onSelect(item.id)}
+            aria-pressed={active}
+            className={cn(
+              "relative flex cursor-pointer flex-col overflow-hidden rounded-xl border text-left transition-all duration-200",
+              active
+                ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
+                : "border-border bg-background hover:border-primary/40",
+            )}
+          >
+            <span className="flex-1 p-3.5">
+              <span className="block text-xs font-semibold leading-snug text-text">{item.amountLabel}</span>
+              <span className="mt-2.5 flex items-center gap-2">
+                {item.icon ? (
+                  <Image src={item.icon} alt="" width={32} height={32} className="h-8 w-8 flex-none object-contain" />
+                ) : (
+                  <Gamepad2 className="h-6 w-6 flex-none text-text-secondary" />
+                )}
+                <span className="num text-sm font-bold text-primary">{formatRupiah(item.retailPrice)}</span>
+              </span>
+            </span>
+            <span
+              className={cn(
+                "flex items-center justify-between border-t px-3.5 py-1.5",
+                active ? "border-primary/30 bg-primary/10" : "border-border bg-surface-elevated",
+              )}
+            >
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-text-secondary">
+                <Zap className="h-3 w-3 text-primary" />
+                Pengiriman instan
+              </span>
+              <span className="flex items-center gap-1.5">
+                {item.popular && <Badge className="bg-primary px-1.5 py-0 text-[10px] text-white">Populer</Badge>}
+                {active && <Check className="h-3.5 w-3.5 text-primary" />}
+              </span>
+            </span>
+          </motion.button>
+        );
+      })}
+    </div>
   );
 }

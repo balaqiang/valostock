@@ -44,6 +44,8 @@ export default async function AdminGameDetailPage({ params }: { params: Promise<
             { name: "gradient", label: "Gradien (Tailwind)", type: "text", defaultValue: game.gradient },
             { name: "uidLabel", label: "Label UID", type: "text", required: true, defaultValue: game.uidLabel },
             { name: "uidHint", label: "Petunjuk UID", type: "text", required: true, defaultValue: game.uidHint },
+            { name: "uidExtraLabel", label: "Kolom tambahan (opsional)", type: "text", defaultValue: game.uidExtraLabel ?? "", placeholder: "Zone ID / Server" },
+            { name: "uidExtraOptions", label: "Pilihan kolom tambahan", type: "list", defaultValue: game.uidExtraOptions ?? null, placeholder: "Asia, America, Europe", hint: "Pisahkan dengan koma. Kosong = isian bebas; diisi = dropdown dan divalidasi API." },
             { name: "topupCurrency", label: "Mata uang top-up", type: "text", defaultValue: game.topupCurrency ?? "" },
             { name: "sortOrder", label: "Urutan", type: "number", defaultValue: game.sortOrder },
             { name: "description", label: "Deskripsi", type: "textarea", required: true, defaultValue: game.description },

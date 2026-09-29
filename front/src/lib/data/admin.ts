@@ -109,7 +109,11 @@ export type AdminProduct = {
   gameName: string;
   name: string;
   amountLabel: string;
+  supplierPrice: number;
   retailPrice: number;
+  margin: number;
+  section: "SPECIAL" | "INSTANT";
+  icon: string | null;
   popular: boolean;
   isActive: boolean;
   sortOrder: number;
