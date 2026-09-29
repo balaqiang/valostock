@@ -12,3 +12,7 @@ back/storage/private/
 
 # Local HTML/design references (not part of the app)
 example/
+
+docs/
+.claude/
+CLAUDE.md
