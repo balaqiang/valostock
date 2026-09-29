@@ -415,7 +415,7 @@ export async function completeOrderTx(tx: Tx, orderId: string, by: 'BUYER' | 'SY
   await notify(tx, o.buyer_id, {
     kind: 'ORDER',
     title: 'Pesanan selesai',
-    body: `${o.order_number} selesai. Beri penilaian untuk toko — proteksi aktif ${days} hari.`,
+    body: `${o.order_number} selesai. Beri penilaian untuk toko, proteksi aktif ${days} hari.`,
     link: `/orders/${o.id}`,
   });
   await notifyStore(tx, o.store_id, {

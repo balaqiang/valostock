@@ -7,7 +7,7 @@ import { storeStatusLabel, storeTypeLabel } from "@/lib/labels";
 import { formatDbDateTime } from "@/lib/format";
 import type { StoreStatus } from "@/types/api";
 
-export const metadata: Metadata = { title: "Verifikasi Toko — Admin" };
+export const metadata: Metadata = { title: "Verifikasi Toko | Admin" };
 
 const TABS = ["PENDING_REVIEW", "CLOSING", "ACTIVE", "SUSPENDED", "CLOSED", "REJECTED", "PENDING_DEPOSIT", "ALL"] as const;
 

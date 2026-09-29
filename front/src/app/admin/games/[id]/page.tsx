@@ -6,7 +6,7 @@ import { ApiForm } from "@/components/dashboard/api-form";
 import { DashHeader, Panel } from "@/components/dashboard/ui";
 import { adminGet, type AdminField, type AdminGame } from "@/lib/data/admin";
 
-export const metadata: Metadata = { title: "Kelola Game — Admin" };
+export const metadata: Metadata = { title: "Kelola Game | Admin" };
 
 export default async function AdminGameDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

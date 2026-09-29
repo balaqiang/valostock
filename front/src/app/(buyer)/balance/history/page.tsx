@@ -9,7 +9,7 @@ import { requireUser } from "@/lib/auth";
 import { getMyBalanceLedger } from "@/lib/data/me";
 
 export const metadata: Metadata = {
-  title: "Riwayat Balance — valostock.id",
+  title: "Riwayat Balance | valostock.id",
   description: "Riwayat mutasi Balance (BLC): isi, pemakaian top-up, dan refund.",
 };
 

@@ -12,7 +12,7 @@ import { getMyCatalog, requireStore } from "@/lib/data/store";
 import { catalogStatusLabel, catalogStatusTone } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Kelola Katalog — valostock.id" };
+export const metadata: Metadata = { title: "Kelola Katalog | valostock.id" };
 
 export default async function EditCatalogPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string }> }) {
   const { id } = await params;
@@ -84,7 +84,7 @@ export default async function EditCatalogPage({ params, searchParams }: { params
       )}
       {!storeActive && canSubmit && (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-          Toko belum aktif — katalog bisa disiapkan sebagai draf, tetapi baru bisa diajukan setelah toko diverifikasi admin.
+          Toko belum aktif, katalog bisa disiapkan sebagai draf, tetapi baru bisa diajukan setelah toko diverifikasi admin.
         </p>
       )}
       {listing.status === "PENDING_REVIEW" && (

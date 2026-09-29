@@ -5,7 +5,7 @@ import { Footer } from "@/components/marketing/footer";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 
-export const metadata: Metadata = { title: "Halaman tidak ditemukan — valostock.id" };
+export const metadata: Metadata = { title: "Halaman tidak ditemukan | valostock.id" };
 
 export default function NotFound() {
   return (
@@ -19,7 +19,7 @@ export default function NotFound() {
           <p className="num mt-6 font-display text-sm font-semibold text-primary">404</p>
           <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-text sm:text-4xl">Halaman tidak ditemukan</h1>
           <p className="mx-auto mt-4 max-w-md text-text-secondary">
-            Link-nya mungkin salah ketik, atau katalog/toko ini sudah tidak tayang — misalnya sudah terjual, ditarik toko, atau sedang ditinjau admin.
+            Link-nya mungkin salah ketik, atau katalog/toko ini sudah tidak tayang, misalnya sudah terjual, ditarik toko, atau sedang ditinjau admin.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button href="/">

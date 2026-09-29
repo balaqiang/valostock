@@ -6,7 +6,7 @@ import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { adminGet, type AdminPromo } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Kode Promo — Admin" };
+export const metadata: Metadata = { title: "Kode Promo | Admin" };
 
 export default async function AdminPromoCodesPage() {
   const data = await adminGet<{ promos: AdminPromo[] }>("/promo-codes");

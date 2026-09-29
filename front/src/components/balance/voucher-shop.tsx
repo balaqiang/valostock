@@ -188,23 +188,23 @@ export function VoucherShop() {
                 {formatRupiah(nominal)} × {qty}
               </span>
             ) : (
-              "—"
+              "-"
             )}
           </dt>
-          <dd className="num">{nominal ? formatRupiah(subtotal) : "—"}</dd>
+          <dd className="num">{nominal ? formatRupiah(subtotal) : "-"}</dd>
         </div>
         <div className="flex justify-between text-text-secondary">
           <dt>Biaya metode</dt>
-          <dd className="num">{nominal && method ? formatRupiah(surcharge) : "—"}</dd>
+          <dd className="num">{nominal && method ? formatRupiah(surcharge) : "-"}</dd>
         </div>
         <div className="flex justify-between border-t border-border pt-2 font-semibold text-text">
           <dt>Total bayar</dt>
-          <dd className="num">{nominal ? formatRupiah(total) : "—"}</dd>
+          <dd className="num">{nominal ? formatRupiah(total) : "-"}</dd>
         </div>
         <div className="flex justify-between text-xs text-text-secondary">
           <dt>Balance masuk</dt>
           <dd className="num">
-            {nominal ? `${subtotal.toLocaleString("id-ID")} BLC` : "—"}
+            {nominal ? `${subtotal.toLocaleString("id-ID")} BLC` : "-"}
           </dd>
         </div>
       </dl>

@@ -6,7 +6,7 @@ import { DashHeader, Panel, Table, Td } from "@/components/dashboard/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { adminGet, type AdminRbac } from "@/lib/data/admin";
 
-export const metadata: Metadata = { title: "Admin & Peran — Admin" };
+export const metadata: Metadata = { title: "Admin & Peran | Admin" };
 
 export default async function AdminAdminsPage() {
   const [data, me] = await Promise.all([adminGet<AdminRbac>("/admins"), getCurrentUser()]);

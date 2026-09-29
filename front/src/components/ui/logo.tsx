@@ -14,7 +14,7 @@ export function Logo({
     return (
       <Link
         href="/"
-        aria-label="valostock — beranda"
+        aria-label="valostock, beranda"
         className={`inline-flex items-center ${className}`}
       >
         <Image
@@ -31,7 +31,7 @@ export function Logo({
   return (
     <Link
       href="/"
-      aria-label="valostock — beranda"
+      aria-label="valostock, beranda"
       className={`inline-flex items-center ${className}`}
     >
       <Image

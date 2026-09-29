@@ -12,7 +12,7 @@ import { formatRupiah } from "@/lib/format";
 import { requireUser } from "@/lib/auth";
 import { getOrder } from "@/lib/data/buyer";
 
-export const metadata: Metadata = { title: "Pembayaran — valostock.id" };
+export const metadata: Metadata = { title: "Pembayaran | valostock.id" };
 
 export default async function CheckoutPayPage({
   params,

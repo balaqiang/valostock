@@ -5,7 +5,7 @@ import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { getFlashSales, getMyCatalogs, requireStore } from "@/lib/data/store";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Flash Sale — valostock.id" };
+export const metadata: Metadata = { title: "Flash Sale | valostock.id" };
 
 const STATE = { SCHEDULED: ["Terjadwal", "warning"], RUNNING: ["Berjalan", "success"], ENDED: ["Selesai", "secondary"] } as const;
 
@@ -53,7 +53,7 @@ export default async function FlashSalesPage() {
             <Td className="num text-text-secondary line-through">{formatRupiah(s.catalog.price)}</Td>
             <Td className="num font-semibold">{formatRupiah(s.salePrice)}</Td>
             <Td className="text-xs text-text-secondary">
-              {formatDbDateTime(s.startsAt)} – {formatDbDateTime(s.endsAt)}
+              {formatDbDateTime(s.startsAt)} sampai {formatDbDateTime(s.endsAt)}
             </Td>
             <Td>
               <Tone tone={STATE[s.state][1]}>{STATE[s.state][0]}</Tone>

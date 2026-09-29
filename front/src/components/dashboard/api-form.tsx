@@ -142,7 +142,7 @@ export function ApiForm({
                   />
                 ) : f.type === "select" ? (
                   <select required={f.required} value={String(values[f.name] ?? "")} onChange={(e) => set(f.name, e.target.value)} className={inputClass}>
-                    {!f.required && <option value="">—</option>}
+                    {!f.required && <option value="">-</option>}
                     {f.options.map((o) => (
                       <option key={o.value} value={o.value}>
                         {o.label}

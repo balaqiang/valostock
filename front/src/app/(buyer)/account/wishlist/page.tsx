@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { getRecentlyViewed, getWishlist } from "@/lib/data/buyer";
 import { formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Wishlist — valostock.id" };
+export const metadata: Metadata = { title: "Wishlist | valostock.id" };
 
 export default async function WishlistPage() {
   await requireUser("/account/wishlist");

@@ -5,7 +5,7 @@ import { DashHeader, Panel } from "@/components/dashboard/ui";
 import { InspectionForm } from "@/components/store-dashboard/inspection-form";
 import { getMyCatalog, requireStore } from "@/lib/data/store";
 
-export const metadata: Metadata = { title: "Inspeksi Akun — valostock.id" };
+export const metadata: Metadata = { title: "Inspeksi Akun | valostock.id" };
 
 export default async function InspectionPage({ params }: { params: Promise<{ catalogId: string }> }) {
   const { catalogId } = await params;

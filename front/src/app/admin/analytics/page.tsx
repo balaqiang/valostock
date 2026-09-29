@@ -4,7 +4,7 @@ import { DashHeader, StatCard, Table, Td } from "@/components/dashboard/ui";
 import { adminGet, type AnalyticsSummary, type GameAccountAnalytic } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Analitik Top-Up — Admin" };
+export const metadata: Metadata = { title: "Analitik Top-Up | Admin" };
 
 export default async function AdminAnalyticsPage() {
   const data = await adminGet<{ summary: AnalyticsSummary; accounts: GameAccountAnalytic[] }>("/analytics");

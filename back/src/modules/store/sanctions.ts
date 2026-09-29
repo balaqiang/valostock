@@ -40,7 +40,7 @@ export async function applySanction(tx: Tx, adminId: string, storeId: string, s:
   const text = {
     WARNING: `Peringatan dari admin: ${s.reason}`,
     FINE: `Denda Rp${taken.toLocaleString('id-ID')} dipotong dari deposit: ${s.reason}.${
-      (bal?.deposit ?? 0) < STORE_DEPOSIT ? ' Deposit di bawah Rp500.000 — lengkapi di Pengaturan agar badge Deposit Secured aktif lagi.' : ''
+      (bal?.deposit ?? 0) < STORE_DEPOSIT ? ' Deposit di bawah Rp500.000, lengkapi di Pengaturan agar badge Deposit Secured aktif lagi.' : ''
     }`,
     SUSPEND: `Toko ditangguhkan: ${s.reason}`,
   }[s.type];

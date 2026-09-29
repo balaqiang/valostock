@@ -4,7 +4,7 @@ import type { CatalogStatus, HelpCategory, StoreLevel, StoreType } from "@/types
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Menunggu Pembayaran",
-  PAID: "Dibayar — Menunggu Rekber",
+  PAID: "Dibayar, Menunggu Rekber",
   IN_REKBER: "Di Rekber Room",
   SAFE: "Akun Aman",
   COMPLETED: "Selesai",
@@ -96,9 +96,9 @@ export const catalogStatusTone: Record<CatalogStatus, "default" | "secondary" | 
 
 export const storeOrderStatusLabel: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Menunggu Pembayaran Pembeli",
-  PAID: "Dibayar — Kirim Akun di Rekber",
+  PAID: "Dibayar, Kirim Akun di Rekber",
   IN_REKBER: "Di Rekber Room",
-  SAFE: "Akun Aman — Menunggu Selesai",
+  SAFE: "Akun Aman, Menunggu Selesai",
   COMPLETED: "Selesai",
   DISPUTED: "Sengketa",
   REFUNDED: "Direfund",

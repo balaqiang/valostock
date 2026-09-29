@@ -36,7 +36,7 @@ async function cancelUnpaidOrders() {
     [ORDER_PAYMENT_MINUTES],
   );
   for (const o of orders) {
-    await withTransaction((tx) => cancelUnpaidOrder(tx, o.id, `Tidak dibayar dalam ${ORDER_PAYMENT_MINUTES} menit — pesanan dibatalkan otomatis.`));
+    await withTransaction((tx) => cancelUnpaidOrder(tx, o.id, `Tidak dibayar dalam ${ORDER_PAYMENT_MINUTES} menit, pesanan dibatalkan otomatis.`));
   }
 }
 

@@ -151,7 +151,7 @@ export function CatalogEditor({
 
         <label className="block text-sm">
           <span className="mb-1.5 block font-medium text-text">Judul <span className="text-red-500">*</span></span>
-          <input required minLength={5} maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="mis. Akun Valorant Immortal 3 — 120 skin, full agent" />
+          <input required minLength={5} maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="mis. Akun Valorant Immortal 3, 120 skin, full agent" />
           <span className="mt-1 block text-xs text-text-secondary">Tanpa klaim mutlak (&quot;100% aman&quot;) dan tanpa kontak/link di luar platform.</span>
         </label>
 
@@ -177,7 +177,7 @@ export function CatalogEditor({
               Kamu terima ± <span className="num font-medium text-text">{formatRupiah(priceNum ? storeReceives(priceNum, commissionRate) : 0)}</span> (komisi{" "}
               {(commissionRate * 100).toLocaleString("id-ID")}%)
             </p>
-            <p className="mt-1">Perkiraan — angka final dihitung server saat checkout.</p>
+            <p className="mt-1">Perkiraan, angka final dihitung server saat checkout.</p>
           </div>
         </div>
 
@@ -200,7 +200,7 @@ export function CatalogEditor({
                   </span>
                   {f.type === "SELECT" ? (
                     <select value={attrs[f.key] ?? ""} onChange={(e) => setAttrs((a) => ({ ...a, [f.key]: e.target.value }))} className={inputClass}>
-                      <option value="">— pilih —</option>
+                      <option value="">, pilih , </option>
                       {f.options.map((o) => (
                         <option key={o} value={o}>
                           {o}
@@ -228,7 +228,7 @@ export function CatalogEditor({
       </fieldset>
 
       {locked ? (
-        <p className="text-sm text-text-secondary">Katalog sedang dalam transaksi atau sudah terjual — tidak bisa diubah.</p>
+        <p className="text-sm text-text-secondary">Katalog sedang dalam transaksi atau sudah terjual, tidak bisa diubah.</p>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" disabled={busy}>

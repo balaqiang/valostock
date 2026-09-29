@@ -10,7 +10,7 @@ import { catalogStatusLabel, catalogStatusTone } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import type { CatalogStatus } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Katalog Toko — valostock.id" };
+export const metadata: Metadata = { title: "Katalog Toko | valostock.id" };
 
 const TABS: (CatalogStatus | "ALL")[] = ["ALL", "DRAFT", "PENDING_REVIEW", "REJECTED", "LISTED", "IN_ORDER", "SOLD", "DELISTED"];
 

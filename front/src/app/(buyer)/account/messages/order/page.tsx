@@ -4,7 +4,7 @@ import { NotificationList } from "@/components/account/notification-list";
 import { requireUser } from "@/lib/auth";
 import { getNotifications } from "@/lib/data/buyer";
 
-export const metadata: Metadata = { title: "Notifikasi Pesanan — valostock.id" };
+export const metadata: Metadata = { title: "Notifikasi Pesanan | valostock.id" };
 
 export default async function OrderNotificationsPage() {
   await requireUser("/account/messages/order");

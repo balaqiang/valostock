@@ -105,8 +105,8 @@ export function SellWizard({ store }: { store: StoreContext | null }) {
                 name="type"
                 className="h-11 w-full rounded-lg border border-border bg-background px-4 text-sm text-text focus:border-primary focus:outline-none"
               >
-                <option value="OWNER">Owner Store — menjual akun milik sendiri</option>
-                <option value="RESELLER">Reseller Store — menjual akun titipan penjual lain</option>
+                <option value="OWNER">Owner Store, menjual akun milik sendiri</option>
+                <option value="RESELLER">Reseller Store, menjual akun titipan penjual lain</option>
               </select>
             </div>
             <div>
@@ -204,7 +204,7 @@ export function SellWizard({ store }: { store: StoreContext | null }) {
             <XCircle className="mx-auto h-10 w-10 text-text-secondary" />
             <h2 className="mt-3 font-display text-xl font-bold text-text">Toko {store.name} sudah ditutup</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-text-secondary">
-              Sisa deposit sudah dikembalikan. Satu akun hanya bisa memiliki satu toko — hubungi admin jika ingin membuka kembali.
+              Sisa deposit sudah dikembalikan. Satu akun hanya bisa memiliki satu toko, hubungi admin jika ingin membuka kembali.
             </p>
           </div>
         )}

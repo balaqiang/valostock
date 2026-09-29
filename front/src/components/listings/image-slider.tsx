@@ -18,7 +18,7 @@ export function ImageSlider({ images, alt }: { images: string[]; alt: string }) 
           <Image
             key={src + i}
             src={src}
-            alt={`${alt} — foto ${i + 1}`}
+            alt={`${alt}, foto ${i + 1}`}
             fill
             priority={i === 0}
             sizes="(max-width: 1024px) 100vw, 640px"

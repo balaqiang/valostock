@@ -19,8 +19,8 @@ export async function generateMetadata({
   const game = await getGame(slug);
   return {
     title: game
-      ? `Akun ${game.name} — valostock.id`
-      : "Game tidak ditemukan — valostock.id",
+      ? `Akun ${game.name} | valostock.id`
+      : "Game tidak ditemukan | valostock.id",
     description: game?.description,
   };
 }

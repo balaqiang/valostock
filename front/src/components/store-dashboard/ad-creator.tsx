@@ -69,7 +69,7 @@ export function AdCreator({
           <select value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={useFree} className={selectClass}>
             {Object.entries(prices).map(([days, price]) => (
               <option key={days} value={days}>
-                {days} hari — {formatRupiah(price)}
+                {days} hari, {formatRupiah(price)}
               </option>
             ))}
           </select>
@@ -78,7 +78,7 @@ export function AdCreator({
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={useFree} disabled={!freeAvailable} onChange={(e) => setUseFree(e.target.checked)} className="h-4 w-4 accent-primary" />
         <span className="text-text">Pakai jatah gratis (7 hari)</span>
-        {!freeAvailable && <span className="text-xs text-text-secondary">— jatah gratis habis</span>}
+        {!freeAvailable && <span className="text-xs text-text-secondary">, jatah gratis habis</span>}
       </label>
       <div className="flex flex-wrap items-center gap-2">
         {!useFree && (

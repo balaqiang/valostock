@@ -15,7 +15,7 @@ import { disputeReasonLabel, disputeStatusLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Sengketa — valostock.id" };
+export const metadata: Metadata = { title: "Sengketa | valostock.id" };
 
 const ROLE = { BUYER: "Pembeli", STORE: "Toko", ADMIN: "Admin", SYSTEM: "Sistem" } as const;
 const OPEN = new Set(["OPEN", "STORE_RESPONDED", "IN_REVIEW"]);

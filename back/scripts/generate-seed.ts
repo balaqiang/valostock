@@ -165,7 +165,7 @@ const templates: Record<string, Template[]> = {
     { key: 'remainingVp', label: 'Sisa VP', type: 'NUMBER' },
     { key: 'agents', label: 'Agent Terbuka', type: 'TEXT', help: 'mis. FULL atau 18 Agent' },
     { key: 'skinsList', label: 'Skin Unggulan', type: 'TAGS', help: 'Pisahkan dengan koma' },
-    { key: 'emailStatus', label: 'Status Email', type: 'TEXT', help: 'mis. Terverifikasi — bisa diganti' },
+    { key: 'emailStatus', label: 'Status Email', type: 'TEXT', help: 'mis. Terverifikasi, bisa diganti' },
   ],
   'mobile-legends': [
     { key: 'rank', label: 'Rank Tertinggi', type: 'SELECT', required: true, options: MLBB_RANKS, filterable: true },
@@ -228,39 +228,39 @@ for (const l of listings.filter((item) => knownStores.has(item.storeSlug))) {
 // Seed-only catalogs: Mobile Legends + moderation examples (pending / rejected).
 addCatalog({
   key: 'ml-001', store: 'gudangakun', game: 'mobile-legends', vs: 'VSML001',
-  title: 'Akun MLBB Mythical Glory — 112 Hero, 245 Skin', price: 1_850_000, status: 'LISTED', checked: true, instant: false,
+  title: 'Akun MLBB Mythical Glory, 112 Hero, 245 Skin', price: 1_850_000, status: 'LISTED', checked: true, instant: false,
   description: 'Rank tertinggi Mythical Glory season lalu, 112 hero, 245 skin termasuk 6 skin Legend. Login Moonton + Google, bisa diganti.',
   attributes: { rank: 'Mythical Glory', level: 102, server: 'Indonesia', heroCount: 112, skins: 245, skinsList: ['Gusion Cosmic Gleam', 'Alucard Obsidian Blade', 'Fanny Skylark'], emailStatus: 'Moonton + Google, bisa diganti' },
   images: ['/images/games/mobile-legends-1.png'],
 });
 addCatalog({
   key: 'ml-002', store: 'skyvault', game: 'mobile-legends', vs: 'VSML002',
-  title: 'Akun MLBB Mythic — Skin Collector 180 Skin', price: 950_000, status: 'LISTED', checked: false, instant: true,
+  title: 'Akun MLBB Mythic, Skin Collector 180 Skin', price: 950_000, status: 'LISTED', checked: false, instant: true,
   description: 'Akun kolektor skin, 98 hero, starlight aktif bulan ini. Cocok untuk main santai.',
   attributes: { rank: 'Mythic', level: 88, server: 'Indonesia', heroCount: 98, skins: 180, skinsList: ['Chou Street Fighter', 'Lesley Cyber Spectacle'], emailStatus: 'Moonton, bisa diganti' },
   images: ['/images/games/mobile-legends-2.png'],
 });
 addCatalog({
   key: 'ml-003', store: 'nusagame', game: 'mobile-legends', vs: 'VSML003',
-  title: 'Akun MLBB Legend — 85 Hero, Starlight Aktif', price: 420_000, status: 'PENDING_REVIEW', checked: false, instant: false,
+  title: 'Akun MLBB Legend, 85 Hero, Starlight Aktif', price: 420_000, status: 'PENDING_REVIEW', checked: false, instant: false,
   description: 'Akun Legend V, 85 hero, 120 skin, starlight aktif. Menunggu verifikasi admin.',
   attributes: { rank: 'Legend', level: 71, server: 'Indonesia', heroCount: 85, skins: 120, skinsList: ['Layla Blue Spectrum'], emailStatus: 'Moonton, bisa diganti' },
   images: ['/images/games/mobile-legends-3.png'],
 });
 addCatalog({
   key: 'vl-pending', store: 'verdantshop', game: 'valorant', vs: 'VSDMD20',
-  title: 'Akun Valorant Diamond 2 — Reaver Vandal & Prime Phantom', price: 1_250_000, status: 'PENDING_REVIEW', checked: false, instant: false,
+  title: 'Akun Valorant Diamond 2, Reaver Vandal & Prime Phantom', price: 1_250_000, status: 'PENDING_REVIEW', checked: false, instant: false,
   description: 'Diamond 2, 34 skin termasuk Reaver Vandal dan Prime Phantom. Email bisa diganti.',
-  attributes: { rank: 'Diamond 2', level: 140, server: 'Indonesia', skins: 34, totalVp: 21_000, remainingVp: 120, agents: 'FULL', skinsList: ['Reaver Vandal', 'Prime Phantom'], emailStatus: 'Terverifikasi — bisa diganti' },
+  attributes: { rank: 'Diamond 2', level: 140, server: 'Indonesia', skins: 34, totalVp: 21_000, remainingVp: 120, agents: 'FULL', skinsList: ['Reaver Vandal', 'Prime Phantom'], emailStatus: 'Terverifikasi, bisa diganti' },
   images: ['/images/products/5.jpeg'],
 });
 addCatalog({
   key: 'vl-rejected', store: 'astralstore', game: 'valorant', vs: 'VSIMR01',
-  title: 'Akun Valorant Immortal 1 — chat WA untuk nego harga', price: 3_100_000, status: 'REJECTED', checked: false, instant: false,
+  title: 'Akun Valorant Immortal 1, chat WA untuk nego harga', price: 3_100_000, status: 'REJECTED', checked: false, instant: false,
   description: 'Hubungi WhatsApp kami untuk harga spesial.',
   attributes: { rank: 'Immortal 1', level: 210, server: 'Indonesia', skins: 60, agents: 'FULL', skinsList: [], emailStatus: 'Terverifikasi' },
   images: ['/images/products/6.jpeg'],
-  reject: { reasons: ['Mencantumkan kontak/link di luar platform'], note: 'Hapus ajakan menghubungi WhatsApp dari judul dan deskripsi — semua negosiasi lewat fitur Tawar.' },
+  reject: { reasons: ['Mencantumkan kontak/link di luar platform'], note: 'Hapus ajakan menghubungi WhatsApp dari judul dan deskripsi, semua negosiasi lewat fitur Tawar.' },
 });
 
 // ── assemble ──
@@ -285,7 +285,7 @@ const storeRows = [
   {
     // Verified store with no catalogs yet — demo of "add catalog → admin approves".
     id: storeId('balastore'), owner_id: uid('owner-balastore'), slug: 'balastore', name: 'Bala Store', type: 'OWNER', level: 'AUTHORIZED',
-    status: 'ACTIVE', owner_legal_name: 'Bala', description: 'Toko demo milik storebala@email.com — belum punya katalog.',
+    status: 'ACTIVE', owner_legal_name: 'Bala', description: 'Toko demo milik storebala@email.com, belum punya katalog.',
     gradient: 'from-violet-600 to-fuchsia-600', deposit_amount: 500_000, deposit_status: 'HELD', identity_verified: true,
     rating: 0, reviews: 0, sold: 0, followers: 0, score_desc: 0, score_attitude: 0, score_delivery: 0,
     reviewed_by: uid('moderator'), reviewed_at: ago('1 day'), created_at: ago('2 days'),
@@ -338,7 +338,7 @@ const bannerRows = [
   },
   {
     placement: 'HOME_HERO', title: 'Top-up VP, Diamond, dan Crystal',
-    subtitle: 'Bayar QRIS, Virtual Account, e-wallet, retail, atau Balance — struk langsung ke email.',
+    subtitle: 'Bayar QRIS, Virtual Account, e-wallet, retail, atau Balance, struk langsung ke email.',
     image: '/images/Pride_2023.png', cta_label: 'Top-Up Sekarang', link_url: '/topup', sort_order: 1, created_by: uid('admin'),
   },
 ];
@@ -376,7 +376,7 @@ const profileUpdates = users
   .join('');
 
 const sql = `-- =====================================================================
--- valostock.id — demo data (GENERATED by back/scripts/generate-seed.ts — do not edit by hand)
+-- valostock.id, demo data (GENERATED by back/scripts/generate-seed.ts, do not edit by hand)
 -- Applied by \`npx supabase db reset\` after supabase/migrations. Local development only.
 -- Demo passwords (shared + personal accounts): see supabase/README.md.
 -- =====================================================================

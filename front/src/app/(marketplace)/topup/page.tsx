@@ -9,9 +9,9 @@ import { GameCard } from "@/components/games/game-card";
 import { getGames } from "@/lib/data/catalog";
 
 export const metadata: Metadata = {
-  title: "Top-Up Game — valostock.id",
+  title: "Top-Up Game | valostock.id",
   description:
-    "Top-up VP, Diamond, dan item game lain — instan, bayar lewat QRIS, VA, e-wallet, retail, kartu kredit, atau Balance.",
+    "Top-up VP, Diamond, dan item game lain, instan, bayar lewat QRIS, VA, e-wallet, retail, kartu kredit, atau Balance.",
 };
 
 export default async function TopupHubPage() {
@@ -28,7 +28,7 @@ export default async function TopupHubPage() {
               Top-Up Game
             </h1>
             <p className="mt-2 max-w-2xl text-text-secondary">
-              Pilih game, masukkan ID player, bayar — item masuk otomatis dan
+              Pilih game, masukkan ID player, bayar, item masuk otomatis dan
               struk dikirim ke email/WhatsApp kamu.
             </p>
           </Container>
@@ -77,7 +77,7 @@ export default async function TopupHubPage() {
                     Balance (BLC)
                   </span>
                   <span className="block text-sm text-text-secondary">
-                    Saldo prabayar khusus top-up — closed-loop, tidak bisa
+                    Saldo prabayar khusus top-up, closed-loop, tidak bisa
                     dicairkan atau dipakai beli akun.{" "}
                     <Link
                       href="/help/kenapa-balance-tidak-bisa-beli-akun"

@@ -79,7 +79,7 @@ export function WithdrawForm({
       </h2>
       <p className="mt-1 text-xs text-text-secondary">
         Nama pemilik rekening wajib sama dengan nama pemilik toko yang
-        diverifikasi admin (<span className="font-medium text-text">{ownerLegalName}</span>) —
+        diverifikasi admin (<span className="font-medium text-text">{ownerLegalName}</span>),
         nama yang tidak cocok ditolak.
       </p>
 
@@ -172,7 +172,7 @@ export function WithdrawForm({
           <dd className="num">
             {numericAmount > totalFee
               ? formatRupiah(numericAmount - totalFee)
-              : "—"}
+              : "-"}
           </dd>
         </div>
       </dl>
@@ -205,19 +205,19 @@ export function WithdrawForm({
           {result === "MATCH" ? (
             <>
               <BadgeCheck className="mt-0.5 h-4 w-4 flex-none" />
-              Account Validation: MATCH — pengajuan tercatat dan saldo sudah
+              Account Validation: MATCH, pengajuan tercatat dan saldo sudah
               didebit. Menunggu persetujuan admin.
             </>
           ) : result === "REVIEW" ? (
             <>
               <ScanSearch className="mt-0.5 h-4 w-4 flex-none" />
-              Account Validation: REVIEW — nama mirip sebagian. Pengajuan
+              Account Validation: REVIEW, nama mirip sebagian. Pengajuan
               tercatat, admin akan memeriksa lebih teliti.
             </>
           ) : (
             <>
               <XCircle className="mt-0.5 h-4 w-4 flex-none" />
-              Account Validation: MISMATCH — nama tidak cocok dengan pemilik
+              Account Validation: MISMATCH, nama tidak cocok dengan pemilik
               toko, penarikan ditolak. Perbaiki data rekening lalu ajukan ulang.
             </>
           )}

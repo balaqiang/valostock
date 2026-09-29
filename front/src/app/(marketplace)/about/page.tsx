@@ -14,7 +14,7 @@ import { Container } from "@/components/ui/container";
 import { Reveal } from "@/components/motion/reveal";
 
 export const metadata: Metadata = {
-  title: "Tentang Kami — valostock.id",
+  title: "Tentang Kami | valostock.id",
   description:
     "Kenapa valostock.id ada: memindahkan jual-beli akun game dari grup WhatsApp ke marketplace dengan escrow, bukti, dan akuntabilitas.",
 };
@@ -23,7 +23,7 @@ const principles = [
   {
     icon: BadgeCheck,
     title: "Hanya toko terverifikasi",
-    body: "Penjual wajib lolos verifikasi identitas oleh admin dan menyetor deposit keamanan Rp500 ribu. Akuntabilitas terpusat di toko — itulah yang membuat sanksi bisa ditegakkan.",
+    body: "Penjual wajib lolos verifikasi identitas oleh admin dan menyetor deposit keamanan Rp500 ribu. Akuntabilitas terpusat di toko, itulah yang membuat sanksi bisa ditegakkan.",
   },
   {
     icon: ShieldCheck,
@@ -38,22 +38,22 @@ const principles = [
   {
     icon: ScanLine,
     title: "Bukti, bukan klaim",
-    body: "Badge seperti Account Checked lahir dari inspeksi dengan checklist dan media — bukan slogan. Klaim mutlak seperti \"100% aman\" justru kami larang.",
+    body: "Badge seperti Account Checked lahir dari inspeksi dengan checklist dan media, bukan slogan. Klaim mutlak seperti \"100% aman\" justru kami larang.",
   },
   {
     icon: Gavel,
     title: "Sengketa yang adil",
-    body: "72 jam untuk mengajukan, timeline yang bisa dipantau, dan arbitrase final berbasis bukti. Toko yang bersalah menanggung refund — bisa dipotong dari depositnya.",
+    body: "72 jam untuk mengajukan, timeline yang bisa dipantau, dan arbitrase final berbasis bukti. Toko yang bersalah menanggung refund, bisa dipotong dari depositnya.",
   },
   {
     icon: Wallet,
     title: "Biaya yang jujur",
-    body: "Komisi 5% dari harga final, biaya penanganan maks. 3,5%, proteksi Rp5.000 — semua tertulis, tanpa biaya tersembunyi.",
+    body: "Komisi 5% dari harga final, biaya penanganan maks. 3,5%, proteksi Rp5.000, semua tertulis, tanpa biaya tersembunyi.",
   },
 ];
 
 const stats = [
-  { value: "5%", label: "Komisi platform — dari harga final" },
+  { value: "5%", label: "Komisi platform, dari harga final" },
   { value: "5 jam", label: "Pencairan toko setelah akun aman" },
   { value: "14/30 hari", label: "Proteksi di setiap pesanan" },
   { value: "72 jam", label: "Jendela pengajuan sengketa" },
@@ -75,7 +75,7 @@ export default function AboutPage() {
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-text-secondary">
               Selama ini transaksi akun berjalan di grup WhatsApp: lambat,
               rawan double-sell dan recall, dan tanpa jejak bukti. valostock.id
-              memindahkan seluruh proses itu ke satu tempat yang tercatat —
+              memindahkan seluruh proses itu ke satu tempat yang tercatat,
               dengan escrow, toko terverifikasi, dan arbitrase yang adil.
             </p>
           </Container>
@@ -105,7 +105,7 @@ export default function AboutPage() {
               Prinsip kami
             </h2>
             <p className="mt-2 max-w-2xl text-text-secondary">
-              Keamanan lahir dari akuntabilitas dan transparansi — bukan dari
+              Keamanan lahir dari akuntabilitas dan transparansi, bukan dari
               janji.
             </p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -133,12 +133,12 @@ export default function AboutPage() {
                 Yang tidak kami janjikan
               </h2>
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-text-secondary">
-                Kami tidak menjanjikan transaksi yang &quot;100% aman&quot; —
+                Kami tidak menjanjikan transaksi yang &quot;100% aman&quot;,
                 tidak ada yang bisa. Yang kami bangun adalah sistem di mana
                 setiap pihak bisa dimintai tanggung jawab: toko diverifikasi
                 dan menyetor deposit, serah terima tercatat, sengketa
                 diputuskan dari bukti, dan pelanggar ditindak sampai blacklist.
-                Keamanan dari akuntabilitas — itu janji yang bisa kami tepati.
+                Keamanan dari akuntabilitas, itu janji yang bisa kami tepati.
               </p>
             </div>
           </Reveal>

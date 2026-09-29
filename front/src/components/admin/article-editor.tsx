@@ -136,7 +136,7 @@ export function ArticleEditor({
       </label>
       <label className="block">
         <span className="mb-1 block text-xs font-medium text-text-secondary">
-          Isi — pisahkan blok dengan baris kosong. <code>## Judul</code>, <code>- butir daftar</code>, <code>![alt](/images/x.png)</code>.
+          Isi, pisahkan blok dengan baris kosong. <code>## Judul</code>, <code>- butir daftar</code>, <code>![alt](/images/x.png)</code>.
         </span>
         <textarea rows={12} value={body} onChange={(e) => setBody(e.target.value)} className={`${input} font-mono text-xs`} />
       </label>

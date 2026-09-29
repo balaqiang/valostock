@@ -6,7 +6,7 @@ import { getBundles, getMyCatalogs, requireStore } from "@/lib/data/store";
 import { catalogStatusLabel } from "@/lib/labels";
 import { formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Bundle — valostock.id" };
+export const metadata: Metadata = { title: "Bundle | valostock.id" };
 
 const STATUS = { ACTIVE: ["Aktif", "success"], INACTIVE: ["Nonaktif", "secondary"], SOLD: ["Terjual", "default"] } as const;
 
@@ -18,7 +18,7 @@ export default async function BundlesPage() {
     <div className="space-y-6">
       <DashHeader
         title="Bundle"
-        description="Jual 2–5 akun sekaligus dengan harga paket. Bundle tampil di halaman toko dan di halaman tiap akunnya; dibeli sebagai satu pesanan."
+        description="Jual 2 sampai 5 akun sekaligus dengan harga paket. Bundle tampil di halaman toko dan di halaman tiap akunnya; dibeli sebagai satu pesanan."
       />
       {store.status === "ACTIVE" && (
         <Panel title="Buat bundle">
@@ -33,7 +33,7 @@ export default async function BundlesPage() {
                 { name: "bundlePrice", label: "Harga bundle (Rp)", type: "money", required: true, min: 10000, hint: "Harus lebih murah dari total harga akun." },
                 {
                   name: "catalogIds",
-                  label: "Pilih akun (2–5)",
+                  label: "Pilih akun (2 sampai 5)",
                   type: "multiselect",
                   options: listed.map((c) => ({ value: c.id, label: `${c.code} · ${formatRupiah(c.basePrice)}` })),
                 },

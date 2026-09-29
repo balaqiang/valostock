@@ -8,7 +8,7 @@ import { reportReasonLabel } from "@/lib/labels";
 import { requireUser } from "@/lib/auth";
 import { getMyReports } from "@/lib/data/buyer";
 
-export const metadata: Metadata = { title: "Laporan Saya — valostock.id" };
+export const metadata: Metadata = { title: "Laporan Saya | valostock.id" };
 
 const STATUS = {
   OPEN: ["Menunggu", "warning"],

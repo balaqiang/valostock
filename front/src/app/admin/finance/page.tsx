@@ -5,7 +5,7 @@ import { DashHeader, Panel, StatCard, Table, Td } from "@/components/dashboard/u
 import { adminGet, type AdminFinance } from "@/lib/data/admin";
 import { formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Keuangan — Admin" };
+export const metadata: Metadata = { title: "Keuangan | Admin" };
 
 const REVENUE: [string, string][] = [
   ["commission", "Komisi pesanan"],

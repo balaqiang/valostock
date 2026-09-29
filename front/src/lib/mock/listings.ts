@@ -66,7 +66,7 @@ const detailDefaults: Pick<MockListing, DefaultedField> = {
   agents: "FULL",
   battlepass: [],
   changeNick: true,
-  emailStatus: "Terverifikasi — bisa diganti",
+  emailStatus: "Terverifikasi, bisa diganti",
   region: "IDN",
   premier: "Unverified",
   level: 54,
@@ -90,7 +90,7 @@ function productImages(seed: number): string[] {
 const raw: RawListing[] = [
   {
     id: "vl-001",
-    title: "Akun Valorant Radiant — Full Skin Vandal & Phantom",
+    title: "Akun Valorant Radiant, Full Skin Vandal & Phantom",
     rank: "Radiant",
     skins: 142,
     totalVp: 208500,
@@ -121,7 +121,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-002",
-    title: "Akun Valorant Immortal 3 — 87 Skin, Champions 2023",
+    title: "Akun Valorant Immortal 3, 87 Skin, Champions 2023",
     rank: "Immortal 3",
     skins: 87,
     totalVp: 126300,
@@ -150,7 +150,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-003",
-    title: "Akun Valorant Immortal 1 — Reaver Set Lengkap",
+    title: "Akun Valorant Immortal 1, Reaver Set Lengkap",
     rank: "Immortal 1",
     skins: 64,
     totalVp: 98400,
@@ -169,7 +169,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-004",
-    title: "Akun Valorant Ascendant 2 — Prime & Ion Collection",
+    title: "Akun Valorant Ascendant 2, Prime & Ion Collection",
     rank: "Ascendant 2",
     skins: 52,
     totalVp: 74200,
@@ -189,7 +189,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-005",
-    title: "Akun Valorant Diamond 3 — 45 Skin + Buddy Langka",
+    title: "Akun Valorant Diamond 3, 45 Skin + Buddy Langka",
     rank: "Diamond 3",
     skins: 45,
     totalVp: 58900,
@@ -208,7 +208,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-006",
-    title: "Akun Valorant Diamond 1 — Elderflame Operator",
+    title: "Akun Valorant Diamond 1, Elderflame Operator",
     rank: "Diamond 1",
     skins: 38,
     totalVp: 51200,
@@ -227,7 +227,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-007",
-    title: "Akun Valorant Platinum 2 — Glitchpop & RGX",
+    title: "Akun Valorant Platinum 2, Glitchpop & RGX",
     rank: "Platinum 2",
     skins: 31,
     totalVp: 42800,
@@ -248,7 +248,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-008",
-    title: "Akun Valorant Gold 3 — Rank Siap Push, 28 Skin",
+    title: "Akun Valorant Gold 3, Rank Siap Push, 28 Skin",
     rank: "Gold 3",
     skins: 28,
     totalVp: 33500,
@@ -267,7 +267,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-009",
-    title: "Akun Valorant Immortal 2 — Kuronami & Araxys",
+    title: "Akun Valorant Immortal 2, Kuronami & Araxys",
     rank: "Immortal 2",
     skins: 76,
     totalVp: 112700,
@@ -287,7 +287,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-010",
-    title: "Akun Valorant Ascendant 1 — Sentinels of Light",
+    title: "Akun Valorant Ascendant 1, Sentinels of Light",
     rank: "Ascendant 1",
     skins: 47,
     totalVp: 66100,
@@ -305,7 +305,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-011",
-    title: "Akun Valorant Platinum 3 — Oni Phantom + Melee",
+    title: "Akun Valorant Platinum 3, Oni Phantom + Melee",
     rank: "Platinum 3",
     skins: 34,
     totalVp: 47300,
@@ -325,7 +325,7 @@ const raw: RawListing[] = [
   },
   {
     id: "vl-012",
-    title: "Akun Valorant Silver 1 — Akun Smurf Bersih",
+    title: "Akun Valorant Silver 1, Akun Smurf Bersih",
     rank: "Silver 1",
     skins: 12,
     totalVp: 14800,

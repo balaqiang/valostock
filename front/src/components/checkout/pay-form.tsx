@@ -97,7 +97,7 @@ export function PayForm({ orderId, total }: { orderId: string; total: number }) 
 
       <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-text-secondary">
         <ShieldCheck className="h-3.5 w-3.5 flex-none text-primary" />
-        Dana ditahan di escrow — diteruskan ke toko setelah kamu konfirmasi
+        Dana ditahan di escrow, diteruskan ke toko setelah kamu konfirmasi
         akun aman.
       </p>
     </form>

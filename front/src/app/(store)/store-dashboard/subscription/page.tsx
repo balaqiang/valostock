@@ -6,7 +6,7 @@ import { getSubscription, requireStore } from "@/lib/data/store";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Langganan Toko — valostock.id" };
+export const metadata: Metadata = { title: "Langganan Toko | valostock.id" };
 
 const PERKS: Record<string, string[]> = {
   FREE: ["Komisi 5%", "15 katalog aktif", "Minggu pertama iklan gratis (sekali)"],

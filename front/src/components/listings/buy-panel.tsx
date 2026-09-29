@@ -90,7 +90,7 @@ export function BuyPanel({
     <div className="flex flex-col gap-2.5">
       {context?.openOrderId && (
         <Link href={`/checkout/${context.openOrderId}/pay`} className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-          Kamu punya pesanan menunggu pembayaran untuk akun ini — lanjutkan bayar →
+          Kamu punya pesanan menunggu pembayaran untuk akun ini, lanjutkan bayar →
         </Link>
       )}
       {lock && (
@@ -113,7 +113,7 @@ export function BuyPanel({
             <option value="">Tanpa voucher toko</option>
             {context.vouchers.map((v) => (
               <option key={v.code} value={v.code} disabled={price < v.minSpend}>
-                {v.code} — {v.kind === "PERCENT" ? `${v.value}%` : formatRupiah(v.value)}
+                {v.code}, {v.kind === "PERCENT" ? `${v.value}%` : formatRupiah(v.value)}
                 {v.minSpend > 0 ? ` (min. ${formatRupiah(v.minSpend)})` : ""}
               </option>
             ))}

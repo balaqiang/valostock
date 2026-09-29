@@ -8,7 +8,7 @@ import { adminGet, type NewsArticle } from "@/lib/data/admin";
 import { formatDbDateTime } from "@/lib/format";
 import { newsCategories } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Berita — Admin" };
+export const metadata: Metadata = { title: "Berita | Admin" };
 
 const CATEGORIES = newsCategories.map((c) => ({ value: c, label: c }));
 

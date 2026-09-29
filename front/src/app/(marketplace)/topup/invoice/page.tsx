@@ -5,7 +5,7 @@ import { Container } from "@/components/ui/container";
 import { InvoiceChecker } from "@/components/topup/invoice-checker";
 
 export const metadata: Metadata = {
-  title: "Cek Invoice — valostock.id",
+  title: "Cek Invoice | valostock.id",
   description:
     "Cek status top-up kamu dengan mudah dan cepat menggunakan nomor invoice.",
 };

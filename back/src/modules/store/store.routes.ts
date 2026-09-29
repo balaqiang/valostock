@@ -440,7 +440,7 @@ const withdrawSchema = z
   .object({
     amount: z.number().int().positive().max(1_000_000_000),
     bankName: z.string().trim().min(2).max(50),
-    accountNumber: z.string().trim().regex(/^\d{6,20}$/, 'nomor rekening 6–20 digit'),
+    accountNumber: z.string().trim().regex(/^\d{6,20}$/, 'nomor rekening 6 sampai 20 digit'),
     accountName: z.string().trim().min(3).max(100),
   })
   .strict();
@@ -512,7 +512,7 @@ const sellerSchema = z
   .object({
     alias: z.string().trim().min(2).max(60),
     payoutBank: z.string().trim().min(2).max(50),
-    payoutAccount: z.string().trim().regex(/^\d{6,20}$/, 'nomor rekening 6–20 digit'),
+    payoutAccount: z.string().trim().regex(/^\d{6,20}$/, 'nomor rekening 6 sampai 20 digit'),
     payoutName: z.string().trim().min(3).max(100),
     note: z.string().trim().max(500).optional(),
   })

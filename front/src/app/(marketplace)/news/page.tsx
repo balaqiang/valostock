@@ -6,7 +6,7 @@ import { NewsExplorer } from "@/components/news/news-explorer";
 import { getNewsArticles } from "@/lib/data/catalog";
 
 export const metadata: Metadata = {
-  title: "Berita — valostock.id",
+  title: "Berita | valostock.id",
   description:
     "Pengumuman platform, pembaruan fitur, panduan, event, dan berita esports dari valostock.id.",
 };
@@ -26,7 +26,7 @@ export default async function NewsPage() {
             </h1>
             <p className="mt-2 max-w-2xl text-text-secondary">
               Pengumuman platform, pembaruan fitur, panduan, event, dan kabar
-              esports — semua yang perlu kamu tahu, di satu tempat.
+              esports, semua yang perlu kamu tahu, di satu tempat.
             </p>
           </Container>
         </section>

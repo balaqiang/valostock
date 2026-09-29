@@ -8,7 +8,7 @@ import { adminGet, type TransactionRecord } from "@/lib/data/admin";
 import { topupStatus } from "@/lib/topup-status";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Top-Up & Balance — Admin" };
+export const metadata: Metadata = { title: "Top-Up & Balance | Admin" };
 
 function Rows({ items, canRefund }: { items: TransactionRecord[]; canRefund?: boolean }) {
   return (
@@ -31,7 +31,7 @@ function Rows({ items, canRefund }: { items: TransactionRecord[]; canRefund?: bo
             <Td className="whitespace-nowrap text-xs text-text-secondary">{formatDbDateTime(t.created_at)}</Td>
             <Td>
               {canRefund && ["PAID", "PROCESSING", "SUCCESS"].includes(t.status) && (
-                <ActionButton variant="ghost" endpoint={`/api/admin/topups/${t.id}/refund`} prompt="Alasan refund (mis. item tidak masuk ke akun) — wajib:" promptRequired>
+                <ActionButton variant="ghost" endpoint={`/api/admin/topups/${t.id}/refund`} prompt="Alasan refund (mis. item tidak masuk ke akun), wajib:" promptRequired>
                   Refund
                 </ActionButton>
               )}

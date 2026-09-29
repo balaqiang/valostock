@@ -142,7 +142,7 @@ async function settleOrder(tx: Tx, payment: PaymentRow, result: Final) {
   await systemMessage(
     tx,
     order.id,
-    `Pembayaran diterima. Rekber Room ${order.room_code} dibuka — dana ditahan (escrow) sampai pesanan selesai. Toko, silakan kirim data akun di sini.`,
+    `Pembayaran diterima. Rekber Room ${order.room_code} dibuka, dana ditahan (escrow) sampai pesanan selesai. Toko, silakan kirim data akun di sini.`,
   );
   await notify(tx, order.buyer_id, {
     kind: 'ORDER',

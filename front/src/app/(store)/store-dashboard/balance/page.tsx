@@ -9,7 +9,7 @@ import { Table, Td } from "@/components/dashboard/ui";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Saldo & Penarikan — valostock.id",
+  title: "Saldo & Penarikan | valostock.id",
 };
 
 export default async function StoreBalancePage() {
@@ -118,7 +118,7 @@ export default async function StoreBalancePage() {
                       {withdrawal.status === "COMPLETED"
                         ? "Selesai"
                         : withdrawal.status === "REJECTED"
-                          ? "Ditolak — dana kembali"
+                          ? "Ditolak, dana kembali"
                           : "Menunggu admin"}
                     </Badge>
                   </td>
@@ -128,7 +128,7 @@ export default async function StoreBalancePage() {
           </table>
         </div>
         <p className="mt-2 text-xs text-text-secondary">
-          Penarikan yang ditolak admin otomatis kembali ke saldo tersedia —
+          Penarikan yang ditolak admin otomatis kembali ke saldo tersedia,
           perbaiki data rekening lalu ajukan ulang. (Transfer bank disimulasikan di prototype.)
         </p>
       </section>

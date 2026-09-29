@@ -17,7 +17,7 @@ import { disputeStatusLabel, orderStatusLabel, orderSteps, stepIndexOf } from "@
 import { requireUser } from "@/lib/auth";
 import { getOrder } from "@/lib/data/buyer";
 
-export const metadata: Metadata = { title: "Detail Pesanan — valostock.id" };
+export const metadata: Metadata = { title: "Detail Pesanan | valostock.id" };
 
 const REKBER_VISIBLE = new Set(["PAID", "IN_REKBER", "SAFE", "COMPLETED", "DISPUTED", "REFUNDED"]);
 const REKBER_WRITABLE = new Set(["PAID", "IN_REKBER", "SAFE", "DISPUTED"]);
@@ -104,7 +104,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     Selesaikan pembayaranmu
                   </h2>
                   <p className="mt-2 text-sm text-text-secondary">
-                    Akun ini dikunci untukmu selama menunggu pembayaran. Dana masuk escrow — bukan langsung ke toko.
+                    Akun ini dikunci untukmu selama menunggu pembayaran. Dana masuk escrow, bukan langsung ke toko.
                   </p>
                   <Button href={`/checkout/${order.id}/pay`} variant="primary" size="lg" className="mt-4">
                     Bayar Sekarang
@@ -143,7 +143,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   Proteksi {protectionDays} hari
                 </h2>
                 <p className="mt-2 text-sm text-text-secondary">
-                  Jendela dukungan & penanganan keamanan — bantuan recall dan sengketa, bukan penahanan dana.
+                  Jendela dukungan & penanganan keamanan, bantuan recall dan sengketa, bukan penahanan dana.
                   {order.protectionUntil && <> Aktif sampai {formatDbDateTime(order.protectionUntil)} WIB.</>}
                 </p>
                 {order.dispute ? (

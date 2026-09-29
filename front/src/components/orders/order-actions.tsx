@@ -53,7 +53,7 @@ export function OrderActions({ order }: { order: OrderView }) {
         <div className="rounded-2xl border border-border bg-surface p-6">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            Langkah 1 — Amankan akun
+            Langkah 1, Amankan akun
           </h2>
           <p className="mt-2 text-sm text-text-secondary">
             Setelah toko mengirim data akun di Rekber Room, segera ganti email, password, dan 2FA. Lalu konfirmasi di sini.
@@ -78,7 +78,7 @@ export function OrderActions({ order }: { order: OrderView }) {
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-text">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-            Langkah 2 — Selesaikan pesanan
+            Langkah 2, Selesaikan pesanan
           </h2>
           <p className="mt-2 text-sm text-text-secondary">
             Semua sesuai deskripsi? Klik Selesai agar dana escrow diteruskan ke toko (dikurangi komisi platform).

@@ -9,7 +9,7 @@ import { requireStore } from "@/lib/data/store";
 import { storeLevelLabel, storeStatusLabel, storeTypeLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Pengaturan Toko — valostock.id" };
+export const metadata: Metadata = { title: "Pengaturan Toko | valostock.id" };
 
 export default async function StoreSettingsPage() {
   const store = await requireStore("/store-dashboard/settings");
@@ -49,7 +49,7 @@ export default async function StoreSettingsPage() {
             ]}
           />
           <p className="mt-4 text-xs text-text-secondary">
-            Notifikasi WhatsApp/Discord/Telegram disimulasikan di prototype — semua notifikasi tampil di menu Notifikasi.
+            Notifikasi WhatsApp/Discord/Telegram disimulasikan di prototype, semua notifikasi tampil di menu Notifikasi.
           </p>
         </Panel>
       </div>
@@ -63,7 +63,7 @@ export default async function StoreSettingsPage() {
           <div>
             <p className="num font-display text-2xl font-bold text-text">{formatRupiah(deposit)}</p>
             <p className="text-xs text-text-secondary">
-              {shortfall === 0 ? "Badge Deposit Secured aktif." : `Kurang ${formatRupiah(shortfall)} dari ${formatRupiah(minimum)} — badge Deposit Secured tidak tampil.`}{" "}
+              {shortfall === 0 ? "Badge Deposit Secured aktif." : `Kurang ${formatRupiah(shortfall)} dari ${formatRupiah(minimum)}, badge Deposit Secured tidak tampil.`}{" "}
               <Link href="/store-dashboard/balance" className="text-primary">
                 Lihat buku besar →
               </Link>

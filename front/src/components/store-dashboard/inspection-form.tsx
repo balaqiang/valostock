@@ -45,7 +45,7 @@ export function InspectionForm({ catalogId, current }: { catalogId: string; curr
     try {
       await apiFetch(`/api/stores/me/catalogs/${catalogId}/inspection`, { method: "POST", body: form });
       setFiles([]);
-      setDone(passed ? "Inspeksi lulus — badge Account Checked aktif." : "Inspeksi tersimpan (belum lulus).");
+      setDone(passed ? "Inspeksi lulus, badge Account Checked aktif." : "Inspeksi tersimpan (belum lulus).");
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal menyimpan inspeksi.");
@@ -104,7 +104,7 @@ export function InspectionForm({ catalogId, current }: { catalogId: string; curr
           <ImageUp className="h-4 w-4" /> Pilih bukti (foto/video/PDF)
         </Button>
         <p className="mt-1 text-xs text-text-secondary">
-          {files.length > 0 ? `${files.length} file dipilih.` : "Maks. 5 file, 10 MB per file. Disimpan privat — hanya bisa dibuka lewat tautan sementara."}
+          {files.length > 0 ? `${files.length} file dipilih.` : "Maks. 5 file, 10 MB per file. Disimpan privat, hanya bisa dibuka lewat tautan sementara."}
         </p>
         {current && current.media.length > 0 && (
           <ul className="mt-2 flex flex-wrap gap-2 text-xs">

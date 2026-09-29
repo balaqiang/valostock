@@ -462,7 +462,7 @@ export async function approveCatalog(admin: AuthUser, id: string, note: string |
   await withTransaction(async (tx) => {
     const c = await lockForModeration(tx, id);
     if (c.status !== 'PENDING_REVIEW') throw conflict('Katalog ini tidak sedang menunggu tinjauan.', 'BAD_STATE');
-    if (c.store_status !== 'ACTIVE') throw conflict('Toko belum/tidak aktif — katalog tidak bisa ditayangkan.', 'STORE_NOT_ACTIVE');
+    if (c.store_status !== 'ACTIVE') throw conflict('Toko belum/tidak aktif, katalog tidak bisa ditayangkan.', 'STORE_NOT_ACTIVE');
     const firstListing = c.listed_at === null;
     await run(tx, `update catalogs set status = 'LISTED', listed_at = coalesce(listed_at, now()), review_note = null where id = $1`, [id]);
     await run(tx, `insert into catalog_reviews (catalog_id, actor_id, decision, note) values ($1, $2, 'APPROVED', $3)`, [id, admin.id, note ?? null]);
@@ -498,7 +498,7 @@ export async function approveCatalog(admin: AuthUser, id: string, note: string |
 
 function reviewNote(reasons: string[], note: string | undefined) {
   if (reasons.includes('Lainnya') && !note) throw badRequest('Alasan "Lainnya" wajib disertai catatan.', 'NOTE_REQUIRED');
-  return [reasons.join('; '), note].filter(Boolean).join(' — ');
+  return [reasons.join('; '), note].filter(Boolean).join('-');
 }
 
 export async function rejectCatalog(admin: AuthUser, id: string, reasons: string[], note: string | undefined, ip: string | undefined) {

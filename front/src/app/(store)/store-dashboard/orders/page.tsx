@@ -6,7 +6,7 @@ import { orderStatusTone, storeOrderStatusLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import type { OrderStatus } from "@/types/api";
 
-export const metadata: Metadata = { title: "Pesanan Toko — valostock.id" };
+export const metadata: Metadata = { title: "Pesanan Toko | valostock.id" };
 
 const GROUPS: Record<string, { label: string; statuses: OrderStatus[] | null }> = {
   action: { label: "Perlu tindakan", statuses: ["PAID", "IN_REKBER", "SAFE", "DISPUTED"] },

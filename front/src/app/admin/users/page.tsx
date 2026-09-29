@@ -5,7 +5,7 @@ import { DashHeader, Table, Td, Tone } from "@/components/dashboard/ui";
 import { adminGet, type AdminUserRow } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Pengguna — Admin" };
+export const metadata: Metadata = { title: "Pengguna | Admin" };
 
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;

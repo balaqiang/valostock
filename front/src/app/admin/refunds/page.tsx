@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { adminGet, type AdminRefund } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Refund — Admin" };
+export const metadata: Metadata = { title: "Refund | Admin" };
 
 const TABS = [
   { value: "PENDING", label: "Menunggu" },
@@ -51,7 +51,7 @@ export default async function AdminRefundsPage({ searchParams }: { searchParams:
               {r.note && (
                 <p className="mt-1 max-w-xs text-xs text-text-secondary">
                   {r.note}
-                  {r.handler && ` — ${r.handler}`}
+                  {r.handler && `, ${r.handler}`}
                 </p>
               )}
             </Td>

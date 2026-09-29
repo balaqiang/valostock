@@ -6,7 +6,7 @@ import { DashHeader, Panel, StatCard } from "@/components/dashboard/ui";
 import { adminGet, type AdminDashboard } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Dashboard Admin — valostock.id" };
+export const metadata: Metadata = { title: "Dashboard Admin | valostock.id" };
 
 export default async function AdminDashboardPage() {
   const data = await adminGet<AdminDashboard>("/dashboard");
@@ -17,7 +17,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <DashHeader title="Dashboard" description="KPI platform dan antrean keputusan — dimulai dari yang paling lama menunggu." />
+      <DashHeader title="Dashboard" description="KPI platform dan antrean keputusan, dimulai dari yang paling lama menunggu." />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="GMV hari ini" value={formatRupiah(n("gmv_today"))} icon={Banknote} />

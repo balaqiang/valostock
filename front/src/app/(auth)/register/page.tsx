@@ -6,7 +6,7 @@ import { RegisterForm } from "@/components/auth/register-form";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Daftar — valostock.id",
+  title: "Daftar | valostock.id",
 };
 
 export default async function RegisterPage() {
@@ -18,7 +18,7 @@ export default async function RegisterPage() {
         Daftar
       </h1>
       <p className="mt-1 text-sm text-text-secondary">
-        Pembeli langsung bisa belanja — tanpa verifikasi identitas. Buka toko bisa kapan saja.
+        Pembeli langsung bisa belanja, tanpa verifikasi identitas. Buka toko bisa kapan saja.
       </p>
 
       <Suspense>

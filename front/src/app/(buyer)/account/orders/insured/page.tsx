@@ -8,7 +8,7 @@ import { getMyDisputes, getMyOrders } from "@/lib/data/buyer";
 import { disputeReasonLabel, disputeStatusLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Proteksi & Sengketa — valostock.id" };
+export const metadata: Metadata = { title: "Proteksi & Sengketa | valostock.id" };
 
 export default async function InsuredOrdersPage() {
   await requireUser("/account/orders/insured");
@@ -24,7 +24,7 @@ export default async function InsuredOrdersPage() {
         />
         {disputes.length === 0 ? (
           <div className="mt-6">
-            <EmptyState icon={ShieldCheck} title="Belum ada sengketa" body="Semoga tidak pernah perlu — jika ada masalah, ajukan dari halaman pesananmu." />
+            <EmptyState icon={ShieldCheck} title="Belum ada sengketa" body="Semoga tidak pernah perlu, jika ada masalah, ajukan dari halaman pesananmu." />
           </div>
         ) : (
           <ul className="mt-6 space-y-3">

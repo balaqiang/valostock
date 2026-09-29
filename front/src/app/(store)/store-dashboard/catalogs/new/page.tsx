@@ -4,7 +4,7 @@ import { CatalogEditor } from "@/components/store-dashboard/catalog-editor";
 import { getGameFields, getGames } from "@/lib/data/catalog";
 import { requireStore } from "@/lib/data/store";
 
-export const metadata: Metadata = { title: "Katalog Baru — valostock.id" };
+export const metadata: Metadata = { title: "Katalog Baru | valostock.id" };
 
 export default async function NewCatalogPage() {
   const store = await requireStore("/store-dashboard/catalogs/new");

@@ -114,7 +114,7 @@ function maskGameId(value: string): string {
 
 export async function fillBalance(user: AuthUser, input: { nominal: number; qty: number; method: GatewayMethod; idempotencyKey: string }) {
   if (!BLC_DENOMINATIONS.includes(input.nominal)) throw badRequest('Nominal voucher tidak tersedia.');
-  if (input.qty < 1 || input.qty > BLC_MAX_QTY) throw badRequest(`Jumlah voucher 1–${BLC_MAX_QTY}.`);
+  if (input.qty < 1 || input.qty > BLC_MAX_QTY) throw badRequest(`Jumlah voucher 1 sampai ${BLC_MAX_QTY}.`);
 
   // Same key again (double click / retry) → the same invoice, never a second one.
   const existing = await one<{ id: string; invoice_number: string }>(

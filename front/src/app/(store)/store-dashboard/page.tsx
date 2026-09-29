@@ -7,7 +7,7 @@ import { getDashboard, getMyCatalogs, getStoreOrders, requireStore } from "@/lib
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import type { CatalogStatus } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Dashboard Toko — valostock.id" };
+export const metadata: Metadata = { title: "Dashboard Toko | valostock.id" };
 
 const ACTION_STATUSES = new Set(["PAID", "IN_REKBER", "SAFE", "DISPUTED"]);
 

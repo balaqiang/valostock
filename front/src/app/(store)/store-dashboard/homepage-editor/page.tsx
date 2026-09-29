@@ -6,7 +6,7 @@ import { DashHeader, Panel } from "@/components/dashboard/ui";
 import { GradientPicker } from "@/components/store-dashboard/gradient-picker";
 import { getMyCatalogs, requireStore } from "@/lib/data/store";
 
-export const metadata: Metadata = { title: "Etalase Toko — valostock.id" };
+export const metadata: Metadata = { title: "Etalase Toko | valostock.id" };
 
 export default async function HomepageEditorPage() {
   const store = await requireStore("/store-dashboard/homepage-editor");

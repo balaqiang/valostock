@@ -10,7 +10,7 @@ import { CmsGameBanners } from "@/components/admin/cms/game-banners";
 import { adminGet, type CmsBanner, type CmsTextGroup } from "@/lib/data/admin";
 import { getGames } from "@/lib/data/catalog";
 
-export const metadata: Metadata = { title: "CMS Situs — Admin" };
+export const metadata: Metadata = { title: "CMS Situs | Admin" };
 
 const TABS = [
   { value: "texts", label: "Teks situs" },

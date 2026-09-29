@@ -6,7 +6,7 @@ import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import { requireUser } from "@/lib/auth";
 import { getPoints } from "@/lib/data/buyer";
 
-export const metadata: Metadata = { title: "Loyalty Points — valostock.id" };
+export const metadata: Metadata = { title: "Loyalty Points | valostock.id" };
 
 const TYPE = { EARN: "Dapat poin", REDEEM: "Tukar ke Balance", ADJUSTMENT: "Penyesuaian" } as const;
 
@@ -39,7 +39,7 @@ export default async function PointsPage() {
               endpoint="/api/me/points/redeem"
               columns={1}
               submitLabel="Tukar"
-              successMessage="Poin ditukar — Balance bertambah."
+              successMessage="Poin ditukar, Balance bertambah."
               fields={[{ name: "points", label: `Jumlah poin (kelipatan ${info.redeemUnit})`, type: "number", required: true, min: info.redeemUnit, defaultValue: maxUnits * info.redeemUnit }]}
             />
           ) : (

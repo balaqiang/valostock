@@ -15,16 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const metadata: Metadata = {
-  title: "Kontak — valostock.id",
+  title: "Kontak | valostock.id",
   description:
-    "Hubungi tim valostock.id — pertanyaan umum, kendala top-up, atau masalah pesanan.",
+    "Hubungi tim valostock.id, pertanyaan umum, kendala top-up, atau masalah pesanan.",
 };
 
 const channels = [
   {
     icon: LifeBuoy,
     title: "Pusat Bantuan",
-    body: "Jawaban tercepat untuk pertanyaan umum — biaya, rekber, proteksi, top-up, dan Balance.",
+    body: "Jawaban tercepat untuk pertanyaan umum, biaya, rekber, proteksi, top-up, dan Balance.",
     href: "/help",
     cta: "Buka Pusat Bantuan",
   },
@@ -38,7 +38,7 @@ const channels = [
   {
     icon: ReceiptText,
     title: "Kendala top-up",
-    body: "Cek dulu status pesananmu dengan nomor invoice — jika item tidak masuk, dana kembali ke Balance.",
+    body: "Cek dulu status pesananmu dengan nomor invoice, jika item tidak masuk, dana kembali ke Balance.",
     href: "/topup/invoice",
     cta: "Cek Invoice",
   },
@@ -56,7 +56,7 @@ export default function ContactPage() {
               Hubungi Kami
             </h1>
             <p className="mt-2 max-w-2xl text-text-secondary">
-              Pilih jalur yang paling sesuai — masalah transaksi paling cepat
+              Pilih jalur yang paling sesuai, masalah transaksi paling cepat
               ditangani lewat halaman yang terhubung dengan datanya.
             </p>
           </Container>
@@ -169,7 +169,7 @@ export default function ContactPage() {
           <p className="mt-6 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-xs text-text-secondary">
             <Info className="mt-0.5 h-3.5 w-3.5 flex-none text-primary" />
             Demi keamananmu, semua transaksi dan sengketa hanya ditangani di
-            dalam platform — kami tidak pernah meminta pembayaran atau data
+            dalam platform, kami tidak pernah meminta pembayaran atau data
             akun lewat WhatsApp/DM.
           </p>
         </Container>

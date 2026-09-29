@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { getMyStore } from "@/lib/data/store";
 
 export const metadata: Metadata = {
-  title: "Buka Toko — valostock.id",
+  title: "Buka Toko | valostock.id",
   description: "Daftarkan toko, bayar deposit, dan tunggu verifikasi admin untuk mulai berjualan.",
 };
 

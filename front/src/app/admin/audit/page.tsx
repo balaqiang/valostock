@@ -4,7 +4,7 @@ import { DashHeader, Table, Td } from "@/components/dashboard/ui";
 import { adminGet, type AuditEntry } from "@/lib/data/admin";
 import { formatDbDateTime } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Audit Log — Admin" };
+export const metadata: Metadata = { title: "Audit Log | Admin" };
 
 export default async function AdminAuditPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const sp = await searchParams;

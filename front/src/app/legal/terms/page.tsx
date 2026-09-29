@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { LegalArticle, type LegalSection } from "@/components/legal/legal-article";
 
 export const metadata: Metadata = {
-  title: "Syarat & Ketentuan — valostock.id",
+  title: "Syarat & Ketentuan | valostock.id",
   description:
-    "Syarat dan ketentuan penggunaan valostock.id — marketplace akun game dan top-up dengan escrow.",
+    "Syarat dan ketentuan penggunaan valostock.id, marketplace akun game dan top-up dengan escrow.",
 };
 
 // Operational summary of docs/STORE_RULES.md §14 + docs/MONEY_RULES.md.
@@ -25,10 +25,10 @@ const sections: LegalSection[] = [
     ],
   },
   {
-    title: "Berjualan — Hanya Toko Terverifikasi",
+    title: "Berjualan, Hanya Toko Terverifikasi",
     items: [
       "Hanya Toko yang lulus verifikasi identitas oleh admin dan menyetor deposit keamanan Rp500.000 yang boleh berjualan.",
-      "Toko bertipe Owner (akun milik sendiri) atau Reseller (akun titipan penjual eksternal). Reseller bertanggung jawab penuh atas penjual eksternalnya — identitas, keaslian akun, dan kerugian pembeli.",
+      "Toko bertipe Owner (akun milik sendiri) atau Reseller (akun titipan penjual eksternal). Reseller bertanggung jawab penuh atas penjual eksternalnya, identitas, keaslian akun, dan kerugian pembeli.",
       "Setiap listing mendapat ID katalog dari platform (awalan VS). Satu akun = satu katalog.",
       "Deskripsi listing wajib akurat. Klaim mutlak seperti \"100% aman\" atau \"100% original\" dilarang.",
     ],
@@ -37,7 +37,7 @@ const sections: LegalSection[] = [
     title: "Transaksi & Escrow",
     items: [
       "Pembayaran pembeli ditahan di escrow dan baru diteruskan ke Toko setelah pembeli mengonfirmasi akun diterima (atau jendela konfirmasi berakhir).",
-      "Serah terima akun wajib berlangsung di Rekber Room — diawasi admin dan tercatat sebagai bukti.",
+      "Serah terima akun wajib berlangsung di Rekber Room, diawasi admin dan tercatat sebagai bukti.",
       "Dana Toko masuk ke saldo tersedia setelah pembeli menyelesaikan pesanan. Penarikan disetujui admin dengan Account Validation (nama rekening = nama pemilik toko yang terverifikasi).",
       "Seluruh transaksi wajib di dalam platform. Mengajak atau menerima transaksi di luar platform adalah pelanggaran berat.",
     ],
@@ -58,10 +58,10 @@ const sections: LegalSection[] = [
     ],
   },
   {
-    title: "Balance (BLC) — Closed-Loop",
+    title: "Balance (BLC), Closed-Loop",
     items: [
       "Balance adalah alat pembayaran internal khusus top-up, bukan uang elektronik.",
-      "Balance hanya bisa dipakai untuk top-up game di valostock.id — tidak bisa dicairkan, tidak bisa membeli akun, dan tidak bisa ditransfer ke pengguna lain.",
+      "Balance hanya bisa dipakai untuk top-up game di valostock.id, tidak bisa dicairkan, tidak bisa membeli akun, dan tidak bisa ditransfer ke pengguna lain.",
       "Refund top-up yang gagal dikembalikan ke Balance, bukan uang tunai.",
     ],
   },
@@ -93,7 +93,7 @@ const sections: LegalSection[] = [
   {
     title: "Batasan Tanggung Jawab",
     paragraphs: [
-      "Platform menyediakan mekanisme keamanan berbasis bukti dan akuntabilitas (escrow, verifikasi, proteksi, arbitrase) — bukan jaminan mutlak atas hasil transaksi. Risiko yang timbul dari data yang kamu isi sendiri (mis. UID top-up yang salah) berada di luar tanggung jawab platform.",
+      "Platform menyediakan mekanisme keamanan berbasis bukti dan akuntabilitas (escrow, verifikasi, proteksi, arbitrase), bukan jaminan mutlak atas hasil transaksi. Risiko yang timbul dari data yang kamu isi sendiri (mis. UID top-up yang salah) berada di luar tanggung jawab platform.",
     ],
   },
   {

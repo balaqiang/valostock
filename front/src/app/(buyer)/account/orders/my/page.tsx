@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { getMyOrders } from "@/lib/data/buyer";
 
 export const metadata: Metadata = {
-  title: "Pesanan Saya — valostock.id",
+  title: "Pesanan Saya | valostock.id",
 };
 
 export default async function MyOrdersPage() {
@@ -16,7 +16,7 @@ export default async function MyOrdersPage() {
     <div>
       <PageHeader
         title="Pesanan Saya"
-        description="Semua pesanan akunmu — dari pembayaran sampai rating."
+        description="Semua pesanan akunmu, dari pembayaran sampai rating."
       />
       <div className="mt-6">
         <OrdersExplorer orders={orders} />

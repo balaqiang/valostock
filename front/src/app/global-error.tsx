@@ -12,7 +12,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
           <p className="font-display text-lg font-bold text-primary">valostock.id</p>
           <h1 className="mt-6 font-display text-2xl font-bold tracking-tight">Aplikasi gagal dimuat</h1>
           <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-            Terjadi kesalahan tak terduga. Pembayaran dan saldo tidak terpengaruh — semuanya dicatat di server.
+            Terjadi kesalahan tak terduga. Pembayaran dan saldo tidak terpengaruh, semuanya dicatat di server.
           </p>
           {error.digest && <p className="mt-4 text-xs text-text-secondary">Kode: {error.digest}</p>}
           <div className="mt-8 flex justify-center gap-3">

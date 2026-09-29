@@ -5,7 +5,7 @@ import { AdCreator } from "@/components/store-dashboard/ad-creator";
 import { getAds, getMyCatalogs, requireStore } from "@/lib/data/store";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Iklan & Featured — valostock.id" };
+export const metadata: Metadata = { title: "Iklan & Featured | valostock.id" };
 
 const STATUS = {
   PENDING_PAYMENT: ["Menunggu bayar", "warning"],
@@ -49,7 +49,7 @@ export default async function AdsPage() {
                 {ad.stopReason && <p className="mt-1 text-xs text-text-secondary">{ad.stopReason}</p>}
               </Td>
               <Td className="text-xs text-text-secondary">
-                {ad.startsAt ? `${formatDbDateTime(ad.startsAt)} – ${ad.endsAt ? formatDbDateTime(ad.endsAt) : ""}` : "-"}
+                {ad.startsAt ? `${formatDbDateTime(ad.startsAt)} sampai ${ad.endsAt ? formatDbDateTime(ad.endsAt) : ""}` : "-"}
               </Td>
               <Td>
                 {ad.status === "ACTIVE" && (

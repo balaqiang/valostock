@@ -26,8 +26,8 @@ export async function generateMetadata({
   const store = await getStore(slug);
   return {
     title: store
-      ? `${store.name} — Toko di valostock.id`
-      : "Toko tidak ditemukan — valostock.id",
+      ? `${store.name}, Toko di valostock.id`
+      : "Toko tidak ditemukan | valostock.id",
     description: store?.description,
   };
 }

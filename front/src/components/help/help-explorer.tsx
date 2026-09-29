@@ -83,7 +83,7 @@ export function HelpExplorer({ articles: helpArticles }: { articles: MockHelpArt
                       {article.title}
                     </span>
                     <span className="mt-0.5 block text-xs text-text-secondary">
-                      {helpCategoryLabel[article.category]} — {article.excerpt}
+                      {helpCategoryLabel[article.category]}, {article.excerpt}
                     </span>
                   </span>
                   <ArrowRight className="h-4 w-4 flex-none text-text-secondary group-hover:text-primary" />
@@ -92,7 +92,7 @@ export function HelpExplorer({ articles: helpArticles }: { articles: MockHelpArt
             ))}
             {results.length === 0 && (
               <li className="rounded-xl border border-dashed border-border py-12 text-center text-sm text-text-secondary">
-                Tidak ada artikel yang cocok — coba kata kunci lain.
+                Tidak ada artikel yang cocok, coba kata kunci lain.
               </li>
             )}
           </ul>

@@ -45,7 +45,7 @@ export async function activeStore(req: Request): Promise<{ user: AuthUser; store
   const ctx = await ownStore(req);
   if (ctx.store.status === 'SUSPENDED') throw forbidden('Toko sedang ditangguhkan admin.');
   if (ctx.store.status === 'CLOSING' || ctx.store.status === 'CLOSED') throw forbidden('Toko sedang/sudah ditutup.');
-  if (ctx.store.status !== 'ACTIVE') throw forbidden('Toko belum aktif — tunggu verifikasi admin.');
+  if (ctx.store.status !== 'ACTIVE') throw forbidden('Toko belum aktif, tunggu verifikasi admin.');
   return ctx;
 }
 

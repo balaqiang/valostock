@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { getFollowing } from "@/lib/data/buyer";
 import { storeLevelLabel, storeTypeLabel } from "@/lib/labels";
 
-export const metadata: Metadata = { title: "Toko yang Diikuti — valostock.id" };
+export const metadata: Metadata = { title: "Toko yang Diikuti | valostock.id" };
 
 export default async function FollowingPage() {
   await requireUser("/account/following");
@@ -16,7 +16,7 @@ export default async function FollowingPage() {
 
   return (
     <div>
-      <PageHeader title="Mengikuti" description="Toko yang kamu ikuti — kamu dapat notifikasi saat katalog baru mereka disetujui admin." />
+      <PageHeader title="Mengikuti" description="Toko yang kamu ikuti, kamu dapat notifikasi saat katalog baru mereka disetujui admin." />
       {stores.length > 0 ? (
         <ul className="mt-6 space-y-3">
           {stores.map((store) => (

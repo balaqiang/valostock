@@ -4,7 +4,7 @@ import { DashHeader } from "@/components/dashboard/ui";
 import { getNotifications } from "@/lib/data/buyer";
 import { requireStore } from "@/lib/data/store";
 
-export const metadata: Metadata = { title: "Notifikasi Toko — valostock.id" };
+export const metadata: Metadata = { title: "Notifikasi Toko | valostock.id" };
 
 export default async function StoreNotificationsPage() {
   await requireStore("/store-dashboard/notifications");

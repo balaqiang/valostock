@@ -6,7 +6,7 @@ import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import { requireUser } from "@/lib/auth";
 import { getReferral } from "@/lib/data/buyer";
 
-export const metadata: Metadata = { title: "Affiliate — valostock.id" };
+export const metadata: Metadata = { title: "Affiliate | valostock.id" };
 
 export default async function AffiliatePage() {
   await requireUser("/account/affiliate");
@@ -28,7 +28,7 @@ export default async function AffiliatePage() {
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-6">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-wider text-text-secondary">Kode referral kamu</p>
-          <p className="num mt-1 font-display text-2xl font-bold tracking-wider text-primary">{info?.code ?? "—"}</p>
+          <p className="num mt-1 font-display text-2xl font-bold tracking-wider text-primary">{info?.code ?? "-"}</p>
           {info?.link && <p className="mt-1 break-all text-xs text-text-secondary">{info.link}</p>}
         </div>
         <Badge>Reward → Balance</Badge>
@@ -57,7 +57,7 @@ export default async function AffiliatePage() {
           ))}
         </ul>
       )}
-      <p className="mt-4 text-xs text-text-secondary">Reward dikreditkan ke Balance dan hanya bisa dipakai untuk top-up game — sesuai aturan closed-loop.</p>
+      <p className="mt-4 text-xs text-text-secondary">Reward dikreditkan ke Balance dan hanya bisa dipakai untuk top-up game, sesuai aturan closed-loop.</p>
     </div>
   );
 }

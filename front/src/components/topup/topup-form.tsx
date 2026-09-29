@@ -225,7 +225,7 @@ export function TopupForm({
             </div>
             <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-surface-elevated px-3 py-2 text-xs text-text-secondary">
               <Info className="mt-0.5 h-3.5 w-3.5 flex-none" />
-              {game.uidHint}. Pastikan data akun benar — salah isi tidak bisa dibatalkan setelah dikirim.
+              {game.uidHint}. Pastikan data akun benar, salah isi tidak bisa dibatalkan setelah dikirim.
             </p>
           </Step>
 
@@ -266,7 +266,7 @@ export function TopupForm({
             {promo && (
               <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 <BadgePercent className="h-3.5 w-3.5" />
-                {promo.code} aktif — {promo.label}
+                {promo.code} aktif, {promo.label}
               </p>
             )}
             {promoError && (
@@ -381,12 +381,12 @@ export function TopupForm({
               <div className="flex justify-between text-text-secondary">
                 <dt>Metode Pembayaran</dt>
                 <dd className="font-medium text-text">
-                  {paymentMethods.find((item) => item.kind === method)?.label ?? "—"}
+                  {paymentMethods.find((item) => item.kind === method)?.label ?? "-"}
                 </dd>
               </div>
               <div className="flex justify-between text-text-secondary">
                 <dt>Harga</dt>
-                <dd className="num">{product ? formatRupiah(product.retailPrice) : "—"}</dd>
+                <dd className="num">{product ? formatRupiah(product.retailPrice) : "-"}</dd>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
@@ -396,11 +396,11 @@ export function TopupForm({
               )}
               <div className="flex justify-between text-text-secondary">
                 <dt>Biaya Layanan</dt>
-                <dd className="num">{product && method ? formatRupiah(surcharge) : "—"}</dd>
+                <dd className="num">{product && method ? formatRupiah(surcharge) : "-"}</dd>
               </div>
               <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-text">
                 <dt>Total Bayar</dt>
-                <dd className="num font-bold text-primary">{product ? formatRupiah(total) : "—"}</dd>
+                <dd className="num font-bold text-primary">{product ? formatRupiah(total) : "-"}</dd>
               </div>
             </dl>
 

@@ -101,7 +101,7 @@ offersRouter.post('/offers', writeLimiter, async (req, res) => {
     );
     if (!c || c.store_status !== 'ACTIVE' || c.status !== 'LISTED') throw notFound('Katalog');
     if (c.owner_id === user.id) throw badRequest('Tidak bisa menawar katalog tokomu sendiri.');
-    if (input.amount >= c.price) throw badRequest('Tawaran harus di bawah harga katalog — atau langsung beli saja.');
+    if (input.amount >= c.price) throw badRequest('Tawaran harus di bawah harga katalog, atau langsung beli saja.');
     if (input.amount < Math.ceil(c.price * 0.5)) throw badRequest('Tawaran minimal 50% dari harga katalog.');
     // An expired/finished offer doesn't block a new one (partial unique index covers open ones only).
     await run(

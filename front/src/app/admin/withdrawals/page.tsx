@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { adminGet, type AdminWithdrawal } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Penarikan Dana — Admin" };
+export const metadata: Metadata = { title: "Penarikan Dana | Admin" };
 
 const TABS = [
   { value: "PENDING", label: "Menunggu" },
@@ -26,7 +26,7 @@ export default async function AdminWithdrawalsPage({ searchParams }: { searchPar
     <div className="space-y-6">
       <DashHeader
         title="Penarikan Dana Toko"
-        description="Maker-checker: toko mengajukan, admin keuangan menyetujui (transfer Midtrans Iris disimulasikan) atau menolak — dana ditolak kembali ke saldo toko lewat PAYOUT_REVERSAL. Nama rekening MISMATCH sudah ditolak sistem."
+        description="Maker-checker: toko mengajukan, admin keuangan menyetujui (transfer Midtrans Iris disimulasikan) atau menolak, dana ditolak kembali ke saldo toko lewat PAYOUT_REVERSAL. Nama rekening MISMATCH sudah ditolak sistem."
       />
       <StatusTabs base="/admin/withdrawals" current={status} tabs={TABS} />
       <Table head={["No.", "Toko", "Rekening", "Nama rekening", "Jumlah", "Status", ""]} empty="Tidak ada penarikan.">

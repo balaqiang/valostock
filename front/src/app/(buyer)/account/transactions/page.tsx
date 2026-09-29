@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { getMyTransactions } from "@/lib/data/me";
 
 export const metadata: Metadata = {
-  title: "Transaksi — valostock.id",
+  title: "Transaksi | valostock.id",
 };
 
 // Top-ups made while logged in (SITEMAP §5.3). Account-marketplace orders

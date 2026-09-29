@@ -7,7 +7,7 @@ import { adminGet, type AdminReport } from "@/lib/data/admin";
 import { reportReasonLabel } from "@/lib/labels";
 import { formatDbDateTime } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Laporan Pengguna — Admin" };
+export const metadata: Metadata = { title: "Laporan Pengguna | Admin" };
 
 const TABS = [
   { value: "OPEN", label: "Terbuka" },

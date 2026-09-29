@@ -41,8 +41,8 @@ import { buildCollection } from "./collection";
 function AttributeSheet({ listing, fields }: { listing: MockListing; fields: FieldTemplate[] }) {
   const value = (f: FieldTemplate) => {
     const v = listing.attributes[f.key];
-    if (v === undefined || v === null || v === "") return "—";
-    if (Array.isArray(v)) return v.length ? v.join(", ") : "—";
+    if (v === undefined || v === null || v === "") return "-";
+    if (Array.isArray(v)) return v.length ? v.join(", ") : "-";
     return typeof v === "number" ? v.toLocaleString("id-ID") : String(v);
   };
   return (
@@ -69,8 +69,8 @@ export async function generateMetadata({
   const listing = await getListing(id);
   return {
     title: listing
-      ? `${listing.title} — valostock.id`
-      : "Akun tidak ditemukan — valostock.id",
+      ? `${listing.title} | valostock.id`
+      : "Akun tidak ditemukan | valostock.id",
   };
 }
 
@@ -183,7 +183,7 @@ function DescriptionSheet({ listing }: { listing: MockListing }) {
                 ))}
               </span>
             ) : (
-              "—"
+              "-"
             )
           }
         />
@@ -280,7 +280,7 @@ export default async function CatalogDetailPage({
                   <p className="min-w-0 flex-1 text-sm text-text">
                     <span className="font-semibold">Account Checked</span>{" "}
                     <span className="text-text-secondary">
-                      — diinspeksi oleh {listing.store} · {formatDbDateTime(inspection.date)}
+                      diinspeksi oleh {listing.store} · {formatDbDateTime(inspection.date)}
                     </span>
                   </p>
                   <span className="flex-none -rotate-3 rounded border border-primary/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-primary">
@@ -290,7 +290,7 @@ export default async function CatalogDetailPage({
               )}
               {listing.status !== "LISTED" && (
                 <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                  Akun ini sedang dalam transaksi pembeli lain. Simpan ke wishlist — jika transaksinya batal, akun kembali dijual.
+                  Akun ini sedang dalam transaksi pembeli lain. Simpan ke wishlist, jika transaksinya batal, akun kembali dijual.
                 </div>
               )}
 
@@ -419,7 +419,7 @@ export default async function CatalogDetailPage({
                   )}
                 </div>
                 <p className="mt-1.5 text-xs text-text-secondary">
-                  Deklarasi mandiri penjual — bukan verifikasi platform.
+                  Deklarasi mandiri penjual, bukan verifikasi platform.
                   Deklarasi palsu berujung suspensi permanen.
                 </p>
               </div>
@@ -510,7 +510,7 @@ export default async function CatalogDetailPage({
                   </li>
                   <li className="flex items-center gap-2.5">
                     <MessageSquare className="h-4 w-4 flex-none text-primary" />
-                    Serah terima di Rekber Room — diawasi admin, tercatat
+                    Serah terima di Rekber Room, diawasi admin, tercatat
                     sebagai bukti
                   </li>
                   <li className="flex items-center gap-2.5">
@@ -581,7 +581,7 @@ export default async function CatalogDetailPage({
                 </div>
 
                 <p className="mt-3 text-center text-xs text-text-secondary">
-                  Akun dikunci otomatis untukmu selama menunggu pembayaran (60 menit) — tidak bisa dibeli orang lain.
+                  Akun dikunci otomatis untukmu selama menunggu pembayaran (60 menit), tidak bisa dibeli orang lain.
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-4">

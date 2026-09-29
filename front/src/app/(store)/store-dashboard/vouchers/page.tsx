@@ -5,7 +5,7 @@ import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { getVouchers, requireStore } from "@/lib/data/store";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Voucher Toko — valostock.id" };
+export const metadata: Metadata = { title: "Voucher Toko | valostock.id" };
 
 export default async function VouchersPage() {
   const store = await requireStore("/store-dashboard/vouchers");
@@ -24,7 +24,7 @@ export default async function VouchersPage() {
             columns={3}
             submitLabel="Buat voucher"
             fields={[
-              { name: "code", label: "Kode", type: "text", required: true, placeholder: "HEMAT50", hint: "3–30 huruf/angka" },
+              { name: "code", label: "Kode", type: "text", required: true, placeholder: "HEMAT50", hint: "3 sampai 30 huruf/angka" },
               {
                 name: "kind",
                 label: "Jenis",

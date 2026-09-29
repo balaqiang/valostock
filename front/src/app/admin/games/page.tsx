@@ -5,7 +5,7 @@ import { ApiForm } from "@/components/dashboard/api-form";
 import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { adminGet, type AdminGame } from "@/lib/data/admin";
 
-export const metadata: Metadata = { title: "Game & Kolom — Admin" };
+export const metadata: Metadata = { title: "Game & Kolom | Admin" };
 
 export default async function AdminGamesPage() {
   const data = await adminGet<{ games: AdminGame[] }>("/games");

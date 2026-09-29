@@ -133,7 +133,7 @@ export function OrdersExplorer({ orders }: { orders: OrderView[] }) {
           <EmptyState
             icon={Package}
             title="Belum ada pesanan"
-            body="Tidak ada pesanan di tab ini — coba tab lain atau ubah kata kunci."
+            body="Tidak ada pesanan di tab ini, coba tab lain atau ubah kata kunci."
           />
         </div>
       )}

@@ -6,7 +6,7 @@ import { getAnalytics, requireStore } from "@/lib/data/store";
 import { catalogStatusLabel, catalogStatusTone } from "@/lib/labels";
 import { formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Analytics Toko — valostock.id" };
+export const metadata: Metadata = { title: "Analytics Toko | valostock.id" };
 
 export default async function StoreAnalyticsPage() {
   await requireStore("/store-dashboard/analytics");

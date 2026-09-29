@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/auth";
 import { getMyBalanceLedger } from "@/lib/data/me";
 
 export const metadata: Metadata = {
-  title: "Balance — valostock.id",
+  title: "Balance | valostock.id",
 };
 
 export default async function AccountBalancePage() {
@@ -20,7 +20,7 @@ export default async function AccountBalancePage() {
     <div>
       <PageHeader
         title="Balance (BLC)"
-        description="Saldo closed-loop khusus top-up game — tidak bisa dicairkan atau dipakai membeli akun."
+        description="Saldo closed-loop khusus top-up game, tidak bisa dicairkan atau dipakai membeli akun."
       />
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-gradient-to-br from-primary via-violet-600 to-fuchsia-600 p-6">

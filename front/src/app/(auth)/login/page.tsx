@@ -6,7 +6,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Masuk — valostock.id",
+  title: "Masuk | valostock.id",
 };
 
 export default async function LoginPage() {

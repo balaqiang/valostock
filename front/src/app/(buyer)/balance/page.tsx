@@ -8,9 +8,9 @@ import { VoucherShop } from "@/components/balance/voucher-shop";
 import { requireUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Balance (BLC) — valostock.id",
+  title: "Balance (BLC) | valostock.id",
   description:
-    "Isi Balance closed-loop untuk top-up game lebih cepat — beli voucher, redeem, dan pantau riwayatnya.",
+    "Isi Balance closed-loop untuk top-up game lebih cepat, beli voucher, redeem, dan pantau riwayatnya.",
 };
 
 export default async function BalancePage() {
@@ -28,7 +28,7 @@ export default async function BalancePage() {
               Balance (BLC)
             </h1>
             <p className="mt-2 max-w-2xl text-text-secondary">
-              Saldo prabayar khusus top-up game — 1 BLC = Rp 1. Beli voucher,
+              Saldo prabayar khusus top-up game, 1 BLC = Rp 1. Beli voucher,
               redeem, dan bayar top-up tanpa menunggu konfirmasi pembayaran.
             </p>
           </Container>
@@ -69,7 +69,7 @@ export default async function BalancePage() {
             <Info className="mt-0.5 h-3.5 w-3.5 flex-none text-primary" />
             <p>
               Balance bersifat <span className="font-medium text-text">closed-loop</span>:
-              hanya untuk top-up game di valostock.id — tidak bisa dicairkan,
+              hanya untuk top-up game di valostock.id, tidak bisa dicairkan,
               tidak bisa membeli akun, dan tidak bisa ditransfer ke pengguna
               lain.{" "}
               <Link

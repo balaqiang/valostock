@@ -6,7 +6,7 @@ import { paymentPurposeLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import type { PaymentPurpose } from "@/types/api";
 
-export const metadata: Metadata = { title: "Pembayaran — Admin" };
+export const metadata: Metadata = { title: "Pembayaran | Admin" };
 
 const PURPOSES = Object.keys(paymentPurposeLabel) as PaymentPurpose[];
 const STATUSES = ["PENDING", "PAID", "EXPIRED", "FAILED"];

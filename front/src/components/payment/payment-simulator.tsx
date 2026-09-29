@@ -47,7 +47,7 @@ export function PaymentSimulator() {
     <div className="rounded-2xl border border-amber-500/30 bg-surface p-8">
       <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
         <FlaskConical className="h-3.5 w-3.5" />
-        Mode simulasi — bukan pembayaran sungguhan
+        Mode simulasi, bukan pembayaran sungguhan
       </p>
       <h1 className="mt-4 font-display text-2xl font-bold text-text">Simulasi Pembayaran</h1>
       <p className="mt-1 text-sm text-text-secondary">
@@ -91,7 +91,7 @@ export function PaymentSimulator() {
       )}
       {payment && payment.status !== "PENDING" && (
         <Button href={payment.next} variant="secondary" size="md" className="mt-6">
-          Invoice sudah diproses — lanjut
+          Invoice sudah diproses, lanjut
         </Button>
       )}
     </div>

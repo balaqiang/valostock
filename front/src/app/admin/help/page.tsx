@@ -8,7 +8,7 @@ import { helpCategoryLabel } from "@/lib/labels";
 import { formatDbDateTime } from "@/lib/format";
 import type { HelpCategory } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Pusat Bantuan — Admin" };
+export const metadata: Metadata = { title: "Pusat Bantuan | Admin" };
 
 export default async function AdminHelpPage() {
   const data = await adminGet<{ articles: AdminHelp[]; categories: HelpCategory[] }>("/help");

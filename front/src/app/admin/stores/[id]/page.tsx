@@ -11,7 +11,7 @@ import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import type { OrderStatus } from "@/types/api";
 import type { CatalogStatus } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Detail Toko — Admin" };
+export const metadata: Metadata = { title: "Detail Toko | Admin" };
 
 export default async function AdminStoreDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -183,7 +183,7 @@ export default async function AdminStoreDetailPage({ params }: { params: Promise
           <ul className="space-y-2 text-sm">
             {data.sanctions.map((x) => (
               <li key={x.id} className="rounded-lg bg-red-500/5 px-3 py-2">
-                <span className="font-medium text-red-600">{x.type}</span> {x.amount > 0 && formatRupiah(x.amount)} — {x.reason}
+                <span className="font-medium text-red-600">{x.type}</span> {x.amount > 0 && formatRupiah(x.amount)}, {x.reason}
                 <span className="block text-xs text-text-secondary">
                   {x.admin} · {formatDbDateTime(x.date)}
                 </span>

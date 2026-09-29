@@ -17,7 +17,7 @@ import { customerIdFor, formatDbDateTime } from "@/lib/format";
 const IDENTITY_VERIFIED = false;
 
 export const metadata: Metadata = {
-  title: "Profil Saya — valostock.id",
+  title: "Profil Saya | valostock.id",
 };
 
 function ProfileBlock({
@@ -86,7 +86,7 @@ export default async function ProfilePage() {
               }
             />
             <Row label="Negara/Wilayah" value="Indonesia" />
-            <Row label="Nomor Telepon" value={<span className="num">{user.phone ?? "—"}</span>} />
+            <Row label="Nomor Telepon" value={<span className="num">{user.phone ?? "-"}</span>} />
             <Row label="Terdaftar" value={<span className="num">{formatDbDateTime(user.created_at)}</span>} />
           </dl>
         </ProfileBlock>
@@ -99,7 +99,7 @@ export default async function ProfilePage() {
             </Badge>
             <p className="text-xs text-text-secondary">
               Pembeli tidak perlu verifikasi identitas. Verifikasi hanya untuk
-              pemilik toko — diperiksa manual oleh admin saat membuka toko.
+              pemilik toko, diperiksa manual oleh admin saat membuka toko.
             </p>
           </div>
         </ProfileBlock>
@@ -128,7 +128,7 @@ export default async function ProfilePage() {
             resetOnSuccess={false}
             fields={[
               { name: "name", label: "Nama", type: "text", required: true, defaultValue: user.name },
-              { name: "phone", label: "Nomor HP", type: "text", defaultValue: user.phone ?? "", hint: "Contoh 081234567890 — bisa dipakai untuk login." },
+              { name: "phone", label: "Nomor HP", type: "text", defaultValue: user.phone ?? "", hint: "Contoh 081234567890, bisa dipakai untuk login." },
             ]}
           />
         </ProfileBlock>

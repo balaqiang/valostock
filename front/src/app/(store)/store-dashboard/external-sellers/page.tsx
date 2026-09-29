@@ -8,9 +8,9 @@ import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { getExternalSellers, getTransfers, requireStore } from "@/lib/data/store";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Penjual Eksternal — valostock.id" };
+export const metadata: Metadata = { title: "Penjual Eksternal | valostock.id" };
 
-const PAYOUT = { PENDING: ["Menunggu admin", "warning"], COMPLETED: ["Terkirim", "success"], REJECTED: ["Ditolak — dana kembali", "destructive"] } as const;
+const PAYOUT = { PENDING: ["Menunggu admin", "warning"], COMPLETED: ["Terkirim", "success"], REJECTED: ["Ditolak, dana kembali", "destructive"] } as const;
 
 export default async function ExternalSellersPage() {
   const store = await requireStore("/store-dashboard/external-sellers");
@@ -36,7 +36,7 @@ export default async function ExternalSellersPage() {
           fields={[
             { name: "alias", label: "Nama / alias", type: "text", required: true },
             { name: "payoutBank", label: "Bank / e-wallet", type: "text", required: true, placeholder: "BCA" },
-            { name: "payoutAccount", label: "Nomor rekening", type: "text", required: true, hint: "6–20 digit" },
+            { name: "payoutAccount", label: "Nomor rekening", type: "text", required: true, hint: "6 sampai 20 digit" },
             { name: "payoutName", label: "Nama pemilik rekening", type: "text", required: true },
             { name: "note", label: "Catatan internal", type: "textarea" },
           ]}

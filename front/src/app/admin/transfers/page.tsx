@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { adminGet, type TransferView } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Transfer Penjual Eksternal — Admin" };
+export const metadata: Metadata = { title: "Transfer Penjual Eksternal | Admin" };
 
 const TABS = [
   { value: "PENDING", label: "Menunggu" },

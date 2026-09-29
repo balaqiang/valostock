@@ -67,7 +67,7 @@ const voucherSchema = z
       .string()
       .trim()
       .toUpperCase()
-      .regex(/^[A-Z0-9]{3,30}$/, 'kode 3–30 huruf/angka'),
+      .regex(/^[A-Z0-9]{3,30}$/, 'kode 3 sampai 30 huruf/angka'),
     kind: z.enum(['PERCENT', 'FIXED']),
     value: z.number().int().positive().max(10_000_000),
     minSpend: z.number().int().min(0).max(1_000_000_000).default(0),
@@ -107,7 +107,7 @@ promotionsRouter.delete('/stores/me/vouchers/:id', writeLimiter, async (req, res
   const { store } = await ownStore(req);
   const id = parse(idParam, req.params.id);
   if (await one(pool, 'select 1 from voucher_redemptions where voucher_id = $1', [id])) {
-    throw conflict('Voucher yang sudah dipakai tidak bisa dihapus — nonaktifkan saja.');
+    throw conflict('Voucher yang sudah dipakai tidak bisa dihapus, nonaktifkan saja.');
   }
   if ((await run(pool, 'delete from store_vouchers where id = $1 and store_id = $2', [id, store.id])) === 0) throw notFound('Voucher');
   res.json({ ok: true });

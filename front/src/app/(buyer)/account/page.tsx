@@ -20,7 +20,7 @@ import { getMyTransactions } from "@/lib/data/me";
 
 
 export const metadata: Metadata = {
-  title: "Dashboard Akun — valostock.id",
+  title: "Dashboard Akun | valostock.id",
 };
 
 function OverviewRow({
@@ -61,14 +61,14 @@ export default async function AccountDashboardPage() {
         <OverviewRow icon={Crown} label="Status Akun">
           <Badge>{user.role === "ADMIN" ? "ADMIN" : "PEMBELI"}</Badge>
           <span className="text-xs text-text-secondary">
-            — belanja bebas tanpa verifikasi identitas
+            belanja bebas tanpa verifikasi identitas
           </span>
         </OverviewRow>
         <OverviewRow icon={CircleUserRound} label="Customer ID">
           <span className="num font-medium">{customerIdFor(user.id)}</span>
         </OverviewRow>
         <OverviewRow icon={Phone} label="Nomor HP">
-          <span className="num">{user.phone ?? "—"}</span>
+          <span className="num">{user.phone ?? "-"}</span>
           <Link href="/account/profile" className="text-xs font-medium text-primary">Ubah</Link>
         </OverviewRow>
         <OverviewRow icon={Wallet} label="Balance (BLC)">
@@ -111,7 +111,7 @@ export default async function AccountDashboardPage() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-text">Buka Toko di valostock.id</p>
           <p className="text-xs text-text-secondary">
-            Verifikasi admin + deposit Rp500 ribu — jual akunmu dengan escrow, Rekber
+            Verifikasi admin + deposit Rp500 ribu, jual akunmu dengan escrow, Rekber
             Room, dan payout 5 jam.
           </p>
         </div>

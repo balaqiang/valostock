@@ -6,7 +6,7 @@ import { adminGet, type DisputeSummary } from "@/lib/data/admin";
 import { disputeReasonLabel, disputeStatusLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Sengketa — Admin" };
+export const metadata: Metadata = { title: "Sengketa | Admin" };
 
 const TABS = [
   { value: "ACTIVE", label: "Berjalan" },

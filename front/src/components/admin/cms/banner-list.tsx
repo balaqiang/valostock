@@ -20,7 +20,7 @@ const STATUS: Record<CmsBanner["status"], { label: string; variant: "success" | 
 export function CmsBannerList({ banners }: { banners: CmsBanner[] }) {
   const [editing, setEditing] = useState<string | null>(null);
   if (banners.length === 0) {
-    return <p className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-text-secondary">Belum ada banner — beranda memakai hero teks.</p>;
+    return <p className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-text-secondary">Belum ada banner, beranda memakai hero teks.</p>;
   }
   return (
     <ul className="space-y-3">
@@ -43,7 +43,7 @@ export function CmsBannerList({ banners }: { banners: CmsBanner[] }) {
                 <p className="mt-1 text-xs text-text-secondary">
                   {b.ctaLabel && b.linkUrl ? `Tombol "${b.ctaLabel}" → ${b.linkUrl}` : "Tanpa tombol"}
                   {(b.startsAt || b.endsAt) &&
-                    ` · ${b.startsAt ? formatDbDateTime(b.startsAt) : "sekarang"} – ${b.endsAt ? formatDbDateTime(b.endsAt) : "seterusnya"}`}
+                    ` · ${b.startsAt ? formatDbDateTime(b.startsAt) : "sekarang"} sampai ${b.endsAt ? formatDbDateTime(b.endsAt) : "seterusnya"}`}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 sm:flex-col sm:items-end">

@@ -5,7 +5,7 @@ import { getStoreDisputes, requireStore } from "@/lib/data/store";
 import { disputeReasonLabel, disputeStatusLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Sengketa — valostock.id" };
+export const metadata: Metadata = { title: "Sengketa | valostock.id" };
 
 export default async function StoreDisputesPage() {
   await requireStore("/store-dashboard/disputes");

@@ -2,7 +2,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 
 export const uuid = (): string => randomUUID();
 
-const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // no 0/O/1/I — easy to read aloud
+const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // no 0/O/1/I, easy to read aloud
 
 export function randomCode(length: number): string {
   let code = '';

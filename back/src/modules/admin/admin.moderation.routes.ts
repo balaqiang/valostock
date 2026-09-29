@@ -332,7 +332,7 @@ adminModerationRouter.post('/admin/stores/:id/close-decision', async (req, res) 
     if (store.status !== 'CLOSING') throw conflict('Toko ini tidak sedang mengajukan penutupan.', 'BAD_STATE');
     if (decision === 'approve') {
       const bal = await one<{ escrow: number; available: number; deposit: number }>(tx, 'select escrow, available, deposit from store_balances where store_id = $1', [id]);
-      if ((bal?.escrow ?? 0) + (bal?.available ?? 0) > 0) throw conflict('Saldo toko belum nol — toko harus menarik dana dulu.', 'BALANCE_LEFT');
+      if ((bal?.escrow ?? 0) + (bal?.available ?? 0) > 0) throw conflict('Saldo toko belum nol, toko harus menarik dana dulu.', 'BALANCE_LEFT');
       if (bal && bal.deposit > 0) {
         await moveStoreBalance(tx, id, [
           { bucket: 'DEPOSIT', type: 'DEPOSIT_REFUND', amount: -bal.deposit, refType: 'deposit', refId: id, note: 'Refund deposit (penutupan toko, disimulasikan)' },
@@ -350,7 +350,7 @@ adminModerationRouter.post('/admin/stores/:id/close-decision', async (req, res) 
       });
     } else {
       await run(tx, `update stores set status = 'ACTIVE', review_note = $1, reviewed_by = $2, reviewed_at = now() where id = $3`, [note!, user.id, id]);
-      await notifyStore(tx, id, { title: 'Penutupan toko ditolak', body: `${note} Katalog tetap tersembunyi — ajukan ulang dari dashboard.`, link: '/store-dashboard/settings' });
+      await notifyStore(tx, id, { title: 'Penutupan toko ditolak', body: `${note} Katalog tetap tersembunyi, ajukan ulang dari dashboard.`, link: '/store-dashboard/settings' });
     }
     await audit(tx, { actorId: user.id, action: `store.close_${decision}`, targetType: 'store', targetId: id, detail: { note }, ip: ipOf(req) });
   });

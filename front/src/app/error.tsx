@@ -24,7 +24,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         </span>
         <h1 className="mt-6 font-display text-2xl font-bold tracking-tight text-text">Halaman ini gagal dimuat</h1>
         <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-          Terjadi kesalahan saat menampilkan halaman. Pembayaran dan saldo tidak terpengaruh — semuanya dicatat di server. Coba muat ulang; jika tetap gagal, hubungi tim bantuan dan sertakan kode di bawah.
+          Terjadi kesalahan saat menampilkan halaman. Pembayaran dan saldo tidak terpengaruh, semuanya dicatat di server. Coba muat ulang; jika tetap gagal, hubungi tim bantuan dan sertakan kode di bawah.
         </p>
         {error.digest && <p className="num mt-4 text-xs text-text-secondary">Kode: {error.digest}</p>}
         <div className="mt-8 flex flex-wrap justify-center gap-3">

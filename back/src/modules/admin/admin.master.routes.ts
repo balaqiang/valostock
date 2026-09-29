@@ -215,7 +215,7 @@ adminMasterRouter.delete('/admin/fields/:id', async (req, res) => {
   const f = await one<{ game_id: number; key: string }>(pool, 'select game_id, key from game_field_templates where id = $1', [id]);
   if (!f) throw notFound('Kolom');
   if (await one(pool, `select 1 from catalogs where game_id = $1 and attributes ? $2 and status <> 'SOLD'`, [f.game_id, f.key])) {
-    throw conflict('Kolom ini masih dipakai katalog aktif — jadikan opsional saja.');
+    throw conflict('Kolom ini masih dipakai katalog aktif, jadikan opsional saja.');
   }
   await run(pool, 'delete from game_field_templates where id = $1', [id]);
   await audit(pool, { actorId: user.id, action: 'field.delete', targetType: 'field', targetId: id, detail: f, ip: ipOf(req) });
@@ -356,7 +356,7 @@ const promoFields = {
     .string()
     .trim()
     .toUpperCase()
-    .regex(/^[A-Z0-9]{3,30}$/, 'kode 3–30 huruf/angka'),
+    .regex(/^[A-Z0-9]{3,30}$/, 'kode 3 sampai 30 huruf/angka'),
   kind: z.enum(['PERCENT', 'FIXED']),
   value: z.number().int().positive().max(10_000_000),
   minSpend: z.number().int().min(0).max(100_000_000),

@@ -20,8 +20,8 @@ export async function generateMetadata({
   const article = await getHelpArticle(slug);
   return {
     title: article
-      ? `${article.title} — Pusat Bantuan valostock.id`
-      : "Artikel tidak ditemukan — valostock.id",
+      ? `${article.title}, Pusat Bantuan valostock.id`
+      : "Artikel tidak ditemukan | valostock.id",
     description: article?.excerpt,
   };
 }

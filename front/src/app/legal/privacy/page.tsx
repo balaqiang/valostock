@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalArticle, type LegalSection } from "@/components/legal/legal-article";
 
 export const metadata: Metadata = {
-  title: "Kebijakan Privasi — valostock.id",
+  title: "Kebijakan Privasi | valostock.id",
   description:
     "Bagaimana valostock.id mengumpulkan, memakai, dan melindungi datamu.",
 };
@@ -38,7 +38,7 @@ const sections: LegalSection[] = [
   {
     title: "Penyimpanan & Keamanan",
     items: [
-      "Media sensitif (bukti inspeksi, bukti sengketa, lampiran chat) tersimpan di penyimpanan privat dan hanya diakses lewat tautan bertanda tangan (signed URL) — tidak pernah publik.",
+      "Media sensitif (bukti inspeksi, bukti sengketa, lampiran chat) tersimpan di penyimpanan privat dan hanya diakses lewat tautan bertanda tangan (signed URL), tidak pernah publik.",
       "Data sensitif seperti rekening bank dienkripsi saat disimpan.",
       "Akses admin dibatasi berdasarkan peran (RBAC), diwajibkan 2FA, dan setiap aksi sensitif tercatat di log audit.",
     ],
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
     <LegalArticle
       title="Kebijakan Privasi"
       updated="2026-07-12"
-      intro="Privasi dan keamanan datamu adalah bagian dari cara kerja platform ini — mulai dari penyimpanan privat untuk media bukti sampai enkripsi data sensitif. Kebijakan ini menjelaskan data apa yang kami kumpulkan, untuk apa, dan hakmu atasnya."
+      intro="Privasi dan keamanan datamu adalah bagian dari cara kerja platform ini, mulai dari penyimpanan privat untuk media bukti sampai enkripsi data sensitif. Kebijakan ini menjelaskan data apa yang kami kumpulkan, untuk apa, dan hakmu atasnya."
       sections={sections}
     />
   );

@@ -7,7 +7,7 @@ import { adminGet, type OrderView } from "@/lib/data/admin";
 import { orderStatusLabel, orderStatusTone } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Pesanan — Admin" };
+export const metadata: Metadata = { title: "Pesanan | Admin" };
 
 const STATUSES = ["PENDING_PAYMENT", "PAID", "IN_REKBER", "SAFE", "COMPLETED", "DISPUTED", "REFUNDED", "CANCELLED"] as const;
 

@@ -17,7 +17,7 @@ export function HelpfulVote() {
       >
         {vote === "up"
           ? "Terima kasih atas masukanmu! 🎉"
-          : "Terima kasih — kami akan perbaiki artikel ini."}
+          : "Terima kasih, kami akan perbaiki artikel ini."}
       </motion.p>
     );
   }

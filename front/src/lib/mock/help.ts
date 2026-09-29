@@ -43,13 +43,13 @@ export const helpArticles: MockHelpArticle[] = [
           "Cari akun lewat pencarian atau halaman game, lalu buka detailnya.",
           "Beli langsung, atau nego dulu lewat tombol Tawar.",
           "Bayar: harga akun + biaya penanganan (maks. 3,5%, min. Rp4.000) + proteksi Rp5.000. Dana ditahan di escrow.",
-          "Rekber Room terbuka — toko menyerahkan akun, kamu ganti email/password/2FA dan periksa isinya.",
+          "Rekber Room terbuka, toko menyerahkan akun, kamu ganti email/password/2FA dan periksa isinya.",
           "Tekan Selesai. Dana baru diteruskan ke toko setelah konfirmasimu, lalu beri rating.",
         ],
       },
       {
         type: "paragraph",
-        text: "Pembeli tidak perlu verifikasi identitas. Semua transaksi wajib di dalam platform — transaksi di luar menghilangkan escrow dan seluruh perlindunganmu.",
+        text: "Pembeli tidak perlu verifikasi identitas. Semua transaksi wajib di dalam platform, transaksi di luar menghilangkan escrow dan seluruh perlindunganmu.",
       },
     ],
   },
@@ -65,7 +65,7 @@ export const helpArticles: MockHelpArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Chat biasa hanya untuk tanya jawab — dilarang bertransaksi, bertukar email, atau nomor telepon di sana.",
+        text: "Chat biasa hanya untuk tanya jawab, dilarang bertransaksi, bertukar email, atau nomor telepon di sana.",
       },
     ],
   },
@@ -87,7 +87,7 @@ export const helpArticles: MockHelpArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Deposit adalah jaminan keamanan, bukan biaya layanan — bisa dikembalikan saat toko tutup dengan syarat akun bersih (lihat aturan toko).",
+        text: "Deposit adalah jaminan keamanan, bukan biaya layanan, bisa dikembalikan saat toko tutup dengan syarat akun bersih (lihat aturan toko).",
       },
     ],
   },
@@ -99,7 +99,7 @@ export const helpArticles: MockHelpArticle[] = [
     body: [
       {
         type: "paragraph",
-        text: "Owner Store menjual akun miliknya sendiri. Reseller Store menjual akun titipan penjual eksternal — dan memikul tanggung jawab penuh atas identitas penjual, keaslian akun, dan kerugian pembeli. Platform hanya mengenal dan menindak toko: pembeli melapor dan menilai toko, bukan penjual eksternalnya.",
+        text: "Owner Store menjual akun miliknya sendiri. Reseller Store menjual akun titipan penjual eksternal, dan memikul tanggung jawab penuh atas identitas penjual, keaslian akun, dan kerugian pembeli. Platform hanya mengenal dan menindak toko: pembeli melapor dan menilai toko, bukan penjual eksternalnya.",
       },
     ],
   },
@@ -107,15 +107,15 @@ export const helpArticles: MockHelpArticle[] = [
     slug: "biaya-di-valostock",
     title: "Rincian biaya: komisi, penanganan, dan proteksi",
     category: "FEES_WITHDRAWAL",
-    excerpt: "Tiga biaya sederhana — tanpa biaya posting atau biaya tersembunyi.",
+    excerpt: "Tiga biaya sederhana, tanpa biaya posting atau biaya tersembunyi.",
     popular: true,
     body: [
       {
         type: "list",
         items: [
-          "Komisi platform 5% dari harga final — dipotong dari toko saat pesanan selesai (Premium: 4,5% / 4%).",
-          "Biaya penanganan maks. 3,5% (min. Rp4.000) — dibayar pembeli saat checkout.",
-          "Proteksi Rp5.000 per pesanan — dibayar pembeli, jendela dukungan 14/30 hari.",
+          "Komisi platform 5% dari harga final, dipotong dari toko saat pesanan selesai (Premium: 4,5% / 4%).",
+          "Biaya penanganan maks. 3,5% (min. Rp4.000), dibayar pembeli saat checkout.",
+          "Proteksi Rp5.000 per pesanan, dibayar pembeli, jendela dukungan 14/30 hari.",
           "Biaya penarikan toko Rp4.000 (+Rp2.500 pajak antarbank).",
         ],
       },
@@ -145,7 +145,7 @@ export const helpArticles: MockHelpArticle[] = [
     slug: "aturan-listing-akun",
     title: "Aturan listing: kategori, deskripsi, dan ID katalog VS",
     category: "BEFORE_SALE",
-    excerpt: "Satu akun = satu katalog — tidak bisa dijual dua kali.",
+    excerpt: "Satu akun = satu katalog, tidak bisa dijual dua kali.",
     body: [
       {
         type: "paragraph",
@@ -186,7 +186,7 @@ export const helpArticles: MockHelpArticle[] = [
           "Ajukan dalam 72 jam sejak masalah terjadi, lewat halaman pesanan (bukan chat).",
           "Sertakan pernyataan lengkap + bukti: riwayat Rekber Room, tangkapan layar, bukti pengiriman.",
           "Kedua pihak memberi tanggapan sesuai timeline yang bisa dipantau.",
-          "Jika tidak tercapai kesepakatan, platform mengarbitrase — keputusan final.",
+          "Jika tidak tercapai kesepakatan, platform mengarbitrase, keputusan final.",
         ],
       },
       {
@@ -199,21 +199,21 @@ export const helpArticles: MockHelpArticle[] = [
     slug: "kebijakan-refund-top-up",
     title: "Kebijakan refund top-up",
     category: "TOPUP",
-    excerpt: "Refund hanya jika item game tidak masuk — dikembalikan ke Balance.",
+    excerpt: "Refund hanya jika item game tidak masuk, dikembalikan ke Balance.",
     popular: true,
     body: [
       {
         type: "list",
         items: [
           "Top-up yang berhasil (VP/diamond sudah masuk) tidak bisa direfund.",
-          "Jika item game tidak masuk ke akunmu, dana dikembalikan ke Balance (BLC) — bukan uang tunai.",
+          "Jika item game tidak masuk ke akunmu, dana dikembalikan ke Balance (BLC), bukan uang tunai.",
           "Cek status pesananmu kapan saja di halaman Cek Invoice dengan nomor invoice.",
           "Jika ada kendala, tim kami menghubungimu lewat email/WhatsApp yang kamu isi saat memesan.",
         ],
       },
       {
         type: "paragraph",
-        text: "Pastikan UID/ID player yang kamu masukkan benar — kesalahan pengisian UID di luar tanggung jawab platform.",
+        text: "Pastikan UID/ID player yang kamu masukkan benar, kesalahan pengisian UID di luar tanggung jawab platform.",
       },
     ],
   },
@@ -239,7 +239,7 @@ export const helpArticles: MockHelpArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Jika batasan ini dilonggarkan, Balance berubah status menjadi uang elektronik yang butuh lisensi — karena itu aturan ini berlaku mutlak. Pembelian akun tetap menggunakan pembayaran reguler lewat escrow.",
+        text: "Jika batasan ini dilonggarkan, Balance berubah status menjadi uang elektronik yang butuh lisensi, karena itu aturan ini berlaku mutlak. Pembelian akun tetap menggunakan pembayaran reguler lewat escrow.",
       },
     ],
   },

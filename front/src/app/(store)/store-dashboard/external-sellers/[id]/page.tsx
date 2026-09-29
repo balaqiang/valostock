@@ -6,7 +6,7 @@ import { getExternalSeller, getStoreBalance, getTransfers, requireStore } from "
 import { TRANSFER_FEE } from "@/lib/fees";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Penjual Eksternal — valostock.id" };
+export const metadata: Metadata = { title: "Penjual Eksternal | valostock.id" };
 
 export default async function ExternalSellerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,7 +44,7 @@ export default async function ExternalSellerDetailPage({ params }: { params: Pro
               endpoint="/api/stores/me/transfers"
               extra={{ externalSellerId: seller.id }}
               submitLabel="Ajukan transfer"
-              successMessage="Transfer diajukan — menunggu persetujuan admin."
+              successMessage="Transfer diajukan, menunggu persetujuan admin."
               fields={[
                 {
                   name: "orderId",

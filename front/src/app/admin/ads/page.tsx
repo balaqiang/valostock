@@ -6,7 +6,7 @@ import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { adminGet, type AdminAds } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Iklan & Langganan — Admin" };
+export const metadata: Metadata = { title: "Iklan & Langganan | Admin" };
 
 export default async function AdminAdsPage() {
   const data = await adminGet<AdminAds>("/ads");
@@ -27,7 +27,7 @@ export default async function AdminAdsPage() {
               <Td className="text-xs">{a.store}</Td>
               <Td>{a.durationDays} hari</Td>
               <Td className="num">{a.isFree ? "Gratis" : formatRupiah(a.price)}</Td>
-              <Td className="text-xs text-text-secondary">{a.startsAt ? `${formatDbDateTime(a.startsAt)} – ${a.endsAt ? formatDbDateTime(a.endsAt) : ""}` : "-"}</Td>
+              <Td className="text-xs text-text-secondary">{a.startsAt ? `${formatDbDateTime(a.startsAt)} sampai ${a.endsAt ? formatDbDateTime(a.endsAt) : ""}` : "-"}</Td>
               <Td>
                 <Tone tone={a.status === "ACTIVE" ? "success" : a.status === "STOPPED" ? "destructive" : "secondary"}>{a.status}</Tone>
                 {a.stopReason && <p className="mt-1 text-xs text-text-secondary">{a.stopReason}</p>}

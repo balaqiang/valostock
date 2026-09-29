@@ -51,12 +51,12 @@ export const newsArticles: MockNewsArticle[] = [
     body: [
       {
         type: "paragraph",
-        text: "Hari ini valostock.id resmi dibuka untuk publik. Kami membangun marketplace ini karena jual beli akun game selama ini berjalan lewat grup WhatsApp — lambat, rawan penipuan, dan tanpa jejak bukti. valostock.id memindahkan seluruh proses itu ke satu tempat yang tercatat dan diawasi.",
+        text: "Hari ini valostock.id resmi dibuka untuk publik. Kami membangun marketplace ini karena jual beli akun game selama ini berjalan lewat grup WhatsApp, lambat, rawan penipuan, dan tanpa jejak bukti. valostock.id memindahkan seluruh proses itu ke satu tempat yang tercatat dan diawasi.",
       },
       { type: "heading", text: "Hanya toko terverifikasi yang berjualan" },
       {
         type: "paragraph",
-        text: "Di valostock.id, penjual adalah Toko yang identitas pemiliknya sudah diverifikasi admin dan menyetor deposit keamanan Rp500.000. Pembeli tidak perlu verifikasi identitas — cukup daftar dan langsung belanja. Akuntabilitas terpusat di toko, dan itulah yang membuat sanksi bisa ditegakkan.",
+        text: "Di valostock.id, penjual adalah Toko yang identitas pemiliknya sudah diverifikasi admin dan menyetor deposit keamanan Rp500.000. Pembeli tidak perlu verifikasi identitas, cukup daftar dan langsung belanja. Akuntabilitas terpusat di toko, dan itulah yang membuat sanksi bisa ditegakkan.",
       },
       { type: "heading", text: "Dana lewat escrow, bukan transfer langsung" },
       {
@@ -66,7 +66,7 @@ export const newsArticles: MockNewsArticle[] = [
       { type: "image", src: "/images/products/2.jpeg", alt: "Marketplace valostock.id" },
       {
         type: "paragraph",
-        text: "Setiap pesanan juga dilengkapi proteksi pembeli dengan jendela dukungan 14 hari (akun ≤ Rp10 juta) atau 30 hari (akun > Rp10 juta). Selamat berbelanja — dan selamat datang di cara baru jual beli akun game.",
+        text: "Setiap pesanan juga dilengkapi proteksi pembeli dengan jendela dukungan 14 hari (akun ≤ Rp10 juta) atau 30 hari (akun > Rp10 juta). Selamat berbelanja, dan selamat datang di cara baru jual beli akun game.",
       },
     ],
   },
@@ -77,26 +77,26 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Fitur Tawar Kini Hadir: Nego Harga Langsung dengan Toko",
     excerpt:
-      "Ajukan penawaran lewat tombol Tawar — toko bisa menerima, menolak, atau memberi harga balik sebelum penawaran kedaluwarsa.",
+      "Ajukan penawaran lewat tombol Tawar, toko bisa menerima, menolak, atau memberi harga balik sebelum penawaran kedaluwarsa.",
     cover: "/images/products/3.jpeg",
     body: [
       {
         type: "paragraph",
-        text: "Nego harga adalah bagian alami dari jual beli akun — dan sekarang kamu tidak perlu keluar platform untuk melakukannya. Fitur Tawar sudah aktif di semua halaman detail akun.",
+        text: "Nego harga adalah bagian alami dari jual beli akun, dan sekarang kamu tidak perlu keluar platform untuk melakukannya. Fitur Tawar sudah aktif di semua halaman detail akun.",
       },
       { type: "heading", text: "Cara kerjanya" },
       {
         type: "list",
         items: [
           "Buka halaman akun yang kamu incar, lalu tekan tombol Tawar.",
-          "Isi harga penawaranmu dan kirim — setiap penawaran punya masa berlaku.",
+          "Isi harga penawaranmu dan kirim, setiap penawaran punya masa berlaku.",
           "Toko bisa Menerima, Menolak, atau memberi Penawaran Balik.",
           "Jika penawaran diterima, harga dan listing langsung terkunci untukmu.",
         ],
       },
       {
         type: "paragraph",
-        text: "Setelah harga terkunci, kamu tinggal melanjutkan ke pembayaran seperti biasa — dana tetap lewat escrow, dan komisi platform dihitung dari harga final yang disepakati. Ingin memastikan akun tidak diambil orang lain saat kamu berpikir? Gunakan Lock opsional Rp5.000 untuk mengunci akun selama 30 menit.",
+        text: "Setelah harga terkunci, kamu tinggal melanjutkan ke pembayaran seperti biasa, dana tetap lewat escrow, dan komisi platform dihitung dari harga final yang disepakati. Ingin memastikan akun tidak diambil orang lain saat kamu berpikir? Gunakan Lock opsional Rp5.000 untuk mengunci akun selama 30 menit.",
       },
       {
         type: "paragraph",
@@ -116,13 +116,13 @@ export const newsArticles: MockNewsArticle[] = [
     body: [
       {
         type: "paragraph",
-        text: "Klaim tanpa bukti tidak berarti apa-apa. Karena itu kami tidak pernah memakai istilah seperti \"100% aman\" — sebagai gantinya, kami memberi toko cara untuk membuktikan kondisi akunnya lewat Account Inspection.",
+        text: "Klaim tanpa bukti tidak berarti apa-apa. Karena itu kami tidak pernah memakai istilah seperti \"100% aman\", sebagai gantinya, kami memberi toko cara untuk membuktikan kondisi akunnya lewat Account Inspection.",
       },
       { type: "heading", text: "Apa yang diperiksa" },
       {
         type: "list",
         items: [
-          "Login berhasil tanpa kendala (login-only — email dan password tidak diubah).",
+          "Login berhasil tanpa kendala (login-only, email dan password tidak diubah).",
           "Tidak ada pembatasan atau penalti aktif di akun.",
           "Isi inventory dan rank sesuai dengan deskripsi listing.",
           "2FA tetap aktif di tangan penjual sampai serah terima.",
@@ -146,7 +146,7 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Cara Kerja Rekber Room: Serah Terima yang Diawasi Admin",
     excerpt:
-      "Setelah pembayaran masuk escrow, Rekber Room terbuka — di sinilah akun diserahkan, diperiksa, dan semua percakapan tercatat.",
+      "Setelah pembayaran masuk escrow, Rekber Room terbuka, di sinilah akun diserahkan, diperiksa, dan semua percakapan tercatat.",
     cover: "/images/products/6.jpeg",
     body: [
       {
@@ -159,14 +159,14 @@ export const newsArticles: MockNewsArticle[] = [
         items: [
           "Toko menyerahkan akses akun di dalam Rekber Room.",
           "Kamu mengganti email, password, dan 2FA akun tersebut.",
-          "Periksa isi akun — rank, skin, dan detail lain sesuai listing.",
+          "Periksa isi akun, rank, skin, dan detail lain sesuai listing.",
           "Tekan Selesai. Dana baru diteruskan ke toko setelah konfirmasimu.",
         ],
       },
       { type: "heading", text: "Kenapa harus di dalam platform?" },
       {
         type: "paragraph",
-        text: "Rekber Room diawasi admin dan seluruh percakapannya tersimpan. Jika terjadi sengketa, riwayat ruangan inilah yang menjadi bukti utama — sesuatu yang tidak kamu dapatkan saat bertransaksi lewat chat pribadi. Karena itu pula transaksi di luar platform melanggar aturan dan menghilangkan perlindunganmu.",
+        text: "Rekber Room diawasi admin dan seluruh percakapannya tersimpan. Jika terjadi sengketa, riwayat ruangan inilah yang menjadi bukti utama, sesuatu yang tidak kamu dapatkan saat bertransaksi lewat chat pribadi. Karena itu pula transaksi di luar platform melanggar aturan dan menghilangkan perlindunganmu.",
       },
       {
         type: "paragraph",
@@ -181,12 +181,12 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Flash Sale Juli: Diskon dari Toko Pilihan Sepanjang Bulan",
     excerpt:
-      "Toko-toko pilihan menggelar flash sale bergilir sepanjang Juli — pantau jadwalnya supaya tidak kehabisan.",
+      "Toko-toko pilihan menggelar flash sale bergilir sepanjang Juli, pantau jadwalnya supaya tidak kehabisan.",
     cover: "/images/products/7.jpeg",
     body: [
       {
         type: "paragraph",
-        text: "Bulan ini toko-toko di valostock.id menggelar flash sale bergilir. Setiap periode berlangsung singkat dengan stok terbatas — akun yang masuk flash sale ditandai dengan label khusus dan harga coret di marketplace.",
+        text: "Bulan ini toko-toko di valostock.id menggelar flash sale bergilir. Setiap periode berlangsung singkat dengan stok terbatas, akun yang masuk flash sale ditandai dengan label khusus dan harga coret di marketplace.",
       },
       { type: "heading", text: "Yang perlu kamu tahu" },
       {
@@ -200,7 +200,7 @@ export const newsArticles: MockNewsArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Tambahkan akun incaranmu ke wishlist dan nyalakan notifikasi penurunan harga — kamu akan diberi tahu begitu akun tersebut masuk periode flash sale.",
+        text: "Tambahkan akun incaranmu ke wishlist dan nyalakan notifikasi penurunan harga, kamu akan diberi tahu begitu akun tersebut masuk periode flash sale.",
       },
     ],
   },
@@ -209,14 +209,14 @@ export const newsArticles: MockNewsArticle[] = [
     category: "Esports",
     date: "2026-06-28",
     author: AUTHOR,
-    title: "VCT Pacific Stage 2 Dimulai 16 Juli — Musim Ramai untuk Para Pemain",
+    title: "VCT Pacific Stage 2 Dimulai 16 Juli, Musim Ramai untuk Para Pemain",
     excerpt:
       "Panggung kompetitif kembali menyala. Ini artinya untuk kamu yang sedang berburu akun atau menaikkan rank musim ini.",
     cover: "/images/products/8.jpeg",
     body: [
       {
         type: "paragraph",
-        text: "VCT Pacific Stage 2 akan bergulir mulai 16 Juli. Seperti biasa, musim kompetitif besar selalu diikuti lonjakan aktivitas pemain — antrean ranked lebih ramai, dan permintaan akun dengan rank serta koleksi tertentu ikut naik.",
+        text: "VCT Pacific Stage 2 akan bergulir mulai 16 Juli. Seperti biasa, musim kompetitif besar selalu diikuti lonjakan aktivitas pemain, antrean ranked lebih ramai, dan permintaan akun dengan rank serta koleksi tertentu ikut naik.",
       },
       { type: "heading", text: "Dampaknya di marketplace" },
       {
@@ -225,7 +225,7 @@ export const newsArticles: MockNewsArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Untuk para toko: pastikan deskripsi listing akurat dan pertimbangkan Account Inspection — pembeli baru yang datang dari hype turnamen cenderung memilih akun dengan badge Account Checked.",
+        text: "Untuk para toko: pastikan deskripsi listing akurat dan pertimbangkan Account Inspection, pembeli baru yang datang dari hype turnamen cenderung memilih akun dengan badge Account Checked.",
       },
       {
         type: "paragraph",
@@ -240,7 +240,7 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Top-Up Game Kini Tersedia di valostock.id",
     excerpt:
-      "Isi VP dan kebutuhan game lain langsung dari valostock.id — bayar lewat QRIS, VA, e-wallet, retail, atau kartu kredit.",
+      "Isi VP dan kebutuhan game lain langsung dari valostock.id, bayar lewat QRIS, VA, e-wallet, retail, atau kartu kredit.",
     cover: "/images/products/9.jpeg",
     body: [
       {
@@ -251,10 +251,10 @@ export const newsArticles: MockNewsArticle[] = [
       {
         type: "list",
         items: [
-          "Kode promo — masukkan saat checkout untuk potongan harga.",
+          "Kode promo, masukkan saat checkout untuk potongan harga.",
           "Struk dikirim otomatis ke email dan WhatsApp kamu.",
-          "Halaman Cek Invoice — lacak status top-up cukup dengan nomor invoice.",
-          "Top-Up Balance — saldo prabayar khusus top-up agar pembayaran lebih cepat.",
+          "Halaman Cek Invoice, lacak status top-up cukup dengan nomor invoice.",
+          "Top-Up Balance, saldo prabayar khusus top-up agar pembayaran lebih cepat.",
         ],
       },
       { type: "heading", text: "Tentang Top-Up Balance" },
@@ -271,12 +271,12 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Memahami Proteksi Pembeli 14 & 30 Hari",
     excerpt:
-      "Setiap pesanan akun menyertakan proteksi Rp5.000 — ini yang sebenarnya kamu dapatkan dari biaya tersebut.",
+      "Setiap pesanan akun menyertakan proteksi Rp5.000, ini yang sebenarnya kamu dapatkan dari biaya tersebut.",
     cover: "/images/products/10.jpeg",
     body: [
       {
         type: "paragraph",
-        text: "Setiap pembelian akun di valostock.id menyertakan biaya proteksi Rp5.000. Proteksi ini adalah jendela dukungan dan penanganan keamanan — tim kami siap membantu jika terjadi masalah seperti upaya penarikan kembali (recall) akun oleh pemilik lama.",
+        text: "Setiap pembelian akun di valostock.id menyertakan biaya proteksi Rp5.000. Proteksi ini adalah jendela dukungan dan penanganan keamanan, tim kami siap membantu jika terjadi masalah seperti upaya penarikan kembali (recall) akun oleh pemilik lama.",
       },
       { type: "heading", text: "Durasi proteksi" },
       {
@@ -289,7 +289,7 @@ export const newsArticles: MockNewsArticle[] = [
       { type: "heading", text: "Yang perlu diluruskan" },
       {
         type: "paragraph",
-        text: "Proteksi bukan penahanan dana — pembayaran ke toko tetap cair 5 jam setelah akun dinyatakan aman. Proteksi juga bukan jaminan mutlak; ia adalah komitmen penanganan: kami menindaklanjuti laporanmu, memakai bukti dari Rekber Room, dan menegakkan sanksi ke toko yang terbukti bersalah, termasuk kompensasi dari deposit toko.",
+        text: "Proteksi bukan penahanan dana, pembayaran ke toko tetap cair 5 jam setelah akun dinyatakan aman. Proteksi juga bukan jaminan mutlak; ia adalah komitmen penanganan: kami menindaklanjuti laporanmu, memakai bukti dari Rekber Room, dan menegakkan sanksi ke toko yang terbukti bersalah, termasuk kompensasi dari deposit toko.",
       },
       {
         type: "paragraph",
@@ -304,7 +304,7 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Store Premium: Komisi Lebih Rendah untuk Toko Pro & Business",
     excerpt:
-      "Paket langganan untuk toko resmi meluncur — komisi turun hingga 4%, listing lebih banyak, dan slot featured gratis.",
+      "Paket langganan untuk toko resmi meluncur, komisi turun hingga 4%, listing lebih banyak, dan slot featured gratis.",
     cover: "/images/products/2.jpeg",
     body: [
       {
@@ -322,7 +322,7 @@ export const newsArticles: MockNewsArticle[] = [
       },
       {
         type: "paragraph",
-        text: "Perlu dicatat: Premium menurunkan komisi dan menambah kapasitas, tetapi tidak memengaruhi reputasi. Rating, Service Score, dan badge kepercayaan tetap harus diperoleh lewat transaksi yang baik — tidak bisa dibeli.",
+        text: "Perlu dicatat: Premium menurunkan komisi dan menambah kapasitas, tetapi tidak memengaruhi reputasi. Rating, Service Score, dan badge kepercayaan tetap harus diperoleh lewat transaksi yang baik, tidak bisa dibeli.",
       },
       {
         type: "paragraph",
@@ -337,7 +337,7 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "5 Hal yang Perlu Dicek Sebelum Membeli Akun",
     excerpt:
-      "Dari badge toko sampai riwayat rating — checklist singkat supaya keputusan belimu lebih terinformasi.",
+      "Dari badge toko sampai riwayat rating, checklist singkat supaya keputusan belimu lebih terinformasi.",
     cover: "/images/products/3.jpeg",
     body: [
       {
@@ -347,11 +347,11 @@ export const newsArticles: MockNewsArticle[] = [
       {
         type: "list",
         items: [
-          "Badge toko — Identity Verified menandakan identitas pemilik sudah diverifikasi admin; Verified dan Platinum mencerminkan rekam jejak; Deposit Secured berarti deposit keamanannya aktif.",
-          "Tipe toko — Owner Store menjual akun miliknya sendiri; Reseller Store menjual akun titipan penjual eksternal dan bertanggung jawab penuh atasnya.",
-          "Badge Account Checked — akun sudah diinspeksi dengan checklist dan bukti media.",
-          "Rating dan Service Score — lihat akurasi deskripsi, sikap layanan, dan kecepatan pengiriman dari pembeli sebelumnya.",
-          "Kelengkapan deskripsi — rank, koleksi skin, region, akses email, dan metode serah terima harus jelas sebelum kamu menawar.",
+          "Badge toko, Identity Verified menandakan identitas pemilik sudah diverifikasi admin; Verified dan Platinum mencerminkan rekam jejak; Deposit Secured berarti deposit keamanannya aktif.",
+          "Tipe toko, Owner Store menjual akun miliknya sendiri; Reseller Store menjual akun titipan penjual eksternal dan bertanggung jawab penuh atasnya.",
+          "Badge Account Checked, akun sudah diinspeksi dengan checklist dan bukti media.",
+          "Rating dan Service Score, lihat akurasi deskripsi, sikap layanan, dan kecepatan pengiriman dari pembeli sebelumnya.",
+          "Kelengkapan deskripsi, rank, koleksi skin, region, akses email, dan metode serah terima harus jelas sebelum kamu menawar.",
         ],
       },
       {
@@ -367,7 +367,7 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Kumpulkan Loyalty Points di Setiap Transaksi",
     excerpt:
-      "Setiap pembelian akun yang selesai kini menghasilkan poin — tukarkan dengan potongan harga di transaksi berikutnya.",
+      "Setiap pembelian akun yang selesai kini menghasilkan poin, tukarkan dengan potongan harga di transaksi berikutnya.",
     cover: "/images/products/4.jpeg",
     body: [
       {
@@ -377,7 +377,7 @@ export const newsArticles: MockNewsArticle[] = [
       { type: "heading", text: "Cara memakai poin" },
       {
         type: "paragraph",
-        text: "Poin bisa ditukarkan sebagai potongan harga saat checkout pembelian berikutnya. Saldo poin dan riwayatnya bisa kamu lihat di halaman Poin di area akunmu — setiap perolehan dan penukaran tercatat jelas.",
+        text: "Poin bisa ditukarkan sebagai potongan harga saat checkout pembelian berikutnya. Saldo poin dan riwayatnya bisa kamu lihat di halaman Poin di area akunmu, setiap perolehan dan penukaran tercatat jelas.",
       },
       {
         type: "paragraph",
@@ -392,7 +392,7 @@ export const newsArticles: MockNewsArticle[] = [
     author: AUTHOR,
     title: "Gabung Komunitas valostock.id di Discord",
     excerpt:
-      "Diskusi harga, info flash sale, dan pengumuman platform paling cepat — semuanya ada di server komunitas kami.",
+      "Diskusi harga, info flash sale, dan pengumuman platform paling cepat, semuanya ada di server komunitas kami.",
     cover: "/images/products/5.jpeg",
     body: [
       {
@@ -402,7 +402,7 @@ export const newsArticles: MockNewsArticle[] = [
       { type: "heading", text: "Satu hal penting" },
       {
         type: "paragraph",
-        text: "Discord, WhatsApp, dan Telegram hanya kami gunakan untuk notifikasi dan komunitas — bukan tempat bertransaksi. Semua penawaran, pembayaran, dan serah terima akun tetap terjadi di dalam platform melalui escrow dan Rekber Room. Waspadai siapa pun yang mengajakmu bertransaksi langsung lewat DM dan laporkan ke admin.",
+        text: "Discord, WhatsApp, dan Telegram hanya kami gunakan untuk notifikasi dan komunitas, bukan tempat bertransaksi. Semua penawaran, pembayaran, dan serah terima akun tetap terjadi di dalam platform melalui escrow dan Rekber Room. Waspadai siapa pun yang mengajakmu bertransaksi langsung lewat DM dan laporkan ke admin.",
       },
       {
         type: "paragraph",

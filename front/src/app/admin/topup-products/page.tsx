@@ -6,7 +6,7 @@ import { DashHeader, Panel, Table, Td, Tone } from "@/components/dashboard/ui";
 import { adminGet, type AdminGame, type AdminProduct } from "@/lib/data/admin";
 import { formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Produk Top-Up — Admin" };
+export const metadata: Metadata = { title: "Produk Top-Up | Admin" };
 
 export default async function AdminTopupProductsPage() {
   const [data, games] = await Promise.all([adminGet<{ products: AdminProduct[] }>("/topup-products"), adminGet<{ games: AdminGame[] }>("/games")]);

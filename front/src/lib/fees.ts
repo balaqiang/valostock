@@ -65,7 +65,7 @@ export const paymentMethods: MockPaymentMethod[] = [
   {
     kind: "BALANCE",
     label: "Balance (BLC)",
-    detail: "Saldo closed-loop — khusus top-up",
+    detail: "Saldo closed-loop, khusus top-up",
     feeLabel: "Tanpa biaya",
     logos: [],
     requiresAuth: true,

@@ -11,7 +11,7 @@ import { adminGet, type AdminCatalogDetail } from "@/lib/data/admin";
 import { catalogStatusLabel, catalogStatusTone, storeLevelLabel, storeStatusLabel, storeTypeLabel } from "@/lib/labels";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Tinjau Katalog — Admin" };
+export const metadata: Metadata = { title: "Tinjau Katalog | Admin" };
 
 const CHECKLIST = [
   "Foto memperlihatkan data yang diklaim (rank, skin, level)",
@@ -39,7 +39,7 @@ export default async function AdminCatalogDetailPage({ params }: { params: Promi
 
   const attr = (key: string) => {
     const v = listing.attributes[key];
-    if (v === undefined || v === null || v === "") return <span className="text-red-600">—</span>;
+    if (v === undefined || v === null || v === "") return <span className="text-red-600">-</span>;
     return Array.isArray(v) ? v.join(", ") : typeof v === "number" ? v.toLocaleString("id-ID") : String(v);
   };
 

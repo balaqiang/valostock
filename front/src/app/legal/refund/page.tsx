@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { LegalArticle, type LegalSection } from "@/components/legal/legal-article";
 
 export const metadata: Metadata = {
-  title: "Kebijakan Refund — valostock.id",
+  title: "Kebijakan Refund | valostock.id",
   description:
     "Aturan refund untuk pembelian akun (escrow + sengketa) dan top-up (refund ke Balance).",
 };
@@ -10,34 +10,34 @@ export const metadata: Metadata = {
 // Per docs/MONEY_RULES.md §6 & §8b and docs/STORE_RULES.md §8.
 const sections: LegalSection[] = [
   {
-    title: "Pembelian Akun — Escrow Melindungimu Duluan",
+    title: "Pembelian Akun, Escrow Melindungimu Duluan",
     items: [
       "Dana pembelian ditahan di escrow dan baru diteruskan ke Toko setelah kamu menekan Selesai (atau jendela konfirmasi berakhir).",
-      "Jika Toko tidak mengirim akun, atau akun tidak sesuai deskripsi, jangan tekan Selesai — ajukan sengketa dari halaman pesanan.",
+      "Jika Toko tidak mengirim akun, atau akun tidak sesuai deskripsi, jangan tekan Selesai, ajukan sengketa dari halaman pesanan.",
       "Sengketa yang dimenangkan pembeli berujung refund penuh; kompensasi tambahan dapat diambil dari deposit Toko jika ada kerugian akibat kesalahan Toko.",
     ],
   },
   {
-    title: "Setelah Selesai — Masa Proteksi 14/30 Hari",
+    title: "Setelah Selesai, Masa Proteksi 14/30 Hari",
     items: [
       "Setiap pesanan menyertakan proteksi: 14 hari untuk akun ≤ Rp10 juta, 30 hari untuk akun > Rp10 juta.",
-      "Proteksi adalah jendela dukungan & penanganan (mis. bantuan saat akun ditarik kembali pemilik lama) — bukan penahanan dana dan bukan garansi uang-kembali otomatis.",
+      "Proteksi adalah jendela dukungan & penanganan (mis. bantuan saat akun ditarik kembali pemilik lama), bukan penahanan dana dan bukan garansi uang-kembali otomatis.",
       "Laporkan masalah sesegera mungkin (maksimal 72 jam sejak kejadian). Hasil mengikuti arbitrase: Toko yang terbukti bersalah menanggung refund/kompensasi, termasuk dari deposit.",
     ],
   },
   {
     title: "Pembatalan Pesanan",
     items: [
-      "Pesanan yang belum dibayar dibatalkan otomatis setelah batas waktu pembayaran — tanpa biaya.",
+      "Pesanan yang belum dibayar dibatalkan otomatis setelah batas waktu pembayaran, tanpa biaya.",
       "Pembatalan tanpa alasan sah setelah pembayaran dapat dikenai biaya pembatalan.",
     ],
   },
   {
-    title: "Top-Up — Refund Hanya Jika Item Tidak Masuk",
+    title: "Top-Up, Refund Hanya Jika Item Tidak Masuk",
     items: [
       "Top-up yang berhasil (VP/Diamond/item sudah masuk ke akun game) tidak dapat direfund.",
-      "Jika item tidak masuk karena kegagalan pemenuhan, dana dikembalikan ke Balance (BLC) — bukan uang tunai.",
-      "Kesalahan pengisian UID/ID player oleh pembeli berada di luar tanggung jawab platform — periksa kembali sebelum membayar.",
+      "Jika item tidak masuk karena kegagalan pemenuhan, dana dikembalikan ke Balance (BLC), bukan uang tunai.",
+      "Kesalahan pengisian UID/ID player oleh pembeli berada di luar tanggung jawab platform, periksa kembali sebelum membayar.",
       "Status pesanan bisa dicek kapan saja di halaman Cek Invoice dengan nomor invoice.",
     ],
   },
@@ -59,7 +59,7 @@ const sections: LegalSection[] = [
     title: "Cara Mengajukan",
     items: [
       "Masalah pesanan akun: buka halaman pesanan → Laporkan / Ajukan Sengketa (dalam 72 jam).",
-      "Masalah top-up: cek status di halaman Cek Invoice; jika item tidak masuk, tim kami menghubungimu via email/WhatsApp yang kamu isi — atau hubungi kami lewat Pusat Bantuan.",
+      "Masalah top-up: cek status di halaman Cek Invoice; jika item tidak masuk, tim kami menghubungimu via email/WhatsApp yang kamu isi, atau hubungi kami lewat Pusat Bantuan.",
     ],
   },
 ];

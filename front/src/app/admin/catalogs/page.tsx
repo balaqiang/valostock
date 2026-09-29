@@ -9,7 +9,7 @@ import { catalogStatusLabel, catalogStatusTone, storeTypeLabel } from "@/lib/lab
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 import type { StoreType } from "@/types/domain";
 
-export const metadata: Metadata = { title: "Moderasi Katalog — Admin" };
+export const metadata: Metadata = { title: "Moderasi Katalog | Admin" };
 
 const TABS = ["PENDING_REVIEW", "REJECTED", "LISTED", "DELISTED", "ALL"] as const;
 
@@ -73,7 +73,7 @@ export default async function AdminCatalogsPage({
                       {c.title}
                     </Link>
                     <span className="num text-xs text-text-secondary">
-                      {c.code || "—"} · {c.gameName}
+                      {c.code || "-"} · {c.gameName}
                       {c.submitCount > 1 && ` · diajukan ${c.submitCount}×`}
                     </span>
                   </span>

@@ -77,7 +77,7 @@ export function InspectChecklist({ completed }: { completed: boolean }) {
           className="mt-5 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3 text-sm font-medium text-primary"
         >
           <PartyPopper className="h-4 w-4 flex-none" />
-          Pesanan selesai — dana diteruskan ke toko. Jangan lupa beri rating!
+          Pesanan selesai, dana diteruskan ke toko. Jangan lupa beri rating!
         </motion.p>
       ) : (
         <>
@@ -91,7 +91,7 @@ export function InspectChecklist({ completed }: { completed: boolean }) {
             Selesaikan Pesanan
           </Button>
           <p className="mt-2 text-center text-xs text-text-secondary">
-            Menekan Selesai meneruskan dana ke toko — pastikan semua langkah
+            Menekan Selesai meneruskan dana ke toko, pastikan semua langkah
             di atas sudah kamu lakukan.
           </p>
         </>

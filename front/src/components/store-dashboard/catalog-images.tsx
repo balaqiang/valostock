@@ -65,7 +65,7 @@ export function CatalogImages({
     <div>
       {images.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-sm text-text-secondary">
-          Belum ada foto. Minimal satu foto wajib sebelum katalog diajukan — tampilkan rank, inventori, dan level akun.
+          Belum ada foto. Minimal satu foto wajib sebelum katalog diajukan, tampilkan rank, inventori, dan level akun.
         </p>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">

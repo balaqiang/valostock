@@ -8,7 +8,7 @@ import { balanceLedgerTypeLabel } from "@/lib/topup-status";
 import { getPoints } from "@/lib/data/buyer";
 
 export const metadata: Metadata = {
-  title: "Mutasi — valostock.id",
+  title: "Mutasi | valostock.id",
 };
 
 export default async function MutationPage() {
@@ -20,7 +20,7 @@ export default async function MutationPage() {
     <div>
       <PageHeader
         title="Mutasi"
-        description="Pergerakan Balance (BLC) dan Loyalty Points — semuanya tercatat."
+        description="Pergerakan Balance (BLC) dan Loyalty Points, semuanya tercatat."
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

@@ -6,7 +6,7 @@ import { HelpExplorer } from "@/components/help/help-explorer";
 import { getHelpArticles } from "@/lib/data/catalog";
 
 export const metadata: Metadata = {
-  title: "Pusat Bantuan — valostock.id",
+  title: "Pusat Bantuan | valostock.id",
   description:
     "Panduan membeli akun, membuka toko, biaya, sengketa, top-up, Balance, dan keamanan di valostock.id.",
 };
@@ -25,7 +25,7 @@ export default async function HelpCenterPage() {
               Pusat Bantuan
             </h1>
             <p className="mt-2 max-w-2xl text-text-secondary">
-              Cari jawaban soal transaksi, toko, biaya, top-up, dan keamanan —
+              Cari jawaban soal transaksi, toko, biaya, top-up, dan keamanan,
               atau hubungi kami dari halaman pesananmu.
             </p>
           </Container>

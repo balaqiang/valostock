@@ -200,7 +200,7 @@ function InvoiceCheckerInner() {
                         Metode & Total
                       </dt>
                       <dd className="mt-0.5">
-                        <span className="font-medium text-text">{tx.payment_method}</span> —{" "}
+                        <span className="font-medium text-text">{tx.payment_method}</span> , {" "}
                         <span className="font-mono font-bold text-emerald-500">
                           {formatRupiah(tx.amount)}
                         </span>

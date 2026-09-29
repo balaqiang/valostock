@@ -68,7 +68,7 @@ export const stores: MockStore[] = [
     followers: 2380,
     joined: "Nov 2023",
     description:
-      "Reseller store dengan katalog terluas — akun titipan penjual eksternal yang dikurasi dan menjadi tanggung jawab penuh kami.",
+      "Reseller store dengan katalog terluas, akun titipan penjual eksternal yang dikurasi dan menjadi tanggung jawab penuh kami.",
     gradient: "from-sky-600/90 to-cyan-500/80",
     vouchers: [{ code: "NUSA25", kind: "FIXED", value: 25_000, minSpend: 500_000 }],
   },
@@ -124,7 +124,7 @@ export const stores: MockStore[] = [
     followers: 310,
     joined: "Feb 2025",
     description:
-      "Toko baru dengan harga kompetitif. Sedang membangun rekam jejak — semua transaksi lewat escrow.",
+      "Toko baru dengan harga kompetitif. Sedang membangun rekam jejak, semua transaksi lewat escrow.",
     gradient: "from-indigo-600/90 to-blue-500/80",
     vouchers: [{ code: "SKY15", kind: "FIXED", value: 15_000, minSpend: 300_000 }],
   },

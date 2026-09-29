@@ -10,7 +10,7 @@ import { offerStatusLabel } from "@/lib/labels";
 import { requireUser } from "@/lib/auth";
 import { getMyOffers } from "@/lib/data/buyer";
 
-export const metadata: Metadata = { title: "Penawaran Saya — valostock.id" };
+export const metadata: Metadata = { title: "Penawaran Saya | valostock.id" };
 
 export default async function MyOffersPage() {
   await requireUser("/account/offers");
@@ -18,7 +18,7 @@ export default async function MyOffersPage() {
 
   return (
     <div>
-      <PageHeader title="Penawaran Saya" description="Nego harga dengan toko. Harga yang disepakati berlaku 24 jam — beli sebelum kedaluwarsa." />
+      <PageHeader title="Penawaran Saya" description="Nego harga dengan toko. Harga yang disepakati berlaku 24 jam, beli sebelum kedaluwarsa." />
       {offers.length > 0 ? (
         <ul className="mt-6 space-y-3">
           {offers.map((offer) => (

@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { adminGet, type AdminUserDetail } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Detail Pengguna — Admin" };
+export const metadata: Metadata = { title: "Detail Pengguna | Admin" };
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

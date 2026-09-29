@@ -8,7 +8,7 @@ export function LedgerTable({ entries }: { entries: BalanceLedgerRecord[] }) {
   if (entries.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-text-secondary">
-        Belum ada mutasi — isi Balance agar saldo bertambah.
+        Belum ada mutasi, isi Balance agar saldo bertambah.
       </div>
     );
   }

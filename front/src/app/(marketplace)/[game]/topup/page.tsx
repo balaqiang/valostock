@@ -19,10 +19,10 @@ export async function generateMetadata({
   const game = await getGame(slug);
   return {
     title: game
-      ? `Top-Up ${game.name} — valostock.id`
-      : "Game tidak ditemukan — valostock.id",
+      ? `Top-Up ${game.name} | valostock.id`
+      : "Game tidak ditemukan | valostock.id",
     description: game
-      ? `Top-up ${game.topupCurrency ?? "item"} ${game.name} instan — bayar QRIS, VA, e-wallet, retail, kartu kredit, atau Balance.`
+      ? `Top-up ${game.topupCurrency ?? "item"} ${game.name} instan, bayar QRIS, VA, e-wallet, retail, kartu kredit, atau Balance.`
       : undefined,
   };
 }
@@ -59,7 +59,7 @@ export default async function GameTopupPage({
               Top-Up {game.name}
             </h1>
             <p className="mt-3 max-w-2xl text-white/85">
-              {game.topupCurrency} masuk otomatis setelah pembayaran — tanpa
+              {game.topupCurrency} masuk otomatis setelah pembayaran, tanpa
               login akun, cukup {game.uidLabel}.
             </p>
             {game.supportsAccount && (
@@ -100,7 +100,7 @@ export default async function GameTopupPage({
             >
               Cek status invoice kamu di sini
             </Link>
-            . Refund hanya jika item tidak masuk — dikembalikan ke Balance
+            . Refund hanya jika item tidak masuk, dikembalikan ke Balance
             (lihat{" "}
             <Link
               href="/help/kebijakan-refund-top-up"
