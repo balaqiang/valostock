@@ -4,7 +4,7 @@
 
 Kolom **Kunci**: **PK** = primary key · **FK** = foreign key (`schema.tabel.kolom`) · **UK** = unique. **Null** = boleh kosong. Uang dalam **Rupiah bulat** (`integer`). Semua tabel memakai **Row Level Security** tanpa policy, sehingga hanya API yang bisa mengakses.
 
-Jumlah tabel: **52**.
+Jumlah tabel: **53**.
 
 ## 5.1 Tabel `profiles`
 
@@ -116,7 +116,7 @@ Paket langganan toko (Free/Pro/Business): tarif komisi, kuota katalog, slot ikla
 
 ## 5.8 Tabel `store_balances`
 
-Ringkasan saldo toko: escrow (ditahan) dan tersedia (bisa ditarik).
+Ringkasan saldo toko: escrow (ditahan), tersedia (bisa ditarik), dan deposit keamanan.
 
 | No | Kolom | Tipe | Null | Default | Kunci | Keterangan |
 |---|---|---|---|---|---|---|
@@ -124,6 +124,7 @@ Ringkasan saldo toko: escrow (ditahan) dan tersedia (bisa ditarik).
 | 2 | `escrow` | integer | Tidak | 0 | — | Dana ditahan untuk pesanan berjalan |
 | 3 | `available` | integer | Tidak | 0 | — | Dana yang bisa ditarik |
 | 4 | `updated_at` | timestamptz | Tidak | now() | — | Waktu terakhir diubah |
+| 5 | `deposit` | integer | Tidak | 0 | — | Deposit keamanan yang ditahan (DEPOSIT_HOLD − DEPOSIT_DEDUCTION − DEPOSIT_REFUND). |
 
 ## 5.9 Tabel `store_ledger`
 
@@ -237,6 +238,7 @@ Master data game.
 | 17 | `image` | text | Ya | — | — | Gambar |
 | 18 | `sort_order` | integer | Tidak | 0 | — | Urutan tampil |
 | 19 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
+| 20 | `uid_extra_options` | text[] | Ya | — | — | Pilihan tetap untuk kolom tambahan (mis. server Genshin); kosong = isian bebas. |
 
 ## 5.15 Tabel `game_field_templates`
 
@@ -546,7 +548,25 @@ Notifikasi Midtrans (anti-duplikat lewat UNIQUE `source` + `external_id`).
 | 7 | `processed` | boolean | Tidak | false | — | Sudah diproses |
 | 8 | `received_at` | timestamptz | Tidak | now() | — | Waktu diterima |
 
-## 5.33 Tabel `topup_products`
+## 5.33 Tabel `refunds`
+
+Antrean refund: uang yang masuk tetapi tujuannya sudah tidak ada (dibayar setelah dibatalkan, lock tidak tersedia, top-up tamu gagal).
+
+| No | Kolom | Tipe | Null | Default | Kunci | Keterangan |
+|---|---|---|---|---|---|---|
+| 1 | `id` | uuid | Tidak | gen_random_uuid() | PK | ID unik baris |
+| 2 | `payment_id` | uuid | Tidak | — | FK → `public.payments.id`, UK | Pembayaran yang dikembalikan (satu refund per pembayaran) |
+| 3 | `user_id` | uuid | Ya | — | FK → `public.profiles.id` | Pengguna terkait |
+| 4 | `amount` | integer | Tidak | — | — | Jumlah uang (Rupiah) |
+| 5 | `source` | enum refund_source | Tidak | — | — | Asal refund |
+| 6 | `reference` | text | Tidak | — | — | Referensi (nomor invoice/pesanan) |
+| 7 | `status` | enum refund_status | Tidak | 'PENDING' | — | Status (lihat nilai ENUM) |
+| 8 | `note` | text | Ya | — | — | Catatan |
+| 9 | `handled_by` | uuid | Ya | — | FK → `public.profiles.id` | Admin yang menyelesaikan |
+| 10 | `handled_at` | timestamptz | Ya | — | — | Waktu diselesaikan |
+| 11 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
+
+## 5.34 Tabel `topup_products`
 
 Nominal top-up per game.
 
@@ -556,12 +576,15 @@ Nominal top-up per game.
 | 2 | `game_id` | integer | Tidak | — | FK → `public.games.id` | Game terkait |
 | 3 | `name` | text | Tidak | — | — | Nama |
 | 4 | `amount_label` | text | Tidak | — | — | Label nominal (mis. 475 VP) |
-| 5 | `retail_price` | integer | Tidak | — | — | Harga jual |
+| 5 | `retail_price` | integer | Tidak | — | — | Harga jual (>= harga modal) |
 | 6 | `popular` | boolean | Tidak | false | — | Ditandai populer |
 | 7 | `is_active` | boolean | Tidak | true | — | Aktif (true/false) |
 | 8 | `sort_order` | integer | Tidak | 0 | — | Urutan tampil |
+| 9 | `supplier_price` | integer | Tidak | — | — | Harga modal Digiflazz (Harga Terbaik); harga jual tidak boleh di bawahnya. |
+| 10 | `section` | enum topup_section | Tidak | 'INSTANT' | — | Bagian di halaman top-up: SPECIAL (pass, membership, Welkin) atau INSTANT (paket mata uang). |
+| 11 | `icon` | text | Ya | — | — | Ikon item di public/images (mis. /images/topup-icon/valorant/vp.webp). |
 
-## 5.34 Tabel `promo_codes`
+## 5.35 Tabel `promo_codes`
 
 Kode promo top-up.
 
@@ -579,7 +602,7 @@ Kode promo top-up.
 | 10 | `is_active` | boolean | Tidak | true | — | Aktif (true/false) |
 | 11 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.35 Tabel `topup_orders`
+## 5.36 Tabel `topup_orders`
 
 Invoice top-up game (boleh tanpa login).
 
@@ -605,7 +628,7 @@ Invoice top-up game (boleh tanpa login).
 | 18 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 | 19 | `paid_at` | timestamptz | Ya | — | — | Waktu lunas |
 
-## 5.36 Tabel `balance_topups`
+## 5.37 Tabel `balance_topups`
 
 Invoice pembelian voucher Balance.
 
@@ -625,7 +648,7 @@ Invoice pembelian voucher Balance.
 | 12 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 | 13 | `paid_at` | timestamptz | Ya | — | — | Waktu lunas |
 
-## 5.37 Tabel `balance_ledger`
+## 5.38 Tabel `balance_ledger`
 
 Buku besar Balance pengguna (closed-loop, append-only).
 
@@ -639,7 +662,7 @@ Buku besar Balance pengguna (closed-loop, append-only).
 | 6 | `reference` | text | Tidak | — | — | Referensi (nomor invoice/pesanan) |
 | 7 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.38 Tabel `store_vouchers`
+## 5.39 Tabel `store_vouchers`
 
 Voucher diskon yang diterbitkan toko.
 
@@ -658,7 +681,7 @@ Voucher diskon yang diterbitkan toko.
 | 11 | `is_active` | boolean | Tidak | true | — | Aktif (true/false) |
 | 12 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.39 Tabel `flash_sales`
+## 5.40 Tabel `flash_sales`
 
 Harga promo berjangka untuk satu katalog.
 
@@ -672,7 +695,7 @@ Harga promo berjangka untuk satu katalog.
 | 6 | `ends_at` | timestamptz | Tidak | — | — | Waktu selesai |
 | 7 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.40 Tabel `bundles`
+## 5.41 Tabel `bundles`
 
 Paket beberapa katalog dengan satu harga.
 
@@ -685,7 +708,7 @@ Paket beberapa katalog dengan satu harga.
 | 5 | `status` | enum bundle_status | Tidak | 'ACTIVE' | — | Status (lihat nilai ENUM) |
 | 6 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.41 Tabel `bundle_items`
+## 5.42 Tabel `bundle_items`
 
 Katalog dalam bundle.
 
@@ -694,7 +717,7 @@ Katalog dalam bundle.
 | 1 | `bundle_id` | uuid | Tidak | — | PK, FK → `public.bundles.id` | Bundle |
 | 2 | `catalog_id` | uuid | Tidak | — | PK, FK → `public.catalogs.id` | Katalog terkait |
 
-## 5.42 Tabel `featured_listings`
+## 5.43 Tabel `featured_listings`
 
 Iklan featured listing (berbayar atau slot gratis).
 
@@ -712,7 +735,7 @@ Iklan featured listing (berbayar atau slot gratis).
 | 10 | `stop_reason` | text | Ya | — | — | Alasan dihentikan admin |
 | 11 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.43 Tabel `wishlists`
+## 5.44 Tabel `wishlists`
 
 Katalog yang disimpan pembeli (dengan notifikasi turun harga).
 
@@ -724,7 +747,7 @@ Katalog yang disimpan pembeli (dengan notifikasi turun harga).
 | 4 | `price_at_save` | integer | Tidak | — | — | Harga saat disimpan (pembanding turun harga) |
 | 5 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.44 Tabel `store_follows`
+## 5.45 Tabel `store_follows`
 
 Toko yang diikuti pembeli.
 
@@ -734,7 +757,7 @@ Toko yang diikuti pembeli.
 | 2 | `store_id` | uuid | Tidak | — | PK, FK → `public.stores.id` | Toko terkait |
 | 3 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.45 Tabel `recently_viewed`
+## 5.46 Tabel `recently_viewed`
 
 Katalog yang baru dilihat pembeli.
 
@@ -744,7 +767,7 @@ Katalog yang baru dilihat pembeli.
 | 2 | `catalog_id` | uuid | Tidak | — | PK, FK → `public.catalogs.id` | Katalog terkait |
 | 3 | `viewed_at` | timestamptz | Tidak | now() | — | Waktu terakhir dilihat |
 
-## 5.46 Tabel `notifications`
+## 5.47 Tabel `notifications`
 
 Notifikasi in-app.
 
@@ -759,7 +782,7 @@ Notifikasi in-app.
 | 7 | `is_read` | boolean | Tidak | false | — | Sudah dibaca |
 | 8 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.47 Tabel `loyalty_ledger`
+## 5.48 Tabel `loyalty_ledger`
 
 Buku besar poin loyalti (append-only).
 
@@ -773,7 +796,7 @@ Buku besar poin loyalti (append-only).
 | 6 | `reference` | text | Tidak | — | — | Referensi (nomor invoice/pesanan) |
 | 7 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.48 Tabel `referral_rewards`
+## 5.49 Tabel `referral_rewards`
 
 Hadiah referral untuk pengguna yang mengajak.
 
@@ -788,7 +811,7 @@ Hadiah referral untuk pengguna yang mengajak.
 | 7 | `rewarded_at` | timestamptz | Ya | — | — | Waktu hadiah dikreditkan |
 | 8 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.49 Tabel `news_articles`
+## 5.50 Tabel `news_articles`
 
 Artikel berita (CMS).
 
@@ -807,7 +830,7 @@ Artikel berita (CMS).
 | 11 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 | 12 | `updated_at` | timestamptz | Tidak | now() | — | Waktu terakhir diubah |
 
-## 5.50 Tabel `help_articles`
+## 5.51 Tabel `help_articles`
 
 Artikel pusat bantuan (CMS).
 
@@ -825,7 +848,7 @@ Artikel pusat bantuan (CMS).
 | 10 | `sort_order` | integer | Tidak | 0 | — | Urutan tampil |
 | 11 | `updated_at` | timestamptz | Tidak | now() | — | Waktu terakhir diubah |
 
-## 5.51 Tabel `reports`
+## 5.52 Tabel `reports`
 
 Laporan pengguna terhadap katalog, toko, atau pengguna lain.
 
@@ -843,7 +866,7 @@ Laporan pengguna terhadap katalog, toko, atau pengguna lain.
 | 10 | `handled_at` | timestamptz | Ya | — | — | Waktu ditangani |
 | 11 | `created_at` | timestamptz | Tidak | now() | — | Waktu dibuat |
 
-## 5.52 Tabel `audit_logs`
+## 5.53 Tabel `audit_logs`
 
 Jejak keputusan admin dan aksi sensitif (append-only).
 
@@ -877,7 +900,7 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | `gateway_method` | QRIS, VA, RETAIL, EWALLET, CC |
 | `help_category` | GETTING_STARTED, BECOMING_STORE, FEES_WITHDRAWAL, BEFORE_SALE, AFTER_SALE, DISPUTES, TOPUP, BALANCE, PENALTIES, SECURITY |
 | `inspection_result` | PASSED, FAILED |
-| `ledger_bucket` | ESCROW, AVAILABLE |
+| `ledger_bucket` | ESCROW, AVAILABLE, DEPOSIT |
 | `lock_status` | PENDING_PAYMENT, ACTIVE, USED, EXPIRED |
 | `loyalty_type` | EARN, REDEEM, ADJUSTMENT |
 | `name_match` | MATCH, REVIEW, MISMATCH |
@@ -888,18 +911,21 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | `payment_status` | PENDING, PAID, EXPIRED, FAILED |
 | `payout_status` | PENDING, COMPLETED, REJECTED |
 | `referral_status` | PENDING, REWARDED |
+| `refund_source` | PAID_AFTER_CANCEL, LOCK_UNAVAILABLE, TOPUP_UNDELIVERED |
+| `refund_status` | PENDING, COMPLETED |
 | `report_reason` | SCAM, FAKE, OFF_PLATFORM, ABUSE, OTHER |
 | `report_status` | OPEN, REVIEWING, RESOLVED, DISMISSED |
 | `report_target` | CATALOG, STORE, USER |
 | `review_decision` | SUBMITTED, APPROVED, REJECTED, TAKEDOWN |
 | `sanction_type` | WARNING, SUSPEND, FINE |
 | `sender_role` | BUYER, STORE, ADMIN, SYSTEM |
-| `store_ledger_type` | ESCROW_HOLD, ESCROW_RELEASE, COMMISSION, REFUND, COMPENSATION, WITHDRAW, WITHDRAW_FEE, TRANSFER, TRANSFER_FEE, PAYOUT_REVERSAL, ADJUSTMENT |
+| `store_ledger_type` | ESCROW_HOLD, ESCROW_RELEASE, COMMISSION, REFUND, COMPENSATION, WITHDRAW, WITHDRAW_FEE, TRANSFER, TRANSFER_FEE, PAYOUT_REVERSAL, ADJUSTMENT, DEPOSIT_HOLD, DEPOSIT_DEDUCTION, DEPOSIT_REFUND |
 | `store_level` | AUTHORIZED, VERIFIED, PLATINUM |
-| `store_status` | PENDING_DEPOSIT, PENDING_REVIEW, ACTIVE, REJECTED, SUSPENDED |
+| `store_status` | PENDING_DEPOSIT, PENDING_REVIEW, ACTIVE, REJECTED, SUSPENDED, CLOSING, CLOSED |
 | `store_type` | OWNER, RESELLER |
 | `subscription_tier` | FREE, PRO, BUSINESS |
 | `topup_method` | QRIS, VA, RETAIL, EWALLET, CC, BALANCE |
+| `topup_section` | SPECIAL, INSTANT |
 | `topup_status` | PENDING, PAID, PROCESSING, SUCCESS, FAILED, EXPIRED, REFUNDED |
 | `user_role` | USER, ADMIN |
 
@@ -927,6 +953,7 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | flash_sales | `flash_sales_sale_price_check` | `CHECK ((sale_price >= 10000))` |
 | game_field_templates | `game_field_templates_key_check` | `CHECK ((key ~ '^[a-zA-Z][a-zA-Z0-9_]{0,40}$'::text))` |
 | games | `games_slug_check` | `CHECK ((slug ~ '^[a-z0-9-]{2,50}$'::text))` |
+| games | `games_uid_extra_options_check` | `CHECK (((uid_extra_options IS NULL) OR ((cardinality(uid_extra_options) >= 1) AND (cardinality(uid_extra_options) <= 20))))` |
 | help_articles | `help_articles_slug_check` | `CHECK ((slug ~ '^[a-z0-9-]{2,120}$'::text))` |
 | loyalty_ledger | `loyalty_ledger_balance_after_check` | `CHECK ((balance_after >= 0))` |
 | news_articles | `news_articles_slug_check` | `CHECK ((slug ~ '^[a-z0-9-]{2,120}$'::text))` |
@@ -953,8 +980,10 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | ratings | `ratings_delivery_speed_check` | `CHECK (((delivery_speed >= 1) AND (delivery_speed <= 5)))` |
 | ratings | `ratings_desc_accuracy_check` | `CHECK (((desc_accuracy >= 1) AND (desc_accuracy <= 5)))` |
 | ratings | `ratings_overall_check` | `CHECK ((overall = ANY (ARRAY['-1'::integer, 0, 1])))` |
+| refunds | `refunds_amount_check` | `CHECK ((amount > 0))` |
 | rekber_messages | `rekber_messages_body_check` | `CHECK (((char_length(body) >= 1) AND (char_length(body) <= 2000)))` |
 | store_balances | `store_balances_available_check` | `CHECK ((available >= 0))` |
+| store_balances | `store_balances_deposit_check` | `CHECK ((deposit >= 0))` |
 | store_balances | `store_balances_escrow_check` | `CHECK ((escrow >= 0))` |
 | store_sanctions | `store_sanctions_amount_check` | `CHECK ((amount >= 0))` |
 | store_vouchers | `store_vouchers_check` | `CHECK (((kind <> 'PERCENT'::discount_kind) OR (value <= 90)))` |
@@ -968,8 +997,11 @@ Jejak keputusan admin dan aksi sensitif (append-only).
 | topup_orders | `topup_orders_amount_check` | `CHECK ((amount > 0))` |
 | topup_orders | `topup_orders_check` | `CHECK ((amount = ((base_price - discount) + surcharge)))` |
 | topup_orders | `topup_orders_pay_source_check` | `CHECK ((pay_source = ANY (ARRAY['MIDTRANS'::text, 'BALANCE'::text])))` |
+| topup_products | `topup_products_icon_check` | `CHECK (((icon IS NULL) OR (icon ~ '^/images/[a-z0-9/_.-]+$'::text)))` |
 | topup_products | `topup_products_id_check` | `CHECK ((id ~ '^[a-z0-9-]{2,36}$'::text))` |
+| topup_products | `topup_products_margin_check` | `CHECK ((retail_price >= supplier_price))` |
 | topup_products | `topup_products_retail_price_check` | `CHECK ((retail_price > 0))` |
+| topup_products | `topup_products_supplier_price_check` | `CHECK ((supplier_price > 0))` |
 | transfer_requests | `transfer_requests_check` | `CHECK ((amount > fee))` |
 | transfer_requests | `transfer_requests_name_match_check` | `CHECK ((name_match <> 'MISMATCH'::name_match))` |
 | voucher_redemptions | `voucher_redemptions_discount_check` | `CHECK ((discount > 0))` |
