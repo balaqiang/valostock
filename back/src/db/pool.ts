@@ -11,6 +11,9 @@ pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, (value) => (parseTimestamp
 export const pool = new pg.Pool({
   connectionString: env.DATABASE_URL,
   max: 10,
+  // Keep connections warm: a new TLS connection to a remote pooler (Supabase Cloud) costs ~2–3 s.
+  idleTimeoutMillis: 5 * 60_000,
+  keepAlive: true,
   // Supabase Cloud (pooler): encrypted, but the Supabase CA is not in Node's trust store (docs/ARCHITECTURE.md §6.1).
   ssl: env.DATABASE_SSL === 'require' ? { rejectUnauthorized: false } : undefined,
 });
