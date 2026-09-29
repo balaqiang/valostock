@@ -1,0 +1,294 @@
+{
+  "at": "2026-09-29T10:47:44.735Z",
+  "user": {
+    "name": "Penguji 439399",
+    "email": "penguji.439399@example.com"
+  },
+  "ctx": {
+    "invoiceQris": "TU-260929-4YJK8A",
+    "invoicePay": "TU-260929-6JD7LW",
+    "invoiceBalance": "TU-260929-CXUXFZ"
+  },
+  "results": [
+    {
+      "tc": "TC-01",
+      "fitur": "Registrasi",
+      "skenario": "Membuka halaman Daftar lalu mengisi nama, nomor HP, email, dan password yang valid, mencentang persetujuan, lalu menekan Daftar",
+      "expected": "Akun berhasil dibuat dan pengguna langsung masuk sebagai Member",
+      "actual": "Akun terdaftar, pengguna diarahkan ke /account dan sudah login sebagai Penguji 439399",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-02",
+      "fitur": "Registrasi",
+      "skenario": "Mendaftar dengan email yang sudah terdaftar",
+      "expected": "Sistem menolak dengan pesan email sudah terdaftar",
+      "actual": "Muncul pesan \"Email sudah terdaftar.\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-03",
+      "fitur": "Registrasi",
+      "skenario": "Mendaftar dengan kode referral yang tidak ada",
+      "expected": "Sistem menolak dengan pesan kode referral tidak ditemukan",
+      "actual": "Muncul pesan \"Kode referral tidak ditemukan.\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-04",
+      "fitur": "Registrasi",
+      "skenario": "Mendaftar dengan password kurang dari 8 karakter",
+      "expected": "Pendaftaran tidak diproses dan pengguna diminta memakai password minimal 8 karakter",
+      "actual": "Form tidak terkirim, browser menampilkan validasi \"Please lengthen this text to 8 characters or more (you are currently using 5 characters).\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-05",
+      "fitur": "Login",
+      "skenario": "Masuk dengan email dan password yang benar",
+      "expected": "Login berhasil dan pengguna diarahkan ke halaman akun",
+      "actual": "Login berhasil, diarahkan ke /account, nama pengguna tampil di header",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-06",
+      "fitur": "Login",
+      "skenario": "Masuk dengan nomor HP dan password yang benar",
+      "expected": "Login berhasil memakai nomor HP",
+      "actual": "Login berhasil dengan nomor HP, diarahkan ke /account",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-07",
+      "fitur": "Login",
+      "skenario": "Menekan tombol Keluar pada menu Akun Saya",
+      "expected": "Sesi berakhir dan tombol Masuk kembali tampil",
+      "actual": "Sesi berakhir (API tidak lagi mengenali pengguna), header kembali menampilkan tombol Masuk dan Daftar",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-08",
+      "fitur": "Login",
+      "skenario": "Masuk dengan password yang salah",
+      "expected": "Login ditolak dengan pesan kesalahan",
+      "actual": "Tetap di halaman Masuk, muncul pesan \"Email/nomor HP atau password salah.\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-09",
+      "fitur": "Pilih Game dan Produk Top-Up",
+      "skenario": "Membuka halaman Top-Up",
+      "expected": "Menampilkan kartu game Valorant, Mobile Legends, Genshin Impact, dan Free Fire",
+      "actual": "Tampil 4 kartu game: Valorant, Mobile Legends, Genshin Impact, Free Fire",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-10",
+      "fitur": "Pilih Game dan Produk Top-Up",
+      "skenario": "Memilih game Genshin Impact",
+      "expected": "Form top-up Genshin Impact tampil dengan Item Spesial dan Top Up Instan",
+      "actual": "Diarahkan ke form top-up Genshin Impact, produk tampil dalam bagian Item Spesial dan Top Up Instan",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-11",
+      "fitur": "Pilih Game dan Produk Top-Up",
+      "skenario": "Memilih nominal 330 (300+30) Crystals",
+      "expected": "Ringkasan Pesanan menampilkan produk dan harga Rp 79.200",
+      "actual": "Ringkasan Pesanan menampilkan 330 (300+30) Crystals dengan harga Rp 79.200",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-12",
+      "fitur": "Transaksi Top-Up",
+      "skenario": "Menekan Pesan Sekarang tanpa mengisi UID",
+      "expected": "Pesanan tidak dikirim dan muncul pesan untuk mengisi UID",
+      "actual": "Form tidak terkirim, kolom UID ditandai wajib diisi oleh browser (\"Please fill out this field.\")",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-13",
+      "fitur": "Transaksi Top-Up",
+      "skenario": "Mengisi UID tanpa memilih server Genshin Impact lalu menekan Pesan Sekarang",
+      "expected": "Muncul pesan untuk memilih server",
+      "actual": "Form tidak terkirim, pilihan Server ditandai wajib dipilih oleh browser (\"Please select an item in the list.\")",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-14",
+      "fitur": "Transaksi Top-Up",
+      "skenario": "Memesan 330 Crystals sebagai tamu dengan metode QRIS",
+      "expected": "Modal Invoice Dibuat tampil dengan nomor invoice TU dan total Rp 80.388 (harga + biaya QRIS 1,5%)",
+      "actual": "Modal Invoice Dibuat tampil, nomor TU-260929-4YJK8A, total Rp 80.388",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-15",
+      "fitur": "Transaksi Top-Up",
+      "skenario": "Memilih metode Virtual Account pada produk yang sama",
+      "expected": "Total bayar menjadi harga + Rp 5.000 (Rp 84.200)",
+      "actual": "Ringkasan menampilkan biaya layanan Rp 5.000 dan total bayar Rp 84.200",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-16",
+      "fitur": "Kode Promo",
+      "skenario": "Memasukkan kode promo VALO10 pada produk 1.090 Crystals (Rp 249.100)",
+      "expected": "Potongan 10% diterapkan pada Ringkasan Pesanan",
+      "actual": "Kode diterima, potongan Rp 24.910 (10%) tampil di Ringkasan Pesanan",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-17",
+      "fitur": "Kode Promo",
+      "skenario": "Memasukkan kode promo yang tidak terdaftar (PROMOPALSU)",
+      "expected": "Muncul pesan kode promo tidak ditemukan",
+      "actual": "Muncul pesan \"Kode promo tidak ditemukan.\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-18",
+      "fitur": "Kode Promo",
+      "skenario": "Memakai kode HEMAT5K (minimal belanja Rp 100.000) pada produk 60 Crystals (Rp 16.200)",
+      "expected": "Potongan tidak diberikan karena belum memenuhi minimal belanja",
+      "actual": "Potongan tidak diterapkan, keterangan \"HEMAT5K aktif, Potongan Rp 5.000 (min. Rp 100.000)\", total tetap Rp 16.443",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-19",
+      "fitur": "Pembayaran Midtrans",
+      "skenario": "Menekan Lanjutkan ke Pembayaran pada invoice QRIS",
+      "expected": "Pengguna diarahkan ke halaman pembayaran",
+      "actual": "Diarahkan ke halaman pembayaran (mode simulasi) untuk TU-260929-6JD7LW",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-20",
+      "fitur": "Pembayaran Midtrans",
+      "skenario": "Menyelesaikan pembayaran (simulasi berhasil)",
+      "expected": "Status invoice berubah menjadi Berhasil",
+      "actual": "Cek Invoice TU-260929-6JD7LW menampilkan status Berhasil",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-21",
+      "fitur": "Pembayaran Midtrans",
+      "skenario": "Menggagalkan pembayaran invoice lain (simulasi gagal)",
+      "expected": "Status invoice berubah menjadi Gagal",
+      "actual": "Cek Invoice TU-260929-SBNC2F menampilkan status Gagal",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-22",
+      "fitur": "Cek Status Invoice",
+      "skenario": "Memasukkan nomor invoice yang valid di halaman Cek Invoice",
+      "expected": "Detail transaksi tampil dengan ID akun game disamarkan",
+      "actual": "Detail transaksi tampil, ID akun game tampil tersamar (80*****56)",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-23",
+      "fitur": "Cek Status Invoice",
+      "skenario": "Memasukkan nomor invoice yang tidak ada (TU-000000-XXXXXX)",
+      "expected": "Muncul keterangan invoice tidak ditemukan",
+      "actual": "Muncul keterangan \"Nomor Invoice Tidak Ditemukan\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-24",
+      "fitur": "Pembayaran dengan Balance",
+      "skenario": "Tamu (belum login) memilih metode Balance lalu menekan Pesan Sekarang",
+      "expected": "Sistem meminta pengguna masuk terlebih dahulu",
+      "actual": "Muncul pesan \"Masuk dulu untuk membayar dengan Balance (BLC).\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-25",
+      "fitur": "Pembayaran dengan Balance",
+      "skenario": "Member dengan saldo 0 BLC membayar top-up memakai Balance",
+      "expected": "Ditolak dengan pesan Balance tidak mencukupi, invoice tidak dibuat",
+      "actual": "Muncul pesan \"Balance tidak mencukupi.\", modal invoice tidak tampil",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-26",
+      "fitur": "Pengisian Balance",
+      "skenario": "Membeli voucher Balance 100.000 BLC dengan QRIS lalu membayar (simulasi berhasil)",
+      "expected": "Saldo Member bertambah 100.000 BLC",
+      "actual": "Invoice BL-260929-6RP8J6 dibuat, setelah pembayaran berhasil kartu Balance Kamu menunjukkan 100.000 BLC",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-27",
+      "fitur": "Pengisian Balance",
+      "skenario": "Membuka halaman Balance tanpa login",
+      "expected": "Pengguna diarahkan ke halaman Masuk",
+      "actual": "Diarahkan ke /login?next=%2Fbalance",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-28",
+      "fitur": "Pembayaran dengan Balance",
+      "skenario": "Member dengan saldo 100.000 BLC membayar 330 Crystals (Rp 79.200) memakai Balance",
+      "expected": "Invoice langsung Berhasil tanpa biaya metode dan saldo berkurang Rp 79.200",
+      "actual": "Muncul modal \"Dibayar dengan Balance\" untuk invoice TU-260929-CXUXFZ dengan total Rp 79.200 (tanpa biaya metode), saldo menjadi 20.800 BLC",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-29",
+      "fitur": "Profil dan Riwayat",
+      "skenario": "Mengubah nama pada Profil Saya lalu menekan Simpan",
+      "expected": "Nama baru tersimpan dan tampil di profil",
+      "actual": "Nama berubah menjadi \"Penguji 439399 Edit\" dan tetap tampil setelah halaman dimuat ulang",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-30",
+      "fitur": "Profil dan Riwayat",
+      "skenario": "Mengganti password dengan password saat ini yang salah",
+      "expected": "Ditolak dengan pesan password saat ini salah",
+      "actual": "Muncul pesan \"Password saat ini salah.\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-31",
+      "fitur": "Profil dan Riwayat",
+      "skenario": "Membuka menu Transaksi",
+      "expected": "Riwayat top-up dan pengisian Balance milik Member tampil",
+      "actual": "Tabel menampilkan invoice top-up TU-260929-CXUXFZ dan invoice isi Balance milik Member",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-32",
+      "fitur": "Mutasi Balance",
+      "skenario": "Membuka menu Mutasi",
+      "expected": "Mutasi Isi Balance (+100.000) dan Bayar Top-Up (-79.200) tampil",
+      "actual": "Tampil mutasi Isi Balance +100.000 dan Bayar Top-Up -79.200 beserta referensi invoice dan waktu",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-33",
+      "fitur": "Laporan dan Analitik Admin",
+      "skenario": "Member biasa membuka halaman /admin/analytics",
+      "expected": "Akses ditolak atau pengguna dialihkan",
+      "actual": "Panel admin tidak dapat diakses, yang tampil adalah halaman 404 \"Halaman tidak ditemukan\"",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-34",
+      "fitur": "Laporan dan Analitik Admin",
+      "skenario": "Admin membuka menu Analitik Top-Up",
+      "expected": "Kartu ringkasan dan tabel top-up per akun game tampil",
+      "actual": "Kartu total pendapatan, transaksi sukses, akun game unik, dan rata-rata tampil, tabel memuat akun game 800123456 (Asia)",
+      "status": "Berhasil"
+    },
+    {
+      "tc": "TC-35",
+      "fitur": "Laporan dan Analitik Admin",
+      "skenario": "Admin mencari invoice di menu Top-Up & Balance",
+      "expected": "Invoice yang dicari tampil di tabel",
+      "actual": "Invoice TU-260929-6JD7LW tampil pada tabel Top-up game",
+      "status": "Berhasil"
+    }
+  ]
+}

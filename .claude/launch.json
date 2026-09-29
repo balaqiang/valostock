@@ -12,6 +12,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "front", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "api-sim",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "back", "run", "dev:sim"],
+      "port": 4100
+    },
+    {
+      "name": "web-sim",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set NEXT_PUBLIC_API_URL=http://localhost:4100&& set NEXT_PUBLIC_SOCKET_URL=http://localhost:4100&& npm --prefix front run dev"],
+      "port": 3000
     }
   ]
 }
