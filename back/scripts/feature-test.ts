@@ -31,7 +31,20 @@ class Client {
     assert.equal(status, expected, `${this.name} ${method} ${path} expected ${expected}, got ${status} ${JSON.stringify(data)}`);
   }
   login = (email: string) => this.ok('POST', '/auth/login', { identity: email, password: 'valostock-demo' });
+  /** Multipart upload; returns status + body. */
+  async upload<T = Json>(path: string, form: FormData): Promise<{ status: number; data: T }> {
+    const res = await fetch(`${API}${path}`, { method: 'POST', headers: this.cookie ? { Cookie: this.cookie } : {}, body: form });
+    return { status: res.status, data: (await res.json().catch(() => ({}))) as T };
+  }
 }
+
+// 1×1 PNG for upload checks.
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+const imageForm = (bytes: Buffer, name: string) => {
+  const form = new FormData();
+  form.append('image', new Blob([bytes], { type: 'image/png' }), name);
+  return form;
+};
 
 const pay = (c: Client, invoice: string) => c.ok('POST', `/payments/${invoice}/simulate`, { result: 'PAID' });
 const invoiceOf = (s: { redirectUrl?: string }) => new URL(s.redirectUrl!).searchParams.get('invoice')!;
@@ -323,6 +336,54 @@ async function main() {
   const proStats = await store.ok<{ tier: string; daily: unknown[]; byGame: unknown }>('GET', '/stores/me/analytics');
   assert.ok(Array.isArray(proStats.daily) && proStats.byGame === null);
   check(`plan benefits: bulk hide/submit (${ids.length} catalogs, Pro), Free blocked; analytics per plan`);
+
+  // Site CMS: texts fall back to defaults, uploads are type-checked, banners follow their schedule, content:manage only.
+  type Site = { texts: Record<string, string>; banners: { id: string; imageUrl: string }[] };
+  const siteBefore = await guest.ok<Site>('GET', '/site');
+  await admin.ok('PATCH', '/admin/cms/texts', { values: { 'home.hero.title': 'Judul uji CMS', 'announcement.enabled': 'true' } });
+  let site = await guest.ok<Site>('GET', '/site');
+  assert.equal(site.texts['home.hero.title'], 'Judul uji CMS');
+  assert.equal(site.texts['announcement.enabled'], 'true');
+  await admin.fails('PATCH', '/admin/cms/texts', { values: { 'home.hero.title': '   ' } }, 400);
+  await admin.fails('PATCH', '/admin/cms/texts', { values: { 'kunci.tidak.ada': 'x' } }, 400);
+  await admin.fails('PATCH', '/admin/cms/texts', { values: { 'announcement.link': '//situs-lain.test' } }, 400);
+  await admin.ok('PATCH', '/admin/cms/texts', { values: { 'home.hero.title': null, 'announcement.enabled': null } });
+  site = await guest.ok<Site>('GET', '/site');
+  assert.equal(site.texts['home.hero.title'], siteBefore.texts['home.hero.title']);
+  assert.equal(site.texts['announcement.enabled'], 'false');
+
+  const fake = await admin.upload('/admin/cms/uploads?kind=banners', imageForm(Buffer.from('<?php echo 1; ?>'), 'bukan-gambar.png'));
+  assert.equal(fake.status, 400);
+  const upload = await admin.upload<{ path: string; url: string }>('/admin/cms/uploads?kind=banners', imageForm(PNG, 'banner.png'));
+  assert.equal(upload.status, 201, JSON.stringify(upload.data));
+  assert.ok(upload.data.path.startsWith('cms/banners/'));
+  assert.equal((await fetch(upload.data.url)).status, 200);
+
+  const { id: bannerId } = await admin.ok<{ id: string }>('POST', '/admin/cms/banners', {
+    title: 'Banner uji terjadwal',
+    image: upload.data.path,
+    ctaLabel: 'Lihat',
+    linkUrl: '/search',
+    startsAt: hours(24),
+  });
+  assert.ok(!(await guest.ok<Site>('GET', '/site')).banners.some((b) => b.id === bannerId));
+  await admin.ok('PATCH', `/admin/cms/banners/${bannerId}`, { startsAt: null });
+  const live = (await guest.ok<Site>('GET', '/site')).banners.find((b) => b.id === bannerId);
+  assert.ok(live && live.imageUrl.endsWith(upload.data.path));
+  await admin.fails('POST', '/admin/cms/banners', { title: 'Tombol tanpa link', image: upload.data.path, ctaLabel: 'Lihat' }, 400);
+
+  const { games: gameList } = await guest.ok<{ games: { id: number; slug: string; image: string | null }[] }>('GET', '/games');
+  const genshin = gameList.find((g) => g.slug === 'genshin-impact')!;
+  await admin.ok('PUT', `/admin/cms/games/${genshin.id}/banner`, { image: upload.data.path });
+  assert.ok((await guest.ok<{ game: { image: string } }>('GET', '/games/genshin-impact')).game.image.endsWith(upload.data.path));
+  await admin.ok('DELETE', `/admin/cms/banners/${bannerId}`);
+  assert.equal((await fetch(upload.data.url)).status, 200, 'object still used by the game banner');
+  await admin.ok('PUT', `/admin/cms/games/${genshin.id}/banner`, { image: null });
+  assert.notEqual((await fetch(upload.data.url)).status, 200, 'unused upload removed from storage');
+
+  await buyer.fails('GET', '/admin/cms/texts', undefined, 403);
+  await moderator.fails('PATCH', '/admin/cms/texts', { values: { 'home.hero.title': 'x' } }, 403);
+  check('site CMS: texts + reset to default, fake upload refused, scheduled banner, game banner, unused image cleaned, 403');
 
   console.log(`\nSemua ${step} langkah lulus.`);
 }

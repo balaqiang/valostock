@@ -33,7 +33,7 @@ async function main() {
 
   const [, listings] = (await get('', '/listings?limit=3')) as [number, { listings: { id: string }[] }];
   const catalogId = listings.listings[0]!.id;
-  await sweep('guest', '', ['/home', '/news', '/help', '/stores', `/listings/${catalogId}`, `/catalogs/${catalogId}/buy-context`, '/games/mobile-legends']);
+  await sweep('guest', '', ['/home', '/site', '/news', '/help', '/stores', `/listings/${catalogId}`, `/catalogs/${catalogId}/buy-context`, '/games/mobile-legends']);
 
   const admin = await login('admin@valostock.test');
   const [, stores] = (await get(admin, '/admin/stores?status=ALL')) as [number, { stores: { id: string }[] }];
@@ -64,6 +64,8 @@ async function main() {
     '/admin/promo-codes',
     '/admin/news',
     '/admin/help',
+    '/admin/cms/texts',
+    '/admin/cms/banners',
     '/admin/users?q=a',
     `/admin/users/${users.users[0]!.id}`,
     '/admin/admins',

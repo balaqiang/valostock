@@ -8,6 +8,8 @@ import { supabaseAdmin } from './client.js';
 
 export const PUBLIC_BUCKET = 'catalog-images';
 export const PRIVATE_BUCKET = 'private-media';
+/** CMS images: home banners, game banners (docs/ADMIN_PANEL.md §3.10). */
+export const SITE_BUCKET = 'site-media';
 
 const SIGNATURES: { mime: string; ext: string; test: (b: Buffer) => boolean }[] = [
   { mime: 'image/png', ext: 'png', test: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
@@ -44,6 +46,11 @@ export async function removeObjects(bucket: string, paths: string[]): Promise<vo
 /** Catalog photo URL: seed images are site paths (/images/...), uploads live in the public bucket. */
 export function catalogImageUrl(path: string): string {
   return path.startsWith('/') ? path : `${env.SUPABASE_URL}/storage/v1/object/public/${PUBLIC_BUCKET}/${path}`;
+}
+
+/** CMS image URL: static files of the web app (/images/…) or objects in the site-media bucket (cms/…). */
+export function siteMediaUrl(path: string): string {
+  return path.startsWith('/') ? path : `${env.SUPABASE_URL}/storage/v1/object/public/${SITE_BUCKET}/${path}`;
 }
 
 /** Short-lived links for private media (inspection, rekber, dispute evidence). */

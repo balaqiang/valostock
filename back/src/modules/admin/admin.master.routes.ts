@@ -49,7 +49,7 @@ const gameFields = {
   image: z
     .string()
     .trim()
-    .regex(/^\/images\/[\w\-./() ]+$/, 'gambar harus dari /images/')
+    .regex(/^(\/images\/|cms\/)[A-Za-z0-9/_.()-]+$/, 'gambar harus dari /images/ atau hasil unggah CMS (cms/…)')
     .nullable(),
   sortOrder: z.number().int().min(0).max(1000),
 };

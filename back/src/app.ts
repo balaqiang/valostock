@@ -13,6 +13,7 @@ import { adminTransactionsRouter } from './modules/admin/admin.transactions.rout
 import { adminUsersRouter } from './modules/admin/admin.users.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { chatRouter } from './modules/chat/chat.routes.js';
+import { cmsRouter } from './modules/cms/cms.routes.js';
 import { disputesRouter } from './modules/disputes/disputes.routes.js';
 import { meRouter } from './modules/me/me.routes.js';
 import { offersRouter } from './modules/offers/offers.routes.js';
@@ -56,6 +57,7 @@ export function createApp() {
   api.use(adminTransactionsRouter);
   api.use(adminMasterRouter);
   api.use(adminUsersRouter);
+  api.use(cmsRouter);
   api.use(publicRouter);
   app.use('/api', api);
 

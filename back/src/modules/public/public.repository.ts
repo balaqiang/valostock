@@ -1,3 +1,4 @@
+import { siteMediaUrl } from '../../supabase/storage.js';
 // Public read models: games, field templates, stores, bundles, help & news.
 import { STORE_DEPOSIT } from '../../config/money.js';
 import { all, one, type Db } from '../../db/pool.js';
@@ -43,7 +44,7 @@ export const toGame = (g: GameRow) => ({
   uidExtraOptions: g.uid_extra_options ?? undefined,
   gradient: g.gradient,
   topupCurrency: g.topup_currency ?? undefined,
-  image: g.image,
+  image: g.image ? siteMediaUrl(g.image) : null,
 });
 
 export const listGames = async (db: Db, includeInactive = false) =>
