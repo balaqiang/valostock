@@ -49,20 +49,25 @@ export type MockPaymentMethod = {
   detail: string;
   /** Charge-to-customer rule per MONEY_RULES §8. */
   feeLabel: string;
+  /** Logos in public/images/payment-method, shown on the method card. */
+  logos: { src: string; alt: string }[];
   requiresAuth?: boolean;
 };
 
+const logo = (file: string, alt: string) => ({ src: `/images/payment-method/${encodeURIComponent(file)}`, alt });
+
 export const paymentMethods: MockPaymentMethod[] = [
-  { kind: "QRIS", label: "QRIS", detail: "Semua e-wallet & m-banking", feeLabel: "+1,5%" },
-  { kind: "VA", label: "Virtual Account", detail: "BCA, BNI, BRI, Mandiri", feeLabel: "+Rp 5.000" },
-  { kind: "EWALLET", label: "E-Wallet", detail: "DANA, OVO", feeLabel: "+2,5%" },
-  { kind: "RETAIL", label: "Retail", detail: "Alfamart, Alfamidi, DAN+DAN", feeLabel: "+Rp 5.000" },
-  { kind: "CC", label: "Kartu Kredit", detail: "Visa, Mastercard", feeLabel: "+4% + Rp 3.000" },
+  { kind: "QRIS", label: "QRIS", detail: "DANA, OVO, m-banking & e-wallet lain", feeLabel: "+1,5%", logos: [logo("qris-logo.svg", "QRIS"), logo("dana-logo.svg", "DANA"), logo("ovo-logo.svg", "OVO")] },
+  { kind: "VA", label: "Virtual Account", detail: "BNI, CIMB Niaga, BCA, BRI, Permata, Mandiri", feeLabel: "+Rp 5.000", logos: [logo("bank-negara-indonesia-(bni)-logo.svg", "BNI"), logo("bank-cimb-niaga-logo.svg", "CIMB Niaga")] },
+  { kind: "EWALLET", label: "E-Wallet", detail: "GoPay, ShopeePay", feeLabel: "+2,5%", logos: [logo("gopay-logo.svg", "GoPay"), logo("shopeepay-logo.svg", "ShopeePay")] },
+  { kind: "RETAIL", label: "Retail", detail: "Indomaret, Alfamart", feeLabel: "+Rp 5.000", logos: [logo("indomaret-logo.svg", "Indomaret")] },
+  { kind: "CC", label: "Kartu Kredit", detail: "Visa, Mastercard", feeLabel: "+4% + Rp 3.000", logos: [] },
   {
     kind: "BALANCE",
     label: "Balance (BLC)",
     detail: "Saldo closed-loop — khusus top-up",
     feeLabel: "Tanpa biaya",
+    logos: [],
     requiresAuth: true,
   },
 ];

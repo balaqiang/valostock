@@ -9,6 +9,7 @@ import { apiFetch } from "@/lib/api";
 import type { PaymentSession } from "@/types/api";
 import { cn } from "@/lib/utils";
 import { paymentMethods, type PaymentMethodKind } from "@/lib/fees";
+import { PaymentLogos } from "@/components/payment/payment-logos";
 import { formatRupiah } from "@/lib/format";
 
 /**
@@ -54,7 +55,7 @@ export function PayForm({ orderId, total }: { orderId: string; total: number }) 
               onClick={() => setMethod(item.kind)}
               aria-pressed={method === item.kind}
               className={cn(
-                "flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition-colors duration-200",
+                "flex flex-col items-start gap-2.5 rounded-xl border p-4 text-left transition-colors duration-200",
                 method === item.kind
                   ? "border-primary bg-primary/5"
                   : "border-border bg-surface hover:border-primary/40",
@@ -73,6 +74,7 @@ export function PayForm({ orderId, total }: { orderId: string; total: number }) 
                     : item.detail}
                 </span>
               </span>
+              <PaymentLogos method={item} />
             </motion.button>
           );
         })}
