@@ -8,7 +8,13 @@ pg.types.setTypeParser(pg.types.builtins.INT8, (value) => Number(value));
 pg.types.setTypeParser(pg.types.builtins.NUMERIC, (value) => Number(value));
 pg.types.setTypeParser(pg.types.builtins.TIMESTAMPTZ, (value) => (parseTimestamp(value) as Date).toISOString());
 
-export const pool = new pg.Pool({ connectionString: env.DATABASE_URL, max: 10, options: '-c TimeZone=UTC' });
+export const pool = new pg.Pool({
+  connectionString: env.DATABASE_URL,
+  max: 10,
+  // Supabase Cloud (pooler): encrypted, but the Supabase CA is not in Node's trust store (docs/ARCHITECTURE.md §6.1).
+  ssl: env.DATABASE_SSL === 'require' ? { rejectUnauthorized: false } : undefined,
+});
+// Session time zone: UTC, set on the valostock_api role (migration 20260929000500_api_role_timezone.sql).
 // An idle connection dropped by the server (restart, `db reset`) must not crash the API;
 // the pool simply opens a new one on the next query.
 pool.on('error', (error) => console.error('[db] koneksi idle terputus:', error.message));

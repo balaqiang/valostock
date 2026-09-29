@@ -15,7 +15,8 @@
     "test:features": "tsx scripts/feature-test.ts",
     "test:sweep": "tsx scripts/endpoint-sweep.ts",
     "dev:sim": "tsx watch --env-file=.env --env-file=.env.simulation src/server.ts",
-    "test:unit": "tsx --test tests/money.test.ts tests/name-match.test.ts"
+    "test:unit": "tsx --test tests/money.test.ts tests/name-match.test.ts",
+    "cloud:setup": "tsx scripts/cloud-setup.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -37,6 +38,7 @@
     "@types/node": "^26.6.3",
     "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.23.1",
+    "supabase": "^2.118.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
