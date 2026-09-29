@@ -19,6 +19,8 @@ export type MockGame = {
   uidHint: string;
   /** Extra field next to UID, e.g. MLBB zone ID. */
   uidExtraLabel?: string;
+  /** Fixed choices for the extra field (e.g. Genshin server). */
+  uidExtraOptions?: string[];
   /** Tailwind gradient classes for the game tile/banner art. */
   gradient: string;
   /** Currency sold via top-up, e.g. "VP". */
@@ -75,6 +77,8 @@ export const games: MockGame[] = [
     sortOrder: 3,
     uidLabel: "UID",
     uidHint: "UID 9 digit — lihat di pojok kanan bawah layar game",
+    uidExtraLabel: "Server",
+    uidExtraOptions: ["Asia", "America", "Europe", "TW, HK, MO"],
     gradient: "from-amber-400/80 via-orange-500/70 to-emerald-500/70",
     topupCurrency: "Genesis Crystal",
   },

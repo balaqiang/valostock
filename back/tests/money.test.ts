@@ -11,6 +11,7 @@ import {
   STORE_DEPOSIT,
   SUBSCRIPTION_PLANS,
   surchargeFor,
+  topupRetailFor,
   TOPUP_METHODS,
 } from '../src/config/money.ts';
 
@@ -91,5 +92,20 @@ describe('loyalty, deposit, ads', () => {
   });
   it('prices featured ads per duration', () => {
     assert.deepEqual(FEATURED_PRICES, { 1: 3_000, 3: 9_000, 7: 20_000, 14: 35_000, 30: 60_000 });
+  });
+});
+
+describe('top-up retail price — Digiflazz price + 3%, rounded up to Rp100 (§8)', () => {
+  it('adds 3% and rounds up to the next Rp100', () => {
+    assert.equal(topupRetailFor(51_145), 52_700);
+    assert.equal(topupRetailFor(1_425), 1_500);
+    assert.equal(topupRetailFor(1_003_289), 1_033_400);
+  });
+  it('does not overshoot on exact multiples (no float error)', () => {
+    assert.equal(topupRetailFor(10_000), 10_300);
+    assert.equal(topupRetailFor(100_000), 103_000);
+  });
+  it('is never below the supplier price', () => {
+    for (const cost of [1, 99, 750, 23_256, 1_629_000]) assert.ok(topupRetailFor(cost) >= cost);
   });
 });

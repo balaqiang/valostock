@@ -10,6 +10,7 @@ import { listings } from '../../front/src/lib/mock/listings.ts';
 import { promoCodes, topupProducts } from '../../front/src/lib/mock/topup.ts';
 import { helpArticles } from '../../front/src/lib/mock/help.ts';
 import { newsArticles } from '../../front/src/lib/mock/news.ts';
+import { topupRetailFor } from '../src/config/money.ts';
 
 /** Password of every demo account (local development only, see supabase/README.md). */
 const DEMO_PASSWORD = 'valostock-demo';
@@ -311,7 +312,8 @@ const featuredRows = astral
 const gameRows = games.map((g) => ({
   slug: g.slug, name: g.name, publisher: g.publisher, tagline: g.tagline, description: g.description,
   supports_account: g.supportsAccount, supports_topup: g.supportsTopup, has_skin_api: g.hasSkinApi, is_hot: g.isHot,
-  uid_label: g.uidLabel, uid_hint: g.uidHint, uid_extra_label: g.uidExtraLabel ?? null, gradient: g.gradient,
+  uid_label: g.uidLabel, uid_hint: g.uidHint, uid_extra_label: g.uidExtraLabel ?? null,
+  uid_extra_options: g.uidExtraOptions ? textArray(g.uidExtraOptions) : null, gradient: g.gradient,
   topup_currency: g.topupCurrency ?? null, sort_order: g.sortOrder,
 }));
 const templateRows = Object.entries(templates).flatMap(([slug, list]) =>
@@ -321,7 +323,9 @@ const templateRows = Object.entries(templates).flatMap(([slug, list]) =>
   })),
 );
 const productRows = topupProducts.map((p, i) => ({
-  id: p.id, game_id: gameId(p.gameSlug), name: p.name, amount_label: p.amountLabel, retail_price: p.retailPrice, popular: p.popular ?? false, sort_order: i,
+  id: p.id, game_id: gameId(p.gameSlug), name: p.name, amount_label: p.amountLabel,
+  supplier_price: p.supplierPrice, retail_price: topupRetailFor(p.supplierPrice), section: p.section, icon: p.icon,
+  popular: p.popular ?? false, sort_order: i,
 }));
 const promoRows = promoCodes.map((p) => ({ code: p.code, kind: p.kind, value: p.value, min_spend: p.minSpend, label: p.label, quota: 1000 }));
 const helpRows = helpArticles.map((a, i) => ({ slug: a.slug, title: a.title, category: a.category, excerpt: a.excerpt, body: a.body, popular: a.popular ?? false, sort_order: i }));

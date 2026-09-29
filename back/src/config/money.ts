@@ -91,3 +91,10 @@ export function discountFor(rule: { kind: 'PERCENT' | 'FIXED'; value: number; mi
 /** Preset Balance (BLC) voucher denominations (§8b). 1 BLC = Rp1. */
 export const BLC_DENOMINATIONS = [1_000, 5_000, 10_000, 25_000, 50_000, 100_000, 250_000, 500_000, 1_000_000, 5_000_000];
 export const BLC_MAX_QTY = 10;
+
+// ── Top-up margin (§8) ──
+export const TOPUP_MARGIN_PERCENT = 3;
+/** Retail = Digiflazz price + 3%, rounded up to the next Rp100. Integer maths — no float rounding surprises. */
+export function topupRetailFor(supplierPrice: number): number {
+  return Math.ceil((supplierPrice * (100 + TOPUP_MARGIN_PERCENT)) / 10_000) * 100;
+}

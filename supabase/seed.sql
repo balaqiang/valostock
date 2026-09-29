@@ -226,11 +226,11 @@ insert into public.admin_user_roles (user_id, role_id, assigned_by) values
 
 
 -- ── Games & catalogs ──
-insert into public.games (slug, name, publisher, tagline, description, supports_account, supports_topup, has_skin_api, is_hot, uid_label, uid_hint, uid_extra_label, gradient, topup_currency, sort_order) values
-  ('valorant', 'Valorant', 'Riot Games', 'Tactical shooter 5v5', 'Akun Valorant dengan rank, koleksi skin, dan VP — semua dijual toko terverifikasi dan diserahkan lewat Rekber Room.', true, true, true, true, 'Riot ID', 'Contoh: NamaKamu#TAG — lihat di profil dalam game', null, 'from-rose-500/80 via-red-500/70 to-violet-600/80', 'VP', 1),
-  ('mobile-legends', 'Mobile Legends', 'Moonton', 'MOBA 5v5 mobile', 'Akun Mobile Legends dengan rank, hero, dan skin — dijual toko terverifikasi dengan escrow dan proteksi pembeli.', true, true, false, true, 'User ID', 'Lihat di profil dalam game, contoh: 12345678', 'Zone ID', 'from-sky-500/80 via-blue-600/70 to-indigo-600/80', 'Diamond', 2),
-  ('genshin-impact', 'Genshin Impact', 'HoYoverse', 'Open-world action RPG', 'Top-up Genesis Crystal Genshin Impact — proses instan, struk dikirim ke email dan WhatsApp.', false, true, false, false, 'UID', 'UID 9 digit — lihat di pojok kanan bawah layar game', null, 'from-amber-400/80 via-orange-500/70 to-emerald-500/70', 'Genesis Crystal', 3),
-  ('free-fire', 'Free Fire', 'Garena', 'Battle royale mobile', 'Top-up Diamond Free Fire — proses instan, struk dikirim ke email dan WhatsApp.', false, true, false, false, 'Player ID', 'Lihat di profil dalam game', null, 'from-orange-500/80 via-amber-500/70 to-red-600/80', 'Diamond', 4);
+insert into public.games (slug, name, publisher, tagline, description, supports_account, supports_topup, has_skin_api, is_hot, uid_label, uid_hint, uid_extra_label, uid_extra_options, gradient, topup_currency, sort_order) values
+  ('valorant', 'Valorant', 'Riot Games', 'Tactical shooter 5v5', 'Akun Valorant dengan rank, koleksi skin, dan VP — semua dijual toko terverifikasi dan diserahkan lewat Rekber Room.', true, true, true, true, 'Riot ID', 'Contoh: NamaKamu#TAG — lihat di profil dalam game', null, null, 'from-rose-500/80 via-red-500/70 to-violet-600/80', 'VP', 1),
+  ('mobile-legends', 'Mobile Legends', 'Moonton', 'MOBA 5v5 mobile', 'Akun Mobile Legends dengan rank, hero, dan skin — dijual toko terverifikasi dengan escrow dan proteksi pembeli.', true, true, false, true, 'User ID', 'Lihat di profil dalam game, contoh: 12345678', 'Zone ID', null, 'from-sky-500/80 via-blue-600/70 to-indigo-600/80', 'Diamond', 2),
+  ('genshin-impact', 'Genshin Impact', 'HoYoverse', 'Open-world action RPG', 'Top-up Genesis Crystal Genshin Impact — proses instan, struk dikirim ke email dan WhatsApp.', false, true, false, false, 'UID', 'UID 9 digit — lihat di pojok kanan bawah layar game', 'Server', array['Asia', 'America', 'Europe', 'TW, HK, MO']::text[], 'from-amber-400/80 via-orange-500/70 to-emerald-500/70', 'Genesis Crystal', 3),
+  ('free-fire', 'Free Fire', 'Garena', 'Battle royale mobile', 'Top-up Diamond Free Fire — proses instan, struk dikirim ke email dan WhatsApp.', false, true, false, false, 'Player ID', 'Lihat di profil dalam game', null, null, 'from-orange-500/80 via-amber-500/70 to-red-600/80', 'Diamond', 4);
 
 insert into public.game_field_templates (game_id, key, label, type, required, options, filterable, help_text, sort_order) values
   ((select id from public.games where slug = 'valorant'), 'rank', 'Rank', 'SELECT', true, '["Iron 1","Iron 2","Iron 3","Bronze 1","Bronze 2","Bronze 3","Silver 1","Silver 2","Silver 3","Gold 1","Gold 2","Gold 3","Platinum 1","Platinum 2","Platinum 3","Diamond 1","Diamond 2","Diamond 3","Ascendant 1","Ascendant 2","Ascendant 3","Immortal 1","Immortal 2","Immortal 3","Radiant"]'::jsonb, true, null, 0),
@@ -425,27 +425,49 @@ insert into public.featured_listings (store_id, catalog_id, duration_days, price
 
 
 -- ── Top-up, content ──
-insert into public.topup_products (id, game_id, name, amount_label, retail_price, popular, sort_order) values
-  ('vp-475', (select id from public.games where slug = 'valorant'), 'Valorant Points', '475 VP', 56000, false, 0),
-  ('vp-1000', (select id from public.games where slug = 'valorant'), 'Valorant Points', '1.000 VP', 112000, true, 1),
-  ('vp-2050', (select id from public.games where slug = 'valorant'), 'Valorant Points', '2.050 VP', 224000, false, 2),
-  ('vp-3650', (select id from public.games where slug = 'valorant'), 'Valorant Points', '3.650 VP', 389000, false, 3),
-  ('vp-5350', (select id from public.games where slug = 'valorant'), 'Valorant Points', '5.350 VP', 559000, false, 4),
-  ('vp-11000', (select id from public.games where slug = 'valorant'), 'Valorant Points', '11.000 VP', 1099000, false, 5),
-  ('ml-86', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '86 Diamond', 22500, false, 6),
-  ('ml-172', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '172 Diamond', 44500, true, 7),
-  ('ml-257', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '257 Diamond', 66500, false, 8),
-  ('ml-514', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '514 Diamond', 131500, false, 9),
-  ('ml-706', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '706 Diamond', 179000, false, 10),
-  ('ml-2195', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '2.195 Diamond', 549000, false, 11),
-  ('gi-60', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '60 Crystal', 16500, false, 12),
-  ('gi-330', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '330 Crystal', 81000, true, 13),
-  ('gi-1090', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '1.090 Crystal', 259000, false, 14),
-  ('gi-2240', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '2.240 Crystal', 519000, false, 15),
-  ('ff-70', (select id from public.games where slug = 'free-fire'), 'Diamonds', '70 Diamond', 10000, false, 16),
-  ('ff-355', (select id from public.games where slug = 'free-fire'), 'Diamonds', '355 Diamond', 48000, true, 17),
-  ('ff-720', (select id from public.games where slug = 'free-fire'), 'Diamonds', '720 Diamond', 95000, false, 18),
-  ('ff-1450', (select id from public.games where slug = 'free-fire'), 'Diamonds', '1.450 Diamond', 189000, false, 19);
+insert into public.topup_products (id, game_id, name, amount_label, supplier_price, retail_price, section, icon, popular, sort_order) values
+  ('vp-475', (select id from public.games where slug = 'valorant'), 'Valorant Points', '475 VP', 51145, 52700, 'INSTANT', '/images/topup-icon/valorant/vp.webp', false, 0),
+  ('vp-1000', (select id from public.games where slug = 'valorant'), 'Valorant Points', '1.000 VP', 102264, 105400, 'INSTANT', '/images/topup-icon/valorant/vp.webp', true, 1),
+  ('vp-2050', (select id from public.games where slug = 'valorant'), 'Valorant Points', '2.050 VP', 204502, 210700, 'INSTANT', '/images/topup-icon/valorant/vp.webp', false, 2),
+  ('vp-3650', (select id from public.games where slug = 'valorant'), 'Valorant Points', '3.650 VP', 355147, 365900, 'INSTANT', '/images/topup-icon/valorant/vp.webp', false, 3),
+  ('vp-5350', (select id from public.games where slug = 'valorant'), 'Valorant Points', '5.350 VP', 510356, 525700, 'INSTANT', '/images/topup-icon/valorant/vp.webp', false, 4),
+  ('vp-11000', (select id from public.games where slug = 'valorant'), 'Valorant Points', '11.000 VP', 1003289, 1033400, 'INSTANT', '/images/topup-icon/valorant/vp.webp', false, 5),
+  ('ml-weekly', (select id from public.games where slug = 'mobile-legends'), 'Weekly Diamond Pass', 'Weekly Diamond Pass', 23256, 24000, 'SPECIAL', '/images/topup-icon/mlbb/weeklypass.webp', false, 6),
+  ('ml-5', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '5 Diamond', 1425, 1500, 'INSTANT', '/images/topup-icon/mlbb/diamond.png', false, 7),
+  ('ml-12', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '12 Diamond', 3348, 3500, 'INSTANT', '/images/topup-icon/mlbb/diamond.png', false, 8),
+  ('ml-19', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '19 Diamond', 5210, 5400, 'INSTANT', '/images/topup-icon/mlbb/diamond.png', false, 9),
+  ('ml-28', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '28 Diamond', 7570, 7800, 'INSTANT', '/images/topup-icon/mlbb/diamond.png', false, 10),
+  ('ml-44', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '44 Diamond', 11410, 11800, 'INSTANT', '/images/topup-icon/mlbb/diamond.png', false, 11),
+  ('ml-59', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '59 Diamond', 14899, 15400, 'INSTANT', '/images/topup-icon/mlbb/diamond.png', false, 12),
+  ('ml-85', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '85 Diamond', 19300, 19900, 'INSTANT', '/images/topup-icon/mlbb/diamond.png', false, 13),
+  ('ml-170', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '170 Diamond', 43000, 44300, 'INSTANT', '/images/topup-icon/mlbb/diamond-150.png', true, 14),
+  ('ml-240', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '240 Diamond', 52320, 53900, 'INSTANT', '/images/topup-icon/mlbb/diamond-150.png', false, 15),
+  ('ml-296', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '296 Diamond', 54388, 56100, 'INSTANT', '/images/topup-icon/mlbb/diamond-150.png', false, 16),
+  ('ml-408', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '408 Diamond', 98000, 101000, 'INSTANT', '/images/topup-icon/mlbb/diamond-150.png', false, 17),
+  ('ml-568', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '568 Diamond', 140800, 145100, 'INSTANT', '/images/topup-icon/mlbb/diamond-150.png', false, 18),
+  ('ml-875', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '875 Diamond', 212975, 219400, 'INSTANT', '/images/topup-icon/mlbb/diamond-150.png', false, 19),
+  ('ml-2010', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '2.010 Diamond', 468375, 482500, 'INSTANT', '/images/topup-icon/mlbb/diamond-1000.png', false, 20),
+  ('ml-4830', (select id from public.games where slug = 'mobile-legends'), 'Diamonds', '4.830 Diamond', 1125475, 1159300, 'INSTANT', '/images/topup-icon/mlbb/diamond-4800.png', false, 21),
+  ('gi-welkin', (select id from public.games where slug = 'genshin-impact'), 'Blessing of the Welkin Moon', 'Blessing of the Welkin Moon', 76817, 79200, 'SPECIAL', '/images/topup-icon/genshin/blessing-of-welkin-moon.webp', false, 22),
+  ('gi-60', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '60 Crystals', 15655, 16200, 'INSTANT', '/images/topup-icon/genshin/crystals.webp', false, 23),
+  ('gi-330', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '330 (300+30) Crystals', 76817, 79200, 'INSTANT', '/images/topup-icon/genshin/crystals.webp', true, 24),
+  ('gi-1090', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '1.090 (980+110) Crystals', 241775, 249100, 'INSTANT', '/images/topup-icon/genshin/crystals.webp', false, 25),
+  ('gi-2240', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '2.240 (1.980+260) Crystals', 463616, 477600, 'INSTANT', '/images/topup-icon/genshin/crystals.webp', false, 26),
+  ('gi-3880', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '3.880 (3.280+600) Crystals', 772676, 795900, 'INSTANT', '/images/topup-icon/genshin/crystals.webp', false, 27),
+  ('gi-8080', (select id from public.games where slug = 'genshin-impact'), 'Genesis Crystals', '8.080 (6.480+1.600) Crystals', 1629000, 1677900, 'INSTANT', '/images/topup-icon/genshin/crystals.webp', false, 28),
+  ('ff-weekly', (select id from public.games where slug = 'free-fire'), 'Membership Mingguan', 'Membership Mingguan', 25177, 26000, 'SPECIAL', '/images/topup-icon/freefire/diamond.webp', false, 29),
+  ('ff-monthly', (select id from public.games where slug = 'free-fire'), 'Membership Bulanan', 'Membership Bulanan', 75398, 77700, 'SPECIAL', '/images/topup-icon/freefire/diamond.webp', false, 30),
+  ('ff-5', (select id from public.games where slug = 'free-fire'), 'Diamonds', '5 Diamond', 750, 800, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 31),
+  ('ff-12', (select id from public.games where slug = 'free-fire'), 'Diamonds', '12 Diamond', 1601, 1700, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 32),
+  ('ff-50', (select id from public.games where slug = 'free-fire'), 'Diamonds', '50 Diamond', 4945, 5100, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 33),
+  ('ff-70', (select id from public.games where slug = 'free-fire'), 'Diamonds', '70 Diamond', 7000, 7300, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 34),
+  ('ff-140', (select id from public.games where slug = 'free-fire'), 'Diamonds', '140 Diamond', 11000, 11400, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', true, 35),
+  ('ff-355', (select id from public.games where slug = 'free-fire'), 'Diamonds', '355 Diamond', 28500, 29400, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 36),
+  ('ff-720', (select id from public.games where slug = 'free-fire'), 'Diamonds', '720 Diamond', 58800, 60600, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 37),
+  ('ff-1450', (select id from public.games where slug = 'free-fire'), 'Diamonds', '1.450 Diamond', 151377, 156000, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 38),
+  ('ff-2180', (select id from public.games where slug = 'free-fire'), 'Diamonds', '2.180 Diamond', 234025, 241100, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 39),
+  ('ff-3640', (select id from public.games where slug = 'free-fire'), 'Diamonds', '3.640 Diamond', 399025, 411000, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 40),
+  ('ff-7290', (select id from public.games where slug = 'free-fire'), 'Diamonds', '7.290 Diamond', 807536, 831800, 'INSTANT', '/images/topup-icon/freefire/diamond.webp', false, 41);
 
 insert into public.promo_codes (code, kind, value, min_spend, label, quota) values
   ('VALO10', 'PERCENT', 10, 50000, 'Diskon 10% (min. Rp 50.000)', 1000),
