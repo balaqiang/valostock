@@ -28,6 +28,9 @@ export async function checkout(user: AuthUser | undefined, input: CheckoutInput)
   const product = await repo.findProduct(pool, input.productId);
   if (!product) throw notFound('Produk top-up');
   if (product.uid_extra_label && !input.gameZoneId) throw badRequest(`Harap isi ${product.uid_extra_label}.`);
+  if (product.uid_extra_options && input.gameZoneId && !product.uid_extra_options.includes(input.gameZoneId)) {
+    throw badRequest(`${product.uid_extra_label ?? 'Pilihan'} tidak dikenal. Pilih salah satu: ${product.uid_extra_options.join(', ')}.`);
+  }
 
   const promo = input.promoCode ? await repo.findUsablePromo(pool, input.promoCode) : null;
   if (input.promoCode && !promo) throw badRequest('Kode promo tidak ditemukan atau sudah tidak berlaku.', 'PROMO_INVALID');

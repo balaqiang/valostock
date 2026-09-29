@@ -30,9 +30,9 @@ publicRouter.get('/games/:slug/fields', async (req, res) => {
 });
 
 publicRouter.get('/games/:slug/topup-products', async (req, res) => {
-  const rows = await all<{ id: string; name: string; amount_label: string; retail_price: number; popular: boolean }>(
+  const rows = await all<{ id: string; name: string; amount_label: string; retail_price: number; popular: boolean; section: 'SPECIAL' | 'INSTANT'; icon: string | null }>(
     pool,
-    `select p.* from topup_products p join games g on g.id = p.game_id
+    `select p.id, p.name, p.amount_label, p.retail_price, p.popular, p.section, p.icon from topup_products p join games g on g.id = p.game_id
      where g.slug = $1 and p.is_active and g.is_active order by p.sort_order`,
     [parse(slug, req.params.slug)],
   );
@@ -43,6 +43,8 @@ publicRouter.get('/games/:slug/topup-products', async (req, res) => {
       name: p.name,
       amountLabel: p.amount_label,
       retailPrice: p.retail_price,
+      section: p.section,
+      icon: p.icon ?? undefined,
       popular: p.popular || undefined,
     })),
   });

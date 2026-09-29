@@ -17,6 +17,7 @@ export interface GameRow {
   uid_label: string;
   uid_hint: string;
   uid_extra_label: string | null;
+  uid_extra_options: string[] | null;
   gradient: string;
   topup_currency: string | null;
   image: string | null;
@@ -39,6 +40,7 @@ export const toGame = (g: GameRow) => ({
   uidLabel: g.uid_label,
   uidHint: g.uid_hint,
   uidExtraLabel: g.uid_extra_label ?? undefined,
+  uidExtraOptions: g.uid_extra_options ?? undefined,
   gradient: g.gradient,
   topupCurrency: g.topup_currency ?? undefined,
   image: g.image,

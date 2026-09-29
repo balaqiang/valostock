@@ -4,7 +4,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { all, json, one, pool, run, withTransaction, type SqlParam } from '../../db/pool.js';
 import { audit } from '../../lib/audit.js';
-import { conflict, notFound, parse } from '../../lib/errors.js';
+import { topupRetailFor } from '../../config/money.js';
+import { badRequest, conflict, notFound, parse } from '../../lib/errors.js';
 import { toGame, toNews, toTemplate, type GameRow, type TemplateRow } from '../public/public.repository.js';
 import { admin, idParam, ipOf } from './admin.guard.js';
 
@@ -42,6 +43,7 @@ const gameFields = {
   uidLabel: z.string().trim().min(2).max(60),
   uidHint: z.string().trim().min(2).max(160),
   uidExtraLabel: z.string().trim().max(60).nullable(),
+  uidExtraOptions: z.array(z.string().trim().min(1).max(40)).min(1).max(20).nullable(),
   gradient: z.string().trim().max(120),
   topupCurrency: z.string().trim().max(40).nullable(),
   image: z
@@ -66,6 +68,7 @@ const GAME_COLUMNS: Record<string, string> = {
   uidLabel: 'uid_label',
   uidHint: 'uid_hint',
   uidExtraLabel: 'uid_extra_label',
+  uidExtraOptions: 'uid_extra_options',
   gradient: 'gradient',
   topupCurrency: 'topup_currency',
   image: 'image',
@@ -97,8 +100,8 @@ adminMasterRouter.post('/admin/games', async (req, res) => {
   const row = await one<{ id: number }>(
     pool,
     `insert into games (slug, name, publisher, tagline, description, supports_account, supports_topup, has_skin_api, is_hot, is_active,
-       uid_label, uid_hint, uid_extra_label, gradient, topup_currency, image, sort_order)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) returning id`,
+       uid_label, uid_hint, uid_extra_label, uid_extra_options, gradient, topup_currency, image, sort_order)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) returning id`,
     [
       g.slug,
       g.name,
@@ -113,6 +116,7 @@ adminMasterRouter.post('/admin/games', async (req, res) => {
       g.uidLabel,
       g.uidHint,
       g.uidExtraLabel ?? null,
+      g.uidExtraOptions ?? null,
       g.gradient ?? 'from-violet-600 to-fuchsia-600',
       g.topupCurrency ?? null,
       g.image ?? null,
@@ -220,9 +224,13 @@ adminMasterRouter.delete('/admin/fields/:id', async (req, res) => {
 
 // ── Top-up products ──
 
+function assertMargin(supplierPrice: number, retailPrice: number) {
+  if (retailPrice < supplierPrice) throw badRequest('Harga jual tidak boleh di bawah harga modal Digiflazz.', 'BELOW_COST');
+}
+
 adminMasterRouter.get('/admin/topup-products', async (req, res) => {
   await admin(req, 'master:manage');
-  const rows = await all<{ id: string; game_id: number; game_slug: string; game_name: string; name: string; amount_label: string; retail_price: number; popular: boolean; is_active: boolean; sort_order: number; sold: number }>(
+  const rows = await all<{ id: string; game_id: number; game_slug: string; game_name: string; name: string; amount_label: string; supplier_price: number; retail_price: number; section: 'SPECIAL' | 'INSTANT'; icon: string | null; popular: boolean; is_active: boolean; sort_order: number; sold: number }>(
     pool,
     `select p.*, g.slug as game_slug, g.name as game_name,
        (select count(*)::int from topup_orders t where t.product_id = p.id and t.status = 'SUCCESS') as sold
@@ -236,7 +244,11 @@ adminMasterRouter.get('/admin/topup-products', async (req, res) => {
       gameName: p.game_name,
       name: p.name,
       amountLabel: p.amount_label,
+      supplierPrice: p.supplier_price,
       retailPrice: p.retail_price,
+      margin: p.retail_price - p.supplier_price,
+      section: p.section,
+      icon: p.icon,
       popular: p.popular,
       isActive: p.is_active,
       sortOrder: p.sort_order,
@@ -249,7 +261,14 @@ const productFields = {
   gameId: z.number().int().positive(),
   name: z.string().trim().min(2).max(100),
   amountLabel: z.string().trim().min(1).max(60),
+  supplierPrice: z.number().int().positive().max(100_000_000),
   retailPrice: z.number().int().positive().max(100_000_000),
+  section: z.enum(['SPECIAL', 'INSTANT']),
+  icon: z
+    .string()
+    .trim()
+    .regex(/^\/images\/[a-z0-9/_.-]+$/, 'ikon harus dari /images/')
+    .nullable(),
   popular: z.boolean(),
   isActive: z.boolean(),
   sortOrder: z.number().int().min(0).max(1000),
@@ -260,14 +279,18 @@ adminMasterRouter.post('/admin/topup-products', async (req, res) => {
   const p = parse(
     z
       .object({ id: z.string().regex(/^[a-z0-9-]{2,36}$/, 'id: huruf kecil, angka, minus'), ...productFields })
-      .partial({ popular: true, isActive: true, sortOrder: true })
+      .partial({ retailPrice: true, section: true, icon: true, popular: true, isActive: true, sortOrder: true })
       .strict(),
     req.body,
   );
+  // MONEY_RULES §8: no retail price → Digiflazz price + 3%; never below cost.
+  const retailPrice = p.retailPrice ?? topupRetailFor(p.supplierPrice);
+  assertMargin(p.supplierPrice, retailPrice);
   await run(
     pool,
-    `insert into topup_products (id, game_id, name, amount_label, retail_price, popular, is_active, sort_order) values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [p.id, p.gameId, p.name, p.amountLabel, p.retailPrice, p.popular ?? false, p.isActive ?? true, p.sortOrder ?? 0],
+    `insert into topup_products (id, game_id, name, amount_label, supplier_price, retail_price, section, icon, popular, is_active, sort_order)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [p.id, p.gameId, p.name, p.amountLabel, p.supplierPrice, retailPrice, p.section ?? 'INSTANT', p.icon ?? null, p.popular ?? false, p.isActive ?? true, p.sortOrder ?? 0],
   );
   await audit(pool, { actorId: user.id, action: 'topup_product.create', targetType: 'topup_product', targetId: p.id, detail: p, ip: ipOf(req) });
   res.status(201).json({ ok: true });
@@ -277,11 +300,21 @@ adminMasterRouter.patch('/admin/topup-products/:id', async (req, res) => {
   const user = await admin(req, 'master:manage');
   const id = parse(z.string().regex(/^[a-z0-9-]{2,36}$/), req.params.id);
   const input = parse(z.object(productFields).partial().strict(), req.body);
+  if (input.supplierPrice !== undefined || input.retailPrice !== undefined) {
+    const current = await one<{ supplier_price: number; retail_price: number }>(pool, 'select supplier_price, retail_price from topup_products where id = $1', [id]);
+    if (!current) throw notFound('Produk');
+    // A new cost without a retail price re-applies the margin rule.
+    if (input.supplierPrice !== undefined && input.retailPrice === undefined) input.retailPrice = topupRetailFor(input.supplierPrice);
+    assertMargin(input.supplierPrice ?? current.supplier_price, input.retailPrice ?? current.retail_price);
+  }
   const { sets, params } = patchSql(input, {
     gameId: 'game_id',
     name: 'name',
     amountLabel: 'amount_label',
+    supplierPrice: 'supplier_price',
     retailPrice: 'retail_price',
+    section: 'section',
+    icon: 'icon',
     popular: 'popular',
     isActive: 'is_active',
     sortOrder: 'sort_order',

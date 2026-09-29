@@ -27,12 +27,13 @@ export interface ProductWithGame {
   retail_price: number;
   game_name: string;
   uid_extra_label: string | null;
+  uid_extra_options: string[] | null;
 }
 
 export const findProduct = (db: Db, id: string) =>
   one<ProductWithGame>(
     db,
-    `select p.id, p.name, p.amount_label, p.retail_price, g.name as game_name, g.uid_extra_label
+    `select p.id, p.name, p.amount_label, p.retail_price, g.name as game_name, g.uid_extra_label, g.uid_extra_options
      from topup_products p join games g on g.id = p.game_id
      where p.id = $1 and p.is_active and g.is_active and g.supports_topup`,
     [id],

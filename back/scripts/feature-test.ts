@@ -167,10 +167,10 @@ async function main() {
   const slug = `game-${Date.now().toString(36)}`;
   const { id: gameId } = await admin.ok<{ id: number }>('POST', '/admin/games', {
     slug,
-    name: 'Genshin Impact',
-    publisher: 'HoYoverse',
-    tagline: 'Akun Genshin',
-    description: 'Jual beli akun Genshin Impact.',
+    name: `Game Uji ${slug}`,
+    publisher: 'Studio Uji',
+    tagline: 'Game untuk pengujian',
+    description: 'Dibuat oleh test:features.',
     uidLabel: 'UID',
     uidHint: '9 digit',
   });
@@ -178,6 +178,19 @@ async function main() {
   await admin.fails('POST', `/admin/games/${gameId}/fields`, { key: 'server', label: 'Server', type: 'SELECT' }, 400);
   const gf = await guest.ok<{ fields: { key: string }[] }>('GET', `/games/${slug}/fields`);
   assert.deepEqual(gf.fields.map((f) => f.key), ['ar']);
+  // Top-up product from a Digiflazz price: no retail → cost + 3%; below cost refused; cost never public.
+  await admin.ok('PATCH', `/admin/games/${gameId}`, { supportsTopup: true, uidExtraLabel: 'Server', uidExtraOptions: ['Asia', 'Europe'] });
+  const pid = `uji-${Date.now().toString(36)}`;
+  await admin.ok('POST', '/admin/topup-products', { id: pid, gameId, name: 'Kristal', amountLabel: '100 Kristal', supplierPrice: 10_000 });
+  const { products: adminProducts } = await admin.ok<{ products: { id: string; retailPrice: number; margin: number }[] }>('GET', '/admin/topup-products');
+  const made = adminProducts.find((p) => p.id === pid)!;
+  assert.equal(made.retailPrice, 10_300);
+  assert.equal(made.margin, 300);
+  await admin.fails('PATCH', `/admin/topup-products/${pid}`, { retailPrice: 9_000 }, 400);
+  const { products: publicProducts } = await guest.ok<{ products: Record<string, unknown>[] }>('GET', `/games/${slug}/topup-products`);
+  assert.equal(publicProducts[0]!.retailPrice, 10_300);
+  assert.equal(publicProducts[0]!.supplierPrice, undefined);
+  await guest.fails('POST', '/topup/checkout', { productId: pid, userGameId: '800000001', gameZoneId: 'Mars', paymentMethod: 'QRIS' }, 400);
   await admin.ok('PATCH', `/admin/games/${gameId}`, { isActive: false });
   await guest.fails('GET', `/games/${slug}`, undefined, 404);
   await admin.ok('POST', '/admin/promo-codes', { code: `FT${Date.now().toString(36).toUpperCase().slice(-6)}`, kind: 'PERCENT', value: 5, label: 'Uji promo' });
@@ -189,7 +202,7 @@ async function main() {
     body: [{ type: 'paragraph', text: 'Isi berita.' }],
     status: 'PUBLISHED',
   });
-  check('master data: game + field template (SELECT needs options), deactivate, promo code, news');
+  check('master data: game + field template, top-up product (cost + 3%, never below cost, server list), deactivate, promo, news');
 
   // Users & RBAC.
   const { users } = await admin.ok<{ users: { id: string; email: string }[] }>('GET', '/admin/users?q=raven');
