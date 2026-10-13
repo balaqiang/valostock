@@ -5,7 +5,7 @@
 //   1. preflight: Postgres 16+ and a connecting role that may create a BYPASSRLS role,
 //   2. `supabase db push --include-seed` (or `db reset` with --reset) — no Docker needed,
 //   3. replaces the public dev password of `valostock_api` with a random one,
-//   4. checks the role, the Storage buckets and the demo data,
+//   4. checks the role and the demo data,
 //   5. writes DATABASE_URL (pooler, user valostock_api.<ref>) + DATABASE_SSL=require to back/.env.
 // The postgres password is only used for this run; no secret is printed.
 import { spawnSync } from 'node:child_process';
@@ -102,17 +102,15 @@ async function main() {
   await db.query(`alter role valostock_api with login password ${db.escapeLiteral(apiPassword)}`);
 
   // 4. Checks
-  const checks = await db.query<{ bypass: boolean | null; buckets: number; users: number; products: number }>(
+  const checks = await db.query<{ bypass: boolean | null; users: number; products: number }>(
     `select (select rolbypassrls from pg_roles where rolname = 'valostock_api') as bypass,
-       (select count(*)::int from storage.buckets where id in ('catalog-images', 'private-media')) as buckets,
        (select count(*)::int from public.profiles) as users,
        (select count(*)::int from public.topup_products) as products`,
   );
   await db.end();
   const c = checks.rows[0]!;
   if (!c.bypass) fail('Role valostock_api tidak punya BYPASSRLS — API tidak akan bisa membaca data.');
-  if (c.buckets !== 2) fail(`Bucket Storage kurang (${c.buckets}/2).`);
-  console.log(`  role valostock_api ✓ · bucket ${c.buckets}/2 ✓ · ${c.users} akun demo · ${c.products} produk top-up`);
+  console.log(`  role valostock_api ✓ · ${c.users} akun demo · ${c.products} produk top-up`);
 
   // 5. back/.env + a real connection as the API role
   const apiUrl = `postgresql://${encodeURIComponent(`valostock_api.${projectRef}`)}:${apiPassword}@${adminUrl.host}/postgres`;

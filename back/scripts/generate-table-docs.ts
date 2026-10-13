@@ -1,13 +1,15 @@
-// Generates docs/modeling/05-struktur-tabel.md from the live database (information_schema),
+// Generates docs/modeling/05-struktur-tabel.md from the live database (information_schema + pg_catalog),
 // so the documented table structure always equals supabase/migrations.
-// Run: npm run docs:tables   (needs the valostock Supabase project running)
+// Run: npm run docs:tables   (uses DOCS_DATABASE_URL, else DATABASE_URL from back/.env, else local Docker)
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { generic, specific, tableOrder } from './table-docs-descriptions.ts';
 
-// Local Supabase default superuser (documented, local only) — reads catalog metadata.
-const url = process.env.DOCS_DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+const url =
+  process.env.DOCS_DATABASE_URL ?? process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:55322/postgres';
+// Supabase Cloud pooler: encrypted, but its CA is not in Node's trust store (same as src/db/pool.ts).
+const ssl = process.env.DATABASE_SSL === 'require' ? { rejectUnauthorized: false } : undefined;
 
 interface Col {
   table_name: string;
@@ -27,23 +29,27 @@ interface Col {
   unique: boolean;
 }
 
-const client = new pg.Client({ connectionString: url });
+const client = new pg.Client({ connectionString: url, ssl });
 await client.connect();
+// Keys come from pg_catalog: information_schema only shows constraints of tables the current role owns,
+// and the API role (valostock_api) owns none.
 const { rows } = await client.query<Col>(`
   select c.table_name, c.ordinal_position, c.column_name, c.data_type, c.udt_name,
          c.character_maximum_length as char_len, c.numeric_precision as num_precision, c.numeric_scale as num_scale,
          c.is_nullable, c.column_default, c.is_identity,
          col_description(format('public.%I', c.table_name)::regclass, c.ordinal_position) as comment,
-         exists (select 1 from information_schema.table_constraints tc
-                 join information_schema.key_column_usage k on k.constraint_name = tc.constraint_name and k.table_schema = tc.table_schema
-                 where tc.table_schema = 'public' and tc.table_name = c.table_name and tc.constraint_type = 'PRIMARY KEY'
-                   and k.column_name = c.column_name) as pk,
-         (select ccu.table_schema || '.' || ccu.table_name || '.' || ccu.column_name
-            from information_schema.table_constraints tc
-            join information_schema.key_column_usage k on k.constraint_name = tc.constraint_name and k.table_schema = tc.table_schema
-            join information_schema.constraint_column_usage ccu on ccu.constraint_name = tc.constraint_name
-           where tc.table_schema = 'public' and tc.table_name = c.table_name and tc.constraint_type = 'FOREIGN KEY'
-             and k.column_name = c.column_name limit 1) as fk,
+         exists (select 1 from pg_index i
+                 join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
+                 where i.indrelid = format('public.%I', c.table_name)::regclass and i.indisprimary
+                   and a.attname = c.column_name) as pk,
+         (select fn.nspname || '.' || fr.relname || '.' || fa.attname
+            from pg_constraint con
+            join pg_attribute a on a.attrelid = con.conrelid and a.attnum = con.conkey[1]
+            join pg_class fr on fr.oid = con.confrelid
+            join pg_namespace fn on fn.oid = fr.relnamespace
+            join pg_attribute fa on fa.attrelid = con.confrelid and fa.attnum = con.confkey[1]
+           where con.contype = 'f' and con.conrelid = format('public.%I', c.table_name)::regclass
+             and a.attname = c.column_name limit 1) as fk,
          exists (select 1 from pg_index i
                  join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey)
                  where i.indrelid = format('public.%I', c.table_name)::regclass and i.indisunique and not i.indisprimary

@@ -1,65 +1,39 @@
-# Supabase lokal — project `valostock`
+# Supabase — project `valostock`
 
-Database, autentikasi, dan penyimpanan file valostock.id berjalan di **project Supabase sendiri** (Docker), terpisah dari project lain di komputer ini (mis. `yowana` di port 543xx).
+Database dan autentikasi valostock.id. Bisa dijalankan di **Supabase Cloud** (lihat
+[`docs/SETUP_CLOUD.md`](../docs/SETUP_CLOUD.md)) atau di **Docker lokal** (project sendiri, port 553xx, terpisah dari
+project lain di komputer ini seperti `yowana` di port 543xx).
 
-| Layanan | URL lokal |
-|---|---|
-| API (Auth, Storage) | `http://127.0.0.1:55321` |
-| Postgres | `postgresql://postgres:postgres@127.0.0.1:55322/postgres` |
-| **Studio** (tabel, SQL, storage) | <http://127.0.0.1:55323> |
-| Mailpit (email Auth: reset password) | <http://127.0.0.1:55324> |
-
-Realtime, Edge Functions, dan Analytics dimatikan di `config.toml` supaya hemat RAM.
-
-## Perintah (dari root repo, Docker Desktop harus berjalan)
+## Perintah Docker lokal (dari root repo, Docker Desktop harus berjalan)
 
 ```bash
 npx supabase start       # menyalakan stack valostock
 npx supabase status      # URL + key (ANON_KEY, SERVICE_ROLE_KEY) untuk back/.env
-npx supabase db reset    # hapus & buat ulang DB valostock: migrations/*.sql + seed.sql
-npx supabase stop        # mematikan stack (data tetap tersimpan)
+npx supabase db reset    # hapus & buat ulang DB: migrations/*.sql + seed.sql
+npx supabase stop
 ```
 
-`db reset` hanya berlaku untuk project **valostock** (dibaca dari `config.toml` di folder ini).
+| Layanan lokal | URL |
+|---|---|
+| API (Auth) | `http://127.0.0.1:55321` |
+| Postgres | `postgresql://postgres:postgres@127.0.0.1:55322/postgres` |
+| **Studio** | <http://127.0.0.1:55323> |
 
 ## Isi folder
 
 | File | Isi |
 |---|---|
-| `config.toml` | Port 553xx, Auth (tanpa konfirmasi email saat lokal, password min. 8), bucket Storage |
-| `migrations/*.sql` | Skema: 52 tabel, 40 ENUM, trigger profil Supabase Auth, RLS, role `valostock_api` |
-| `seed.sql` | Data demo. **Dihasilkan otomatis** oleh `npm run db:seed:gen` di `back/`, jadi jangan diedit manual |
+| `config.toml` | Port 553xx, Auth (tanpa konfirmasi email, password min. 8). Storage tidak dipakai. |
+| `migrations/20261013000100_schema.sql` | 10 ENUM, 7 tabel utama + `payments` + `audit_logs`, trigger profil Supabase Auth |
+| `migrations/20261013000200_security.sql` | RLS di semua tabel, role API `valostock_api`, ledger & audit append-only |
+| `seed.sql` | Data demo: 4 akun, 4 game, 42 produk top-up, 2 kode promo, saldo awal Member demo |
 
-Struktur tabel lengkap ada di [`docs/modeling/05-struktur-tabel.md`](../docs/modeling/05-struktur-tabel.md) (`npm run docs:tables` di `back/`).
+Struktur tabel lengkap: [`docs/modeling/05-struktur-tabel.md`](../docs/modeling/05-struktur-tabel.md) (`npm run docs:tables` di `back/`).
+Akun demo: [README](../README.md#akun-demo).
 
 ## Keamanan
 
-- **RLS aktif di semua tabel tanpa policy**, dan hak `anon`/`authenticated` dicabut. REST API publik Supabase (`/rest/v1`) tidak bisa membaca apa pun.
-- API Express terhubung sebagai role **`valostock_api`** (hanya baca/tulis data, bypass RLS). Tabel ledger dan audit bersifat **append-only** untuk role ini.
-- Bucket `catalog-images` publik (foto katalog, maks. 2 MB). Bucket `private-media` privat (inspeksi, lampiran rekber/sengketa, diakses dengan signed URL).
-
-## Akun demo (password `valostock-demo` kecuali akun pribadi di bawah, hanya untuk lokal)
-
-| Email | Peran |
-|---|---|
-| `admin@valostock.test` | Super Admin |
-| `moderator@valostock.test` | Moderator Katalog + Verifikator Toko |
-| `finance@valostock.test` | Keuangan |
-| `support@valostock.test` | Support & Sengketa |
-| `nightfall@email.com` | Pembeli (Balance awal Rp100.000, kode referral `NIGHTFALL10`) |
-| `raven@email.com` | Pembeli kedua |
-| `nusagame@email.com` | Pemilik **NusaGame** (paket Pro, reseller) |
-| `astralstore@valostock.test`, `verdantshop@…`, `gudangakun@…`, `skyvault@…` | Pemilik toko lain (ACTIVE) |
-| `tokobaru@valostock.test` | Pemilik **TokoBaru** (menunggu verifikasi admin) |
-
-**Akun demo pribadi** (password sendiri, hanya untuk lokal):
-
-| Email | Password | Peran |
-|---|---|---|
-| `adminjati@email.com` | `adminjati123` | Super Admin (semua izin) |
-| `buyersatya@email.com` | `buyersatya123` | Pembeli (Balance 0) |
-| `storebala@email.com` | `storebala123` | Pemilik **Bala Store** (ACTIVE, deposit Rp500.000 ditahan, paket Free, belum ada katalog) |
-
-Password role database `valostock_api` untuk lokal diatur di `seed.sql`.
-
-**Data seed:** 4 game dengan 17 template kolom, 17 katalog (14 LISTED, 2 menunggu moderasi, 1 ditolak beserta alasannya), 20 produk top-up, 2 kode promo, 5 voucher toko, 1 flash sale, 1 bundle, 1 iklan featured, 13 artikel bantuan, dan 12 berita.
+- **RLS aktif di semua tabel tanpa policy**, dan hak `anon`/`authenticated` dicabut: REST API publik Supabase tidak bisa
+  membaca apa pun.
+- API Express terhubung sebagai role **`valostock_api`** (bypass RLS, hanya baca/tulis data). `balance_ledger` dan
+  `audit_logs` bersifat **append-only** untuk role ini.
