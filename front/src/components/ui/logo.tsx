@@ -53,25 +53,3 @@ export function Logo({
     </Link>
   );
 }
-
-// Standalone astral mark (no wordmark) — for compact spots.
-export function LogoMark({ className = "" }: { className?: string }) {
-  return (
-    <>
-      <Image
-        src="/images/logo/logo-black.svg"
-        alt="valostock"
-        width={28}
-        height={28}
-        className={`block dark:hidden ${className}`}
-      />
-      <Image
-        src="/images/logo/logo-white.svg"
-        alt="valostock"
-        width={28}
-        height={28}
-        className={`hidden dark:block ${className}`}
-      />
-    </>
-  );
-}

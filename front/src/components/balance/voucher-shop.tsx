@@ -1,48 +1,46 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Check, CheckCircle2, ExternalLink, Loader2, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/auth/form-alert";
 import { cn } from "@/lib/utils";
 import { formatRupiah } from "@/lib/format";
-import {
-  BLC_DENOMINATIONS,
-  BLC_FILL_METHODS,
-  BLC_MAX_QTY,
-  type BlcFillMethod,
-} from "@/lib/balance";
-import { paymentMethods, surchargeFor } from "@/lib/fees";
+import { gatewayMethods } from "@/lib/payment-methods";
 import { apiFetch } from "@/lib/api";
-import type { PaymentSession, TransactionRecord } from "@/types/api";
-
-// Balance is filled via the gateway — Balance itself is not a fill method.
-const fillMethods = paymentMethods.filter((method) =>
-  (BLC_FILL_METHODS as readonly string[]).includes(method.kind),
-);
+import type { BalanceQuote, BalanceVoucherOptions, GatewayMethod, PaymentSession, TransactionRecord } from "@/types/api";
 
 /** POST /api/balance/topup → an invoice + a Midtrans Snap session. */
 type TopupResponse = { transaction: TransactionRecord; payment: PaymentSession };
 
 /**
- * Buy-voucher flow. Totals here are a preview; the API recomputes the amount
- * from nominal × qty. Balance is credited ONLY when the Midtrans webhook
- * confirms the payment (docs/MONEY_RULES.md §8b) — never from this page.
+ * Buy-voucher flow (DFD 5.1–5.2). The total is quoted by the API from nominal × qty
+ * + method. Balance is credited ONLY when the payment is confirmed PAID
+ * (docs/MONEY_RULES.md §5) — never from this page.
  */
-export function VoucherShop() {
+export function VoucherShop({ options }: { options: BalanceVoucherOptions }) {
   const [nominal, setNominal] = useState<number | null>(null);
   const [qty, setQty] = useState(1);
-  const [method, setMethod] = useState<BlcFillMethod | null>(null);
+  const [method, setMethod] = useState<GatewayMethod | null>(null);
+  const [quote, setQuote] = useState<BalanceQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<TopupResponse | null>(null);
   // One key per purchase attempt: a double-click or retry can't credit twice.
   const idempotencyKey = useRef<string | null>(null);
 
-  const subtotal = (nominal ?? 0) * qty;
-  const surcharge = nominal && method ? surchargeFor(method, subtotal) : 0;
-  const total = subtotal + surcharge;
+  useEffect(() => {
+    if (!nominal || !method) return;
+    let cancelled = false;
+    const query = new URLSearchParams({ nominal: String(nominal), qty: String(qty), method });
+    apiFetch<{ quote: BalanceQuote }>(`/api/balance/quote?${query}`)
+      .then((data) => !cancelled && setQuote(data.quote))
+      .catch((err: unknown) => !cancelled && setError(err instanceof Error ? err.message : "Gagal menghitung total."));
+    return () => {
+      cancelled = true;
+    };
+  }, [nominal, qty, method]);
 
   const resetAttempt = () => {
     idempotencyKey.current = null;
@@ -80,7 +78,7 @@ export function VoucherShop() {
       {/* Denominations */}
       <h2 className="text-sm font-semibold text-text">Pilih Nominal Voucher</h2>
       <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-        {BLC_DENOMINATIONS.map((value) => (
+        {options.denominations.map((value) => (
           <motion.button
             key={value}
             type="button"
@@ -132,7 +130,7 @@ export function VoucherShop() {
             type="button"
             aria-label="Tambah jumlah"
             onClick={() => {
-              setQty((value) => Math.min(BLC_MAX_QTY, value + 1));
+              setQty((value) => Math.min(options.maxQty, value + 1));
               resetAttempt();
             }}
             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-secondary transition-colors duration-200 hover:border-primary/40 hover:text-primary"
@@ -147,12 +145,12 @@ export function VoucherShop() {
         Metode Pembayaran
       </h2>
       <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-        {fillMethods.map((item) => (
+        {gatewayMethods.map((item) => (
           <button
             key={item.kind}
             type="button"
             onClick={() => {
-              setMethod(item.kind as BlcFillMethod);
+              setMethod(item.kind as GatewayMethod);
               resetAttempt();
             }}
             aria-pressed={method === item.kind}
@@ -191,21 +189,19 @@ export function VoucherShop() {
               "-"
             )}
           </dt>
-          <dd className="num">{nominal ? formatRupiah(subtotal) : "-"}</dd>
+          <dd className="num">{quote ? formatRupiah(quote.credit) : "-"}</dd>
         </div>
         <div className="flex justify-between text-text-secondary">
           <dt>Biaya metode</dt>
-          <dd className="num">{nominal && method ? formatRupiah(surcharge) : "-"}</dd>
+          <dd className="num">{quote ? formatRupiah(quote.surcharge) : "-"}</dd>
         </div>
         <div className="flex justify-between border-t border-border pt-2 font-semibold text-text">
           <dt>Total bayar</dt>
-          <dd className="num">{nominal ? formatRupiah(total) : "-"}</dd>
+          <dd className="num">{quote ? formatRupiah(quote.amount) : "-"}</dd>
         </div>
         <div className="flex justify-between text-xs text-text-secondary">
           <dt>Balance masuk</dt>
-          <dd className="num">
-            {nominal ? `${subtotal.toLocaleString("id-ID")} BLC` : "-"}
-          </dd>
+          <dd className="num">{quote ? `${quote.credit.toLocaleString("id-ID")} BLC` : "-"}</dd>
         </div>
       </dl>
 
@@ -222,8 +218,7 @@ export function VoucherShop() {
               <span className="num font-mono font-semibold">
                 {result.transaction.invoice_number}
               </span>{" "}
-              dibuat. Balance bertambah otomatis setelah pembayaran terkonfirmasi
-              oleh Midtrans.
+              dibuat. Balance bertambah otomatis setelah pembayaran terkonfirmasi.
             </span>
           </div>
         )}

@@ -3,103 +3,60 @@ import { LegalArticle, type LegalSection } from "@/components/legal/legal-articl
 
 export const metadata: Metadata = {
   title: "Syarat & Ketentuan | valostock.id",
-  description:
-    "Syarat dan ketentuan penggunaan valostock.id, marketplace akun game dan top-up dengan escrow.",
+  description: "Syarat dan ketentuan penggunaan layanan top-up game valostock.id.",
 };
 
-// Operational summary of docs/STORE_RULES.md §14 + docs/MONEY_RULES.md.
+// Operational summary of docs/MONEY_RULES.md.
 const sections: LegalSection[] = [
   {
-    title: "Peran Platform",
+    title: "Layanan",
     paragraphs: [
-      "valostock.id adalah penyedia layanan marketplace, bukan penjual. Penjual adalah Toko terverifikasi yang bertransaksi langsung dengan pembeli. Platform menyediakan escrow, ID katalog, Rekber Room yang diawasi admin, sistem penawaran, arbitrase sengketa, dan reputasi.",
-      "Semua pembayaran diproses oleh Midtrans. Dana pembelian akun ditahan sebagai escrow sampai pesanan selesai, tercatat per toko di buku besar (ledger), dan tidak digunakan untuk operasional platform. Pencairan ke toko dan penjual eksternal dikirim melalui Midtrans Iris setelah validasi nama rekening.",
+      "valostock.id menyediakan layanan top-up mata uang dan item game (Valorant, Mobile Legends, Genshin Impact, Free Fire). Item dikirim ke akun game sesuai ID yang kamu isi setelah pembayaran terkonfirmasi.",
+      "Pembayaran diproses oleh Midtrans. Status lunas hanya ditetapkan dari konfirmasi Midtrans, bukan dari browser.",
     ],
   },
   {
     title: "Akun Pengguna",
     items: [
-      "Pendaftaran menggunakan email aktif dan password. Pembeli tidak diwajibkan verifikasi identitas.",
-      "Kamu bertanggung jawab atas keamanan kredensial akunmu sendiri.",
-      "Satu orang tidak boleh membuat banyak akun untuk menghindari sanksi.",
+      "Top-up bisa dilakukan tanpa akun. Dengan akun (Member), riwayat transaksi tersimpan dan kamu bisa memakai Balance.",
+      "Pendaftaran memakai nama, email aktif, dan password minimal 8 karakter. Nomor HP dan kode referral bersifat opsional.",
+      "Kamu bertanggung jawab atas keamanan password akunmu sendiri.",
     ],
   },
   {
-    title: "Berjualan, Hanya Toko Terverifikasi",
+    title: "Pesanan dan Data Akun Game",
     items: [
-      "Hanya Toko yang lulus verifikasi identitas oleh admin dan menyetor deposit keamanan Rp500.000 yang boleh berjualan.",
-      "Toko bertipe Owner (akun milik sendiri) atau Reseller (akun titipan penjual eksternal). Reseller bertanggung jawab penuh atas penjual eksternalnya, identitas, keaslian akun, dan kerugian pembeli.",
-      "Setiap listing mendapat ID katalog dari platform (awalan VS). Satu akun = satu katalog.",
-      "Deskripsi listing wajib akurat. Klaim mutlak seperti \"100% aman\" atau \"100% original\" dilarang.",
+      "Pastikan ID akun game (dan server/zone bila diminta) benar sebelum memesan. Item yang sudah dikirim ke ID yang salah tidak dapat dibatalkan.",
+      "Setiap pesanan mendapat nomor invoice. Simpan nomor ini untuk melacak status di halaman Cek Invoice.",
+      "Invoice yang tidak dibayar dalam 60 menit otomatis kedaluwarsa.",
     ],
   },
   {
-    title: "Transaksi & Escrow",
+    title: "Harga, Promo, dan Biaya",
     items: [
-      "Pembayaran pembeli ditahan di escrow dan baru diteruskan ke Toko setelah pembeli mengonfirmasi akun diterima (atau jendela konfirmasi berakhir).",
-      "Serah terima akun wajib berlangsung di Rekber Room, diawasi admin dan tercatat sebagai bukti.",
-      "Dana Toko masuk ke saldo tersedia setelah pembeli menyelesaikan pesanan. Penarikan disetujui admin dengan Account Validation (nama rekening = nama pemilik toko yang terverifikasi).",
-      "Seluruh transaksi wajib di dalam platform. Mengajak atau menerima transaksi di luar platform adalah pelanggaran berat.",
+      "Harga, potongan promo, biaya metode pembayaran, dan total bayar dihitung oleh server dan ditampilkan sebelum kamu membayar.",
+      "Biaya metode: QRIS 1,5%, Virtual Account Rp5.000, Retail Rp5.000, E-Wallet 2,5%, Kartu Kredit 4% + Rp3.000. Pembayaran dengan Balance tanpa biaya.",
+      "Kode promo berlaku selama kuota dan masa berlakunya masih ada, serta hanya memberi potongan bila minimal belanja terpenuhi.",
     ],
   },
   {
-    title: "Biaya",
+    title: "Balance (BLC)",
     items: [
-      "Komisi platform: 5% dari harga final (Premium: 4,5% / 4%), dipotong dari Toko saat pesanan selesai.",
-      "Biaya penanganan: maksimal 3,5% (minimum Rp4.000), dibayar pembeli saat checkout.",
-      "Proteksi pembeli: Rp5.000 per pesanan (wajib), jendela dukungan 14 hari (akun ≤ Rp10 juta) atau 30 hari (> Rp10 juta).",
-      "Biaya penarikan Toko: Rp4.000 (+Rp2.500 pajak antarbank). Lock akun opsional: Rp5.000 (30 menit).",
+      "Balance adalah saldo prabayar dengan nilai 1 BLC = Rp1, diisi dengan membeli voucher Balance.",
+      "Balance hanya dapat dipakai untuk membayar top-up game di valostock.id, tidak dapat dicairkan, dan tidak dapat ditransfer ke pengguna lain.",
+      "Balance bertambah hanya setelah pembayaran voucher terkonfirmasi. Setiap perubahan saldo tercatat di halaman Mutasi.",
     ],
   },
   {
-    title: "Penawaran (Tawar)",
+    title: "Referral",
     paragraphs: [
-      "Pembeli dapat mengajukan penawaran harga. Toko dapat menerima, menolak, atau memberi penawaran balik; penawaran memiliki masa berlaku. Saat penawaran diterima, harga dan listing terkunci, dan komisi tetap dihitung dari harga final.",
-    ],
-  },
-  {
-    title: "Balance (BLC), Closed-Loop",
-    items: [
-      "Balance adalah alat pembayaran internal khusus top-up, bukan uang elektronik.",
-      "Balance hanya bisa dipakai untuk top-up game di valostock.id, tidak bisa dicairkan, tidak bisa membeli akun, dan tidak bisa ditransfer ke pengguna lain.",
-      "Refund top-up yang gagal dikembalikan ke Balance, bukan uang tunai.",
-    ],
-  },
-  {
-    title: "Perilaku Terlarang",
-    items: [
-      "Transaksi atau pembayaran di luar platform, atau mengarahkan pengguna keluar platform.",
-      "Listing palsu, konfirmasi pengiriman fiktif, duplikasi listing, atau manipulasi harga.",
-      "Manipulasi ulasan: pesanan fiktif, menekan pembeli mengubah ulasan, atau menyerang kompetitor.",
-      "Berbagi kontak pribadi (email/nomor telepon) atau bertransaksi di chat biasa.",
-      "Penipuan, pengambilalihan kembali akun yang sudah dijual (recall), dan pelanggaran hukum lainnya.",
-    ],
-  },
-  {
-    title: "Sengketa & Arbitrase",
-    items: [
-      "Sengketa diajukan dalam 72 jam melalui sistem sengketa di dalam platform, dengan pernyataan dan bukti.",
-      "Bukti utama adalah riwayat Rekber Room, checklist inspeksi, dan bukti pengiriman.",
-      "Jika para pihak tidak sepakat, platform mengarbitrase dan keputusannya bersifat final.",
-      "Klaim palsu menurunkan skor kepercayaan pembeli; kesalahan Toko dapat berujung refund pembeli dan potongan deposit.",
-    ],
-  },
-  {
-    title: "Sanksi",
-    paragraphs: [
-      "Pelanggaran dikenai sanksi bertingkat sesuai beratnya: peringatan, pembatasan listing, denda dari deposit, suspensi (mis. 30 hari), ban permanen, blacklist (perangkat/identitas/bank), hingga proses hukum. Refund akibat kesalahan Toko dapat dikenai denda tambahan.",
-    ],
-  },
-  {
-    title: "Batasan Tanggung Jawab",
-    paragraphs: [
-      "Platform menyediakan mekanisme keamanan berbasis bukti dan akuntabilitas (escrow, verifikasi, proteksi, arbitrase), bukan jaminan mutlak atas hasil transaksi. Risiko yang timbul dari data yang kamu isi sendiri (mis. UID top-up yang salah) berada di luar tanggung jawab platform.",
+      "Member yang mendaftar dengan kode referral menghubungkan akunnya dengan pengajak. Saat top-up pertama Member tersebut berhasil, pengajak menerima Rp10.000 Balance, satu kali per Member yang diajak.",
     ],
   },
   {
     title: "Perubahan Ketentuan",
     paragraphs: [
-      "Ketentuan ini dapat diperbarui. Perubahan material diumumkan melalui notifikasi sistem dan halaman Berita. Dengan terus menggunakan platform setelah perubahan berlaku, kamu menyetujui ketentuan yang diperbarui.",
+      "Ketentuan ini dapat diperbarui. Dengan terus menggunakan layanan setelah perubahan berlaku, kamu menyetujui ketentuan yang diperbarui.",
     ],
   },
 ];
@@ -108,8 +65,8 @@ export default function TermsPage() {
   return (
     <LegalArticle
       title="Syarat & Ketentuan"
-      updated="2026-07-12"
-      intro="Dengan menggunakan valostock.id kamu menyetujui ketentuan berikut. Ketentuan ini mengatur peran platform sebagai penyedia layanan, aturan jual-beli akun game dan top-up, biaya, serta penyelesaian sengketa."
+      updated="13 Oktober 2026"
+      intro="Dengan menggunakan valostock.id kamu menyetujui ketentuan berikut tentang pesanan top-up, pembayaran, Balance, dan referral."
       sections={sections}
     />
   );

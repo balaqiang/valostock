@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { GATEWAY_METHODS, TOPUP_METHODS } from '../../config/money.js';
+import { BLC_DENOMINATIONS, BLC_MAX_QTY, GATEWAY_METHODS, TOPUP_METHODS } from '../../config/money.js';
 import { parse } from '../../lib/errors.js';
 import { requireUser } from '../../middlewares/auth.js';
 import { checkoutLimiter, lookupLimiter } from '../../middlewares/security.js';
@@ -50,6 +50,11 @@ topupRouter.post('/topup/checkout', checkoutLimiter, async (req, res) => {
 topupRouter.get('/topup/invoice', lookupLimiter, async (req, res) => {
   const { q } = parse(z.object({ q: z.string().trim().min(5).max(30) }).strict(), req.query);
   res.json({ transaction: await service.lookupInvoice(q) });
+});
+
+/** Voucher choices for the Balance page (the denominations live only in config/money.ts). */
+topupRouter.get('/balance/vouchers', (_req, res) => {
+  res.json({ denominations: BLC_DENOMINATIONS, maxQty: BLC_MAX_QTY });
 });
 
 const voucherFields = {

@@ -7,62 +7,35 @@ import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api";
 
 /**
- * Calls one API endpoint and refreshes the page. Optional confirm dialog and
- * an optional required/optional text prompt whose value is sent as `promptKey`.
- * All decisions are validated and recorded by the API.
+ * Calls one API endpoint (with an optional confirm dialog) and refreshes the page.
+ * The API validates the action and writes the audit log.
  */
 export function ActionButton({
   endpoint,
   method = "POST",
   body,
   confirm,
-  prompt,
-  promptKey = "note",
-  promptRequired = false,
   children,
   variant = "secondary",
-  className,
-  onDone,
-  redirectTo,
 }: {
   endpoint: string;
-  method?: "POST" | "PATCH" | "PUT" | "DELETE";
+  method?: "POST" | "PATCH" | "DELETE";
   body?: Record<string, unknown>;
   confirm?: string;
-  prompt?: string;
-  promptKey?: string;
-  promptRequired?: boolean;
   children: React.ReactNode;
-  variant?: "primary" | "secondary" | "ghost" | "invert";
-  className?: string;
-  onDone?: (result: unknown) => void;
-  redirectTo?: string;
+  variant?: "primary" | "secondary" | "ghost";
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const run = async () => {
-    let extra: Record<string, unknown> = {};
-    if (prompt) {
-      const value = window.prompt(prompt)?.trim();
-      if (value === undefined) return;
-      if (promptRequired && !value) return;
-      if (value) extra = { [promptKey]: value };
-    } else if (confirm && !window.confirm(confirm)) {
-      return;
-    }
+    if (confirm && !window.confirm(confirm)) return;
     setBusy(true);
     setError(null);
     try {
-      const payload = { ...body, ...extra };
-      const result = await apiFetch(endpoint, {
-        method,
-        body: method === "DELETE" && Object.keys(payload).length === 0 ? undefined : JSON.stringify(payload),
-      });
-      onDone?.(result);
-      if (redirectTo) router.push(redirectTo);
-      else router.refresh();
+      await apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });
+      router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal.");
     } finally {
@@ -72,7 +45,7 @@ export function ActionButton({
 
   return (
     <span className="inline-flex flex-col items-start gap-1">
-      <Button type="button" variant={variant} onClick={run} disabled={busy} className={className}>
+      <Button type="button" variant={variant} onClick={run} disabled={busy}>
         {busy && <Loader2 className="h-4 w-4 animate-spin" />}
         {children}
       </Button>

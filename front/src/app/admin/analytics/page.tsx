@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { Denied } from "@/components/admin/denied";
 import { DashHeader, StatCard, Table, Td } from "@/components/dashboard/ui";
-import { adminGet, type AnalyticsSummary, type GameAccountAnalytic } from "@/lib/data/admin";
+import { adminGet } from "@/lib/data/admin";
 import { formatDbDateTime, formatRupiah } from "@/lib/format";
+import type { AnalyticsSummary, GameAccountAnalytic } from "@/types/api";
 
 export const metadata: Metadata = { title: "Analitik Top-Up | Admin" };
 
+// Analitik Top-Up (SKPL 4.3.13, SKPL-F-06.3).
 export default async function AdminAnalyticsPage() {
   const data = await adminGet<{ summary: AnalyticsSummary; accounts: GameAccountAnalytic[] }>("/analytics");
-  if (!data) return <Denied permission="audit:view" />;
+  if (!data) return <Denied />;
   const { summary, accounts } = data;
 
   return (

@@ -1,12 +1,12 @@
 import Image from "next/image";
 import { CreditCard, Wallet } from "lucide-react";
-import type { MockPaymentMethod } from "@/lib/fees";
+import type { PaymentMethodOption } from "@/lib/payment-methods";
 
 /**
  * Logos of the channels behind a payment method. Brand SVGs sit on white chips
  * so dark logos (OVO, BNI) stay readable in dark mode.
  */
-export function PaymentLogos({ method }: { method: MockPaymentMethod }) {
+export function PaymentLogos({ method }: { method: PaymentMethodOption }) {
   if (method.logos.length === 0) {
     const Icon = method.kind === "BALANCE" ? Wallet : CreditCard;
     return (

@@ -20,11 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatRupiah, formatDbDateTime } from "@/lib/format";
-import type { PublicTransaction } from "@/lib/privacy";
 import { topupStatus } from "@/lib/topup-status";
 import { apiFetch, ApiError } from "@/lib/api";
-
-type TransactionRecord = PublicTransaction;
+import type { PublicTransaction } from "@/types/api";
 
 /** Masked game account + a pointer to where the owner can see it in full. */
 function MaskedGameId({ masked }: { masked: string }) {
@@ -51,17 +49,18 @@ function MaskedGameId({ masked }: { masked: string }) {
   );
 }
 
-type InvoiceLookup = { results: TransactionRecord[]; error: string | null };
+type InvoiceLookup = { results: PublicTransaction[]; error: string | null };
 
 /** GET /api/topup/invoice — the API masks the game account before it leaves the server. */
 async function lookupInvoice(invoiceNo: string): Promise<InvoiceLookup> {
   try {
-    const data = await apiFetch<{ transactions: TransactionRecord[] }>(
+    const data = await apiFetch<{ transaction: PublicTransaction }>(
       `/api/topup/invoice?q=${encodeURIComponent(invoiceNo)}`,
     );
-    return { results: data.transactions, error: null };
+    return { results: [data.transaction], error: null };
   } catch (err: unknown) {
-    if (err instanceof ApiError && err.status === 404) return { results: [], error: null };
+    // 404 = unknown invoice; 400 = not even an invoice-shaped input. Both are "not found" for the visitor.
+    if (err instanceof ApiError && (err.status === 404 || err.status === 400)) return { results: [], error: null };
     return { results: [], error: err instanceof Error ? err.message : "Gagal memeriksa invoice." };
   }
 }
@@ -74,7 +73,7 @@ function InvoiceCheckerInner() {
 
   const [value, setValue] = useState(initialQuery);
   const [loading, setLoading] = useState(hasInitialQuery);
-  const [results, setResults] = useState<TransactionRecord[]>([]);
+  const [results, setResults] = useState<PublicTransaction[]>([]);
   const [searched, setSearched] = useState(hasInitialQuery);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,7 +117,7 @@ function InvoiceCheckerInner() {
           <Input
             value={value}
             onChange={(event) => setValue(event.target.value)}
-            placeholder="Masukkan nomor invoice (contoh: INV-...)"
+            placeholder="Masukkan nomor invoice (contoh: TU-260929-AB12CD)"
             aria-label="Nomor invoice"
             className="pl-10 uppercase placeholder:normal-case font-mono"
           />
@@ -188,8 +187,8 @@ function InvoiceCheckerInner() {
                       </dt>
                       <MaskedGameId
                         masked={
-                          tx.user_game_id_masked +
-                          (tx.game_zone_id_masked ? ` (Zone: ${tx.game_zone_id_masked})` : "")
+                          (tx.user_game_id_masked ?? "-") +
+                          (tx.game_zone_id_masked ? ` (${tx.game_zone_id_masked})` : "")
                         }
                       />
                     </div>
@@ -229,7 +228,7 @@ function InvoiceCheckerInner() {
 
                   <div className="mt-4 flex items-center gap-2 text-xs text-text-secondary">
                     <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                    <span>Data terverifikasi dan tercatat aman pada server transaksi.</span>
+                    <span>Status diambil langsung dari server, bukan dari browser.</span>
                   </div>
                 </div>
               );
@@ -250,7 +249,7 @@ function InvoiceCheckerInner() {
             <p className="mt-3 font-semibold text-text">Nomor Invoice Tidak Ditemukan</p>
             <p className="mt-1 max-w-sm text-xs text-text-secondary">
               Pastikan Anda memasukkan nomor invoice lengkap seperti yang tertera saat checkout
-              (contoh: <code className="font-mono">INV-...</code>).
+              (contoh: <code className="font-mono">TU-260929-AB12CD</code>).
             </p>
           </motion.div>
         )}

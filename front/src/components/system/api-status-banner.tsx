@@ -14,7 +14,7 @@ export const API_DOWN_MESSAGE = {
 
 /**
  * Pages render an unreachable API as "no data", so without this a stopped
- * backend looks like an empty marketplace. Fixed to the bottom so it never
+ * backend looks like an empty site. Fixed to the bottom so it never
  * hides under the fixed navbar.
  */
 export async function ApiStatusBanner() {

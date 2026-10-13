@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { formatDbDateTime } from "@/lib/format";
-import { balanceLedgerTypeLabel, ledgerBadgeVariant } from "@/lib/topup-status";
+import { balanceLedgerTypeLabel } from "@/lib/topup-status";
 import type { BalanceLedgerRecord } from "@/types/api";
 
-// Ledger — every mutation carries balance_after (auditable, ERD).
+// Balance ledger — every movement carries balance_after (auditable, ERD).
 export function LedgerTable({ entries }: { entries: BalanceLedgerRecord[] }) {
   if (entries.length === 0) {
     return (
@@ -32,7 +32,7 @@ export function LedgerTable({ entries }: { entries: BalanceLedgerRecord[] }) {
                 {formatDbDateTime(entry.created_at)}
               </td>
               <td className="px-4 py-3">
-                <Badge variant={ledgerBadgeVariant(entry.type)}>
+                <Badge variant={entry.amount < 0 ? "secondary" : "success"}>
                   {balanceLedgerTypeLabel[entry.type]}
                 </Badge>
               </td>

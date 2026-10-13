@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 
-// Auth pages (docs/SITEMAP.md §2) — centered card, no full nav/footer.
+// Masuk / Daftar (docs/SITEMAP.md) — centered card, no full nav/footer.
 export default function AuthLayout({
   children,
 }: {
@@ -27,10 +27,6 @@ export default function AuthLayout({
         ·{" "}
         <Link href="/legal/privacy" className="hover:text-text">
           Privasi
-        </Link>{" "}
-        ·{" "}
-        <Link href="/help" className="hover:text-text">
-          Bantuan
         </Link>
       </footer>
     </div>

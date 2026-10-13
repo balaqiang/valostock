@@ -15,11 +15,6 @@ const MAX_POLLS = 20; // ~1 minute, then the user can check again manually
 const purposeLabel: Record<PaymentStatusView["purpose"], string> = {
   TOPUP: "Top-up game",
   BALANCE_FILL: "Isi Balance",
-  ORDER: "Pembelian akun",
-  STORE_DEPOSIT: "Deposit toko",
-  SUBSCRIPTION: "Langganan toko",
-  AD: "Iklan featured",
-  LOCK: "Lock akun",
 };
 
 /**

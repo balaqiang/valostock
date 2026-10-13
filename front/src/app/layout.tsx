@@ -19,9 +19,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "valostock.id | Marketplace Akun Game dengan Toko & Produk Terverifikasi",
+  title: "valostock.id | Top-Up Game Valorant, Mobile Legends, Genshin Impact, Free Fire",
   description:
-    "Jual & beli akun game Valorant, Mobile Legends, dan lainnya lewat toko terverifikasi. Dana ditahan di escrow sampai kamu mengonfirmasi akunnya aman.",
+    "Top-up VP, Diamond, dan Genesis Crystal. Bayar lewat QRIS, Virtual Account, e-wallet, retail, kartu kredit, atau Balance, lalu lacak status dengan nomor invoice.",
   // Static file in public/images like every other site image.
   icons: { icon: "/images/favicon.ico" },
 };

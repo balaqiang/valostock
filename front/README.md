@@ -1,7 +1,8 @@
 # valostock.id — Web (`front/`)
 
 Next.js 16 frontend. It **only renders UI and calls the Express API** in `../back` (see `../docs/ARCHITECTURE.md`,
-API contract in §3.1). No database access, no Supabase keys, no money or trust logic here.
+API contract in §3.1). No database access, no Supabase keys, no money logic here — every price and total is quoted by
+the API.
 
 ## Run
 
@@ -11,40 +12,32 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-Start Supabase (`npx supabase start` in the repo root) and the API (`../back`, `npm run dev`) first. Without the API,
-pages render their empty state and actions show "Server API tidak dapat dihubungi".
+Start the API (`../back`, `npm run dev`) first. Without it, pages render their empty state and actions show
+"Server API tidak dapat dihubungi".
 
 ## Where data comes from
 
 | Data | Source |
 |---|---|
-| Session, user, permissions | `GET /api/auth/me` via `src/lib/auth.ts` (httpOnly cookies set by the API) and `src/lib/hooks/use-session.ts` in the browser |
-| Games, field templates, stores, listings, top-up products, help, news | `src/lib/data/catalog.ts` |
-| Orders, disputes, offers, wishlist, follows, notifications, chat, points, referral, reports | `src/lib/data/buyer.ts` |
-| Store dashboard (`/api/stores/me/*`) | `src/lib/data/store.ts` |
+| Session and user | `GET /api/auth/me` via `src/lib/auth.ts` (httpOnly cookies set by the API) and `src/lib/hooks/use-session.ts` in the browser |
+| Games and their products | `src/lib/data/games.ts` |
+| Own transactions and Balance ledger | `src/lib/data/me.ts` |
 | Admin panel (`/api/admin/*`) | `src/lib/data/admin.ts` |
-| Top-up / Balance history | `src/lib/data/me.ts` |
+| Order summary, Balance total | `GET /api/topup/quote`, `GET /api/balance/quote` from the form components |
 | Payments | the API returns a redirect URL (Midtrans Snap or `/payment/simulate`); `/payment/finish` asks the API for the status |
 
-- `src/lib/api.ts` is the only way the browser reaches the backend (JSON or `FormData` uploads);
-  `src/lib/api-server.ts` does the same for Server Components, forwards the visitor's cookie and marks the request as
-  SSR (`x-valostock-ssr`) so the API never rotates the refresh token on the server.
-- Response types: `src/types/api.ts` and `src/types/domain.ts`.
-- `src/lib/mock/*` is **only** the seed source for `supabase/seed.sql` (`npm run db:seed:gen` in `back/`); pages never
-  import it.
-- Fee numbers shown before checkout (`src/lib/fees.ts`) are display-only previews — the API computes every amount.
+- `src/lib/api.ts` is the only way the browser reaches the backend; `src/lib/api-server.ts` does the same for Server
+  Components, forwards the visitor's cookie and marks the request as SSR (`x-valostock-ssr`) so the API never rotates
+  the refresh token on the server.
+- Response types: `src/types/api.ts`.
 
 ## Structure
 
-- `src/app/(marketplace)`, `(auth)`, `(buyer)` — public site, auth pages, buyer area, orders and disputes.
-- `src/app/(store)/store-dashboard` — store dashboard (template-driven catalog form, photo upload, moderation status).
-- `src/app/admin` — admin panel (sidebar filtered by permissions, see `../docs/ADMIN_PANEL.md`).
-- `src/components/dashboard` — shared dashboard kit (`ui.tsx`, `action-button.tsx`, `api-form.tsx`, `review-history.tsx`).
-
-## Images
-
-Site images are static files in `public/images/`. Catalog photos come from the public Supabase Storage bucket
-(`http://127.0.0.1:55321/storage/v1/object/public/catalog-images/…`, allowed in `next.config.ts`).
+- `src/app` — Beranda (`/`), `topup/[game]`, `topup/invoice`, `(auth)` login/register, `payment`, `balance`, `account`,
+  `admin`, `legal` (route tree: `../docs/SITEMAP.md`).
+- `src/components/layout` — navbar, footer, `SiteShell` page frame.
+- `src/components/dashboard` — small admin kit (`ui.tsx`, `action-button.tsx`, `api-form.tsx`).
+- Images are static files in `public/images/` (logo, game banners, product icons, payment logos).
 
 ## Scripts
 

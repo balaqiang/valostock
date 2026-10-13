@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,20 +70,12 @@ export function LoginForm() {
         />
       </div>
       <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <label
-            htmlFor="password"
-            className="text-xs font-medium text-text-secondary"
-          >
-            Password
-          </label>
-          <Link
-            href="/forgot-password"
-            className="text-xs font-medium text-primary hover:text-primary-hover"
-          >
-            Lupa password?
-          </Link>
-        </div>
+        <label
+          htmlFor="password"
+          className="mb-1.5 block text-xs font-medium text-text-secondary"
+        >
+          Password
+        </label>
         <Input
           id="password"
           name="password"

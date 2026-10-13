@@ -4,140 +4,45 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  BarChart3,
-  Boxes,
-  CreditCard,
-  FileText,
-  Flag,
-  Gamepad2,
-  Gavel,
-  HandCoins,
-  LayoutDashboard,
-  LifeBuoy,
-  Megaphone,
-  Menu,
-  Newspaper,
-  LayoutTemplate,
-  Package,
-  Receipt,
-  ScrollText,
-  Send,
-  ShieldCheck,
-  Store,
-  Ticket,
-  Undo2,
-  UserCog,
-  Users,
-  Wallet,
-  X,
-} from "lucide-react";
+import { BarChart3, Boxes, Menu, ShieldCheck, Wallet, X } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
 
-type Badge = "catalogs" | "stores" | "reports" | "disputes" | "withdrawals" | "transfers" | "refunds";
-type Item = { label: string; href: string; icon: React.ComponentType<{ className?: string }>; perm: string; badge?: Badge };
-
-// docs/ADMIN_PANEL.md §1 — menu grouped as in the information architecture.
-const SECTIONS: { title?: string; items: Item[] }[] = [
-  { items: [{ label: "Dashboard", href: "/admin", icon: LayoutDashboard, perm: "dashboard:view" }] },
-  {
-    title: "Moderasi",
-    items: [
-      { label: "Katalog", href: "/admin/catalogs", icon: Package, perm: "catalogs:view", badge: "catalogs" },
-      { label: "Toko", href: "/admin/stores", icon: Store, perm: "stores:view", badge: "stores" },
-      { label: "Laporan", href: "/admin/reports", icon: Flag, perm: "reports:manage", badge: "reports" },
-    ],
-  },
-  {
-    title: "Transaksi",
-    items: [
-      { label: "Pesanan", href: "/admin/orders", icon: Receipt, perm: "orders:view" },
-      { label: "Sengketa", href: "/admin/disputes", icon: Gavel, perm: "disputes:resolve", badge: "disputes" },
-      { label: "Top-Up & Balance", href: "/admin/topups", icon: Wallet, perm: "payments:view" },
-      { label: "Pembayaran", href: "/admin/payments", icon: CreditCard, perm: "payments:view" },
-    ],
-  },
-  {
-    title: "Keuangan",
-    items: [
-      { label: "Penarikan", href: "/admin/withdrawals", icon: HandCoins, perm: "finance:view", badge: "withdrawals" },
-      { label: "Transfer", href: "/admin/transfers", icon: Send, perm: "finance:view", badge: "transfers" },
-      { label: "Refund", href: "/admin/refunds", icon: Undo2, perm: "payments:view", badge: "refunds" },
-      { label: "Ringkasan", href: "/admin/finance", icon: BarChart3, perm: "finance:view" },
-      { label: "Iklan & Langganan", href: "/admin/ads", icon: Megaphone, perm: "ads:manage" },
-    ],
-  },
-  {
-    title: "Data Master & Konten",
-    items: [
-      { label: "Game & Kolom", href: "/admin/games", icon: Gamepad2, perm: "master:manage" },
-      { label: "Produk Top-Up", href: "/admin/topup-products", icon: Boxes, perm: "master:manage" },
-      { label: "Kode Promo", href: "/admin/promo-codes", icon: Ticket, perm: "master:manage" },
-      { label: "Berita", href: "/admin/news", icon: Newspaper, perm: "content:manage" },
-      { label: "Pusat Bantuan", href: "/admin/help", icon: LifeBuoy, perm: "content:manage" },
-      { label: "CMS Situs", href: "/admin/cms", icon: LayoutTemplate, perm: "content:manage" },
-    ],
-  },
-  {
-    title: "Pengguna & Akses",
-    items: [
-      { label: "Pengguna", href: "/admin/users", icon: Users, perm: "users:view" },
-      { label: "Admin & Peran", href: "/admin/admins", icon: UserCog, perm: "rbac:manage" },
-    ],
-  },
-  {
-    title: "Sistem",
-    items: [
-      { label: "Audit Log", href: "/admin/audit", icon: ScrollText, perm: "audit:view" },
-      { label: "Analitik Top-Up", href: "/admin/analytics", icon: FileText, perm: "audit:view" },
-    ],
-  },
+// Panel Admin (docs/SITEMAP.md, SKPL 4.3.13–4.3.15).
+const ITEMS = [
+  { label: "Analitik Top-Up", href: "/admin/analytics", icon: BarChart3 },
+  { label: "Top-Up & Balance", href: "/admin/topups", icon: Wallet },
+  { label: "Produk Top-Up", href: "/admin/topup-products", icon: Boxes },
 ];
 
-export type AdminShellInfo = { name: string; email: string; permissions: string[]; counts: Partial<Record<Badge, number>> };
+export type AdminShellInfo = { name: string; email: string };
 
-function Nav({ info, onNavigate }: { info: AdminShellInfo; onNavigate?: () => void }) {
+function Nav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const perms = new Set(info.permissions);
-  const all = SECTIONS.flatMap((s) => s.items.map((i) => i.href));
-  const current = all.filter((h) => pathname === h || pathname.startsWith(`${h}/`)).sort((a, b) => b.length - a.length)[0];
-
   return (
-    <nav aria-label="Menu admin" className="space-y-5" onClick={(e) => (e.target as HTMLElement).closest("a") && onNavigate?.()}>
-      {SECTIONS.map((section, i) => {
-        const items = section.items.filter((item) => perms.has(item.perm));
-        if (items.length === 0) return null;
-        return (
-          <div key={section.title ?? i}>
-            {section.title && <p className="eyebrow mb-2 px-3 text-text-secondary">{section.title}</p>}
-            <ul className="space-y-0.5">
-              {items.map((item) => {
-                const active = item.href === current;
-                const count = item.badge ? (info.counts[item.badge] ?? 0) : 0;
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                        active ? "bg-primary/10 font-medium text-primary" : "text-text-secondary hover:bg-surface-elevated hover:text-text",
-                      )}
-                    >
-                      <item.icon className="h-4 w-4 flex-none" />
-                      <span className="flex-1">{item.label}</span>
-                      {count > 0 && <span className="num rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">{count}</span>}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        );
-      })}
+    <nav aria-label="Menu admin" onClick={(e) => (e.target as HTMLElement).closest("a") && onNavigate?.()}>
+      <ul className="space-y-0.5">
+        {ITEMS.map((item) => {
+          const active = pathname === item.href;
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                  active ? "bg-primary/10 font-medium text-primary" : "text-text-secondary hover:bg-surface-elevated hover:text-text",
+                )}
+              >
+                <item.icon className="h-4 w-4 flex-none" />
+                {item.label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }
@@ -150,7 +55,7 @@ function SidebarContent({ info, onNavigate }: { info: AdminShellInfo; onNavigate
         <span className="eyebrow mt-0.5 text-text-secondary">Admin</span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-        <Nav info={info} onNavigate={onNavigate} />
+        <Nav onNavigate={onNavigate} />
       </div>
       <div className="flex-none border-t border-border p-3 text-xs text-text-secondary">
         <p className="flex items-center gap-1.5 px-3 font-medium text-text">
@@ -165,7 +70,7 @@ function SidebarContent({ info, onNavigate }: { info: AdminShellInfo; onNavigate
   );
 }
 
-/** Admin panel frame (docs/ADMIN_PANEL.md): sidebar with queue badges; permissions are enforced by the API. */
+/** Admin panel frame: sidebar + top bar; the API checks the admin role on every call. */
 export function AdminShell({ info, children }: { info: AdminShellInfo; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
@@ -216,12 +121,12 @@ export function AdminShell({ info, children }: { info: AdminShellInfo; children:
             >
               <Menu className="h-5 w-5" />
             </button>
-            <form action="/admin/orders" className="min-w-0 max-w-xl flex-1">
+            <form action="/admin/topups" className="min-w-0 max-w-xl flex-1">
               <input
                 type="search"
                 name="q"
-                placeholder="Cari no. pesanan / email / VS code / toko…"
-                aria-label="Cari pesanan"
+                placeholder="Cari no. invoice / email / ID akun game…"
+                aria-label="Cari invoice"
                 className="h-10 w-full rounded-full border border-border bg-surface-elevated/60 px-4 text-sm text-text placeholder:text-text-secondary focus:border-primary focus:bg-background focus:outline-none"
               />
             </form>

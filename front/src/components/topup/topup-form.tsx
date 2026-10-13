@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,16 +29,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatRupiah } from "@/lib/format";
-import type { Game as MockGame } from "@/types/domain";
 import { setSessionUser, useSession } from "@/lib/hooks/use-session";
-import type { PromoCode as MockPromoCode, TopupProduct as MockTopupProduct } from "@/types/domain";
-import { discountFor, paymentMethods, surchargeFor, type PaymentMethodKind } from "@/lib/fees";
-import { apiFetch } from "@/lib/api";
+import { paymentMethods } from "@/lib/payment-methods";
+import { apiFetch, ApiError } from "@/lib/api";
 import { PaymentLogos } from "@/components/payment/payment-logos";
 import { topupStatus } from "@/lib/topup-status";
-import type { PaymentSession, TransactionRecord } from "@/types/api";
+import type { Game, PaymentSession, TopupMethod, TopupProduct, TopupQuote, TransactionRecord } from "@/types/api";
 
-/** POST /api/topup/checkout — the API prices the order; these totals are display-only. */
+/** POST /api/topup/checkout — the invoice, priced by the API exactly like the quote. */
 interface CheckoutResponse {
   transaction: TransactionRecord;
   payment: PaymentSession;
@@ -50,8 +48,8 @@ export function TopupForm({
   game,
   products,
 }: {
-  game: MockGame;
-  products: MockTopupProduct[];
+  game: Game;
+  products: TopupProduct[];
 }) {
   const session = useSession();
   const [productId, setProductId] = useState<string | null>(
@@ -63,9 +61,12 @@ export function TopupForm({
   const [wa, setWa] = useState("");
 
   const [promoInput, setPromoInput] = useState("");
-  const [promo, setPromo] = useState<MockPromoCode | null>(null);
+  /** The code the customer applied; the quote validates it. */
+  const [promoCode, setPromoCode] = useState<string | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
-  const [method, setMethod] = useState<PaymentMethodKind>("QRIS");
+  const [method, setMethod] = useState<TopupMethod>("QRIS");
+  const [quote, setQuote] = useState<TopupQuote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -76,28 +77,43 @@ export function TopupForm({
   const product = products.find((item) => item.id === productId) ?? null;
   const special = products.filter((item) => item.section === "SPECIAL");
   const instant = products.filter((item) => item.section !== "SPECIAL");
-  const discount = product && promo ? discountFor(promo, product.retailPrice) : 0;
-  const base = product ? product.retailPrice - discount : 0;
-  const surcharge = product && method ? surchargeFor(method, base) : 0;
-  const total = base + surcharge;
 
-  // Promo codes are checked by the API — the list itself never reaches the browser.
-  const applyPromo = async () => {
-    const code = promoInput.trim();
+  // Ringkasan Pesanan: the API prices product + promo + method (DFD 3.2–3.3); the browser only shows it.
+  useEffect(() => {
+    if (!productId) return;
+    let cancelled = false;
+    const query = new URLSearchParams({ productId, method });
+    if (promoCode) query.set("promo", promoCode);
+    apiFetch<{ quote: TopupQuote }>(`/api/topup/quote?${query}`)
+      .then((data) => {
+        if (cancelled) return;
+        setQuote(data.quote);
+        setQuoteError(null);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.code === "PROMO_INVALID") {
+          setPromoError(err.message);
+          setPromoCode(null); // re-quotes without the code
+          return;
+        }
+        setQuote(null);
+        setQuoteError(err instanceof Error ? err.message : "Gagal menghitung total bayar.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [productId, method, promoCode]);
+
+  const applyPromo = () => {
+    const code = promoInput.trim().toUpperCase();
     if (!code) return;
-    try {
-      const data = await apiFetch<{ promo: MockPromoCode }>(
-        `/api/topup/promo?code=${encodeURIComponent(code)}`,
-      );
-      setPromo(data.promo);
-      setPromoError(null);
-    } catch (err: unknown) {
-      setPromo(null);
-      setPromoError(
-        err instanceof Error ? err.message : "Kode promo tidak ditemukan atau sudah tidak berlaku.",
-      );
-    }
+    setPromoError(null);
+    setPromoCode(code);
   };
+
+  const promo = quote?.promo ?? null;
+  const total = product && quote ? formatRupiah(quote.amount) : "-";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,11 +131,6 @@ export function TopupForm({
 
     if (game.uidExtraLabel && !zone.trim()) {
       setSubmitError(`Harap isi ${game.uidExtraLabel}.`);
-      return;
-    }
-
-    if (!method) {
-      setSubmitError("Silakan pilih metode pembayaran.");
       return;
     }
 
@@ -264,9 +275,12 @@ export function TopupForm({
               </Button>
             </div>
             {promo && (
-              <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <p className="mt-2 inline-flex flex-wrap items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 <BadgePercent className="h-3.5 w-3.5" />
                 {promo.code} aktif, {promo.label}
+                {!promo.applied && (
+                  <span className="font-normal text-text-secondary">· belum memenuhi minimal belanja</span>
+                )}
               </p>
             )}
             {promoError && (
@@ -293,7 +307,7 @@ export function TopupForm({
                 />
                 <p className="mt-1.5 flex items-start gap-1 text-xs text-text-secondary">
                   <Mail className="mt-0.5 h-3 w-3 flex-none" />
-                  Bukti pembelian dikirim ke email ini.
+                  Dipakai untuk menghubungi kamu bila ada kendala pesanan.
                 </p>
               </div>
               <div>
@@ -312,7 +326,7 @@ export function TopupForm({
                 />
                 <p className="mt-1.5 flex items-start gap-1 text-xs text-text-secondary">
                   <MessageCircle className="mt-0.5 h-3 w-3 flex-none" />
-                  Dihubungi jika ada status pesanan penting.
+                  Opsional, untuk konfirmasi pesanan.
                 </p>
               </div>
             </div>
@@ -386,23 +400,24 @@ export function TopupForm({
               </div>
               <div className="flex justify-between text-text-secondary">
                 <dt>Harga</dt>
-                <dd className="num">{product ? formatRupiah(product.retailPrice) : "-"}</dd>
+                <dd className="num">{quote ? formatRupiah(quote.basePrice) : "-"}</dd>
               </div>
-              {discount > 0 && (
+              {quote && quote.discount > 0 && (
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                   <dt>Diskon Promo</dt>
-                  <dd className="num">−{formatRupiah(discount)}</dd>
+                  <dd className="num">−{formatRupiah(quote.discount)}</dd>
                 </div>
               )}
               <div className="flex justify-between text-text-secondary">
                 <dt>Biaya Layanan</dt>
-                <dd className="num">{product && method ? formatRupiah(surcharge) : "-"}</dd>
+                <dd className="num">{quote ? formatRupiah(quote.surcharge) : "-"}</dd>
               </div>
               <div className="flex justify-between border-t border-border pt-3 text-base font-semibold text-text">
                 <dt>Total Bayar</dt>
-                <dd className="num font-bold text-primary">{product ? formatRupiah(total) : "-"}</dd>
+                <dd className="num font-bold text-primary">{total}</dd>
               </div>
             </dl>
+            {quoteError && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{quoteError}</p>}
 
             {submitError && (
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-600 dark:text-red-400">
@@ -416,7 +431,7 @@ export function TopupForm({
               variant="primary"
               size="lg"
               className="btn-shine mt-5 w-full font-bold shadow-lg shadow-primary/20"
-              disabled={!product || !method || loading}
+              disabled={!product || loading}
             >
               {loading ? (
                 <>
@@ -435,6 +450,20 @@ export function TopupForm({
             </p>
           </div>
         </aside>
+
+        {/* Phone: total + order button always visible at the bottom (SKPL 4.3.17) */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-5 py-3 backdrop-blur-md lg:hidden">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-text-secondary">Total Bayar</p>
+              <p className="num truncate text-base font-bold text-primary">{total}</p>
+            </div>
+            <Button type="submit" variant="primary" size="lg" disabled={!product || loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+              Pesan Sekarang
+            </Button>
+          </div>
+        </div>
       </form>
 
       {/* Checkout Success Result Modal */}
@@ -469,7 +498,7 @@ export function TopupForm({
                   <p className="text-xs text-text-secondary">
                     {checkoutResult.payment.mode === "BALANCE"
                       ? "Top-up sedang diproses ke akun game tujuan."
-                      : "Selesaikan pembayaran di Midtrans. Simpan nomor invoice untuk melacak status."}
+                      : "Selesaikan pembayaran. Simpan nomor invoice untuk melacak status."}
                   </p>
                 </div>
               </div>
@@ -617,7 +646,7 @@ function ProductGrid({
   selected,
   onSelect,
 }: {
-  items: MockTopupProduct[];
+  items: TopupProduct[];
   selected: string | null;
   onSelect: (id: string) => void;
 }) {

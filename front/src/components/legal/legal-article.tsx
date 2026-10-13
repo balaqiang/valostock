@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ChevronRight, Scale } from "lucide-react";
-import { formatDateLong } from "@/lib/format";
 
 export type LegalSection = {
   title: string;
@@ -9,9 +8,8 @@ export type LegalSection = {
 };
 
 /**
- * Shared shell for legal pages. All legal content here is an operational
- * summary of docs/MONEY_RULES.md + docs/STORE_RULES.md — the final,
- * lawyer-validated text replaces it before launch (STORE_RULES §14).
+ * Shared shell for the legal pages. The content is an operational summary of
+ * docs/MONEY_RULES.md, not a lawyer-validated text.
  */
 export function LegalArticle({
   title,
@@ -20,6 +18,7 @@ export function LegalArticle({
   sections,
 }: {
   title: string;
+  /** Display date, e.g. "13 Oktober 2026". */
   updated: string;
   intro: string;
   sections: LegalSection[];
@@ -44,12 +43,12 @@ export function LegalArticle({
         {title}
       </h1>
       <p className="mt-2 text-sm text-text-secondary">
-        Terakhir diperbarui: {formatDateLong(updated)}
+        Terakhir diperbarui: {updated}
       </p>
 
       <p className="mt-6 leading-relaxed text-text-secondary">{intro}</p>
 
-      {/* Draft notice per STORE_RULES §14 */}
+      {/* Draft notice */}
       <p className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-xs text-text-secondary">
         <Scale className="mt-0.5 h-3.5 w-3.5 flex-none text-primary" />
         Dokumen ini adalah ringkasan operasional. Versi final yang divalidasi
