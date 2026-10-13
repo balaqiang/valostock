@@ -8,14 +8,11 @@
     "build": "tsc",
     "start": "node --env-file=.env dist/server.js",
     "typecheck": "tsc --noEmit",
-    "db:seed:gen": "tsx scripts/generate-seed.ts",
     "test:smoke": "tsx scripts/smoke-test.ts",
     "db:reset": "npx supabase db reset --workdir ..",
-    "docs:tables": "tsx scripts/generate-table-docs.ts",
-    "test:features": "tsx scripts/feature-test.ts",
-    "test:sweep": "tsx scripts/endpoint-sweep.ts",
+    "docs:tables": "tsx --env-file-if-exists=.env scripts/generate-table-docs.ts",
     "dev:sim": "tsx watch --env-file=.env --env-file=.env.simulation src/server.ts",
-    "test:unit": "tsx --test tests/money.test.ts tests/name-match.test.ts",
+    "test:unit": "tsx --test tests/money.test.ts",
     "cloud:setup": "tsx scripts/cloud-setup.ts"
   },
   "dependencies": {
@@ -25,7 +22,6 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "helmet": "^8.3.0",
-    "multer": "^2.4.0",
     "node-cron": "^4.6.0",
     "pg": "^8.23.0",
     "zod": "^4.6.5"
@@ -34,7 +30,6 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/multer": "^2.2.0",
     "@types/node": "^26.6.3",
     "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.23.1",

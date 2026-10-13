@@ -7,8 +7,8 @@ try {
   await pool.query('select 1');
 } catch (error) {
   console.error(
-    'Tidak bisa terhubung ke Postgres (Supabase lokal "valostock"). Jalankan `npx supabase start` di root repo, ' +
-      'lalu `npx supabase db reset` untuk migrasi + seed, dan cek DATABASE_URL di back/.env.',
+    'Tidak bisa terhubung ke Postgres. Cek DATABASE_URL dan DATABASE_SSL di back/.env ' +
+      '(Supabase Cloud: docs/SETUP_CLOUD.md · Docker lokal: `npx supabase start` lalu `npx supabase db reset`).',
   );
   console.error((error as Error).message);
   process.exit(1);

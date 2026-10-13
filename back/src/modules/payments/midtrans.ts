@@ -1,5 +1,5 @@
-// Thin Midtrans client (Snap + Core Status API) over fetch. Sandbox only in the
-// prototype. Docs: https://docs.midtrans.com/reference/backend-integration
+// Thin Midtrans client (Snap + Core Status API) over fetch. Sandbox only.
+// Docs: https://docs.midtrans.com/reference/backend-integration
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { env } from '../../config/env.js';
 import type { GatewayMethod } from '../../config/money.js';
@@ -54,7 +54,6 @@ export interface MidtransStatus {
   result: GatewayResult;
   grossAmount: number | null;
   transactionId: string | null;
-  paymentType: string | null;
 }
 
 /** Midtrans transaction_status (+ fraud_status) → our payment result. */
@@ -86,17 +85,15 @@ export async function getTransactionStatus(orderId: string): Promise<MidtransSta
     fraud_status?: string;
     gross_amount?: string;
     transaction_id?: string;
-    payment_type?: string;
   };
   // 404 = the buyer has not picked a channel on the Snap page yet.
   if (body.status_code === '404' || !body.transaction_status) {
-    return { result: 'PENDING', grossAmount: null, transactionId: null, paymentType: null };
+    return { result: 'PENDING', grossAmount: null, transactionId: null };
   }
   return {
     result: mapStatus(body.transaction_status, body.fraud_status),
     grossAmount: body.gross_amount ? Math.round(Number(body.gross_amount)) : null,
     transactionId: body.transaction_id ?? null,
-    paymentType: body.payment_type ?? null,
   };
 }
 

@@ -1,59 +1,9 @@
 // Unit tests for the money rules in src/config/money.ts against docs/MONEY_RULES.md.
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import {
-  commissionFor,
-  discountFor,
-  FEATURED_PRICES,
-  handlingFeeFor,
-  pointsFor,
-  protectionDaysFor,
-  STORE_DEPOSIT,
-  SUBSCRIPTION_PLANS,
-  surchargeFor,
-  topupRetailFor,
-  TOPUP_METHODS,
-} from '../src/config/money.ts';
+import { discountFor, priceBalanceFill, priceTopup, surchargeFor, topupRetailFor, TOPUP_METHODS } from '../src/config/money.ts';
 
-describe('handling fee — max(3.5%, Rp4.000), paid by the buyer (§2)', () => {
-  it('uses the Rp4.000 floor for small prices', () => {
-    assert.equal(handlingFeeFor(50_000), 4_000);
-    assert.equal(handlingFeeFor(114_285), 4_000);
-  });
-  it('uses 3.5% once it exceeds the floor', () => {
-    assert.equal(handlingFeeFor(200_000), 7_000);
-    assert.equal(handlingFeeFor(1_500_000), 52_500);
-  });
-  it('always returns integer Rupiah', () => {
-    for (const price of [123_457, 999_999, 2_345_671]) assert.ok(Number.isInteger(handlingFeeFor(price)));
-  });
-});
-
-describe('commission per plan (§5)', () => {
-  it('charges 5% / 4.5% / 4% for Free / Pro / Business', () => {
-    assert.equal(commissionFor(1_000_000, SUBSCRIPTION_PLANS.FREE.commissionRate), 50_000);
-    assert.equal(commissionFor(1_000_000, SUBSCRIPTION_PLANS.PRO.commissionRate), 45_000);
-    assert.equal(commissionFor(1_000_000, SUBSCRIPTION_PLANS.BUSINESS.commissionRate), 40_000);
-  });
-  it('rounds to whole Rupiah', () => {
-    assert.equal(commissionFor(333_333, 0.045), 15_000);
-  });
-  it('keeps plan prices and listing limits from the docs', () => {
-    assert.equal(SUBSCRIPTION_PLANS.PRO.price, 99_000);
-    assert.equal(SUBSCRIPTION_PLANS.BUSINESS.price, 299_000);
-    assert.equal(SUBSCRIPTION_PLANS.FREE.maxListings, 15);
-    assert.equal(SUBSCRIPTION_PLANS.BUSINESS.maxListings, null);
-  });
-});
-
-describe('protection window (§6)', () => {
-  it('is 14 days up to Rp10 juta and 30 days above', () => {
-    assert.equal(protectionDaysFor(10_000_000), 14);
-    assert.equal(protectionDaysFor(10_000_001), 30);
-  });
-});
-
-describe('payment-method surcharge for top-up & Balance (§8)', () => {
+describe('payment-method surcharge for top-up & Balance (§3)', () => {
   it('matches the charge-to-customer table', () => {
     assert.equal(surchargeFor('QRIS', 100_000), 1_500);
     assert.equal(surchargeFor('VA', 100_000), 5_000);
@@ -67,7 +17,7 @@ describe('payment-method surcharge for top-up & Balance (§8)', () => {
   });
 });
 
-describe('promo discount', () => {
+describe('promo discount (§4)', () => {
   it('returns 0 below the minimum spend', () => {
     assert.equal(discountFor({ kind: 'PERCENT', value: 10, min_spend: 50_000 }, 49_999), 0);
   });
@@ -81,25 +31,46 @@ describe('promo discount', () => {
   });
 });
 
-describe('loyalty, deposit, ads', () => {
-  it('earns 1 point per Rp1.000, rounded down', () => {
-    assert.equal(pointsFor(999), 0);
-    assert.equal(pointsFor(1_000), 1);
-    assert.equal(pointsFor(1_234_567), 1_234);
+describe('top-up total = price − discount + surcharge (§4, PDHUPL)', () => {
+  it('TC-22: 330 Crystals Rp79.200 via QRIS → Rp80.388', () => {
+    assert.deepEqual(priceTopup(79_200, 'QRIS', null), { basePrice: 79_200, discount: 0, surcharge: 1_188, amount: 80_388 });
   });
-  it('holds a Rp500.000 store deposit', () => {
-    assert.equal(STORE_DEPOSIT, 500_000);
+  it('TC-23: the same product via Virtual Account → Rp84.200', () => {
+    assert.equal(priceTopup(79_200, 'VA', null).amount, 84_200);
   });
-  it('prices featured ads per duration', () => {
-    assert.deepEqual(FEATURED_PRICES, { 1: 3_000, 3: 9_000, 7: 20_000, 14: 35_000, 30: 60_000 });
+  it('TC-26: VALO10 on 1.090 Crystals Rp249.100 → discount Rp24.910', () => {
+    assert.equal(priceTopup(249_100, 'QRIS', { kind: 'PERCENT', value: 10, min_spend: 50_000 }).discount, 24_910);
+  });
+  it('TC-27: HEMAT5K below Rp100.000 gives no discount (60 Crystals Rp16.200 via QRIS → Rp16.443)', () => {
+    const price = priceTopup(16_200, 'QRIS', { kind: 'FIXED', value: 5_000, min_spend: 100_000 });
+    assert.equal(price.discount, 0);
+    assert.equal(price.amount, 16_443);
+  });
+  it('charges the surcharge on the discounted price', () => {
+    const price = priceTopup(100_000, 'QRIS', { kind: 'FIXED', value: 10_000, min_spend: 0 });
+    assert.equal(price.surcharge, 1_350);
+    assert.equal(price.amount, 91_350);
+  });
+  it('TC-33: paying with Balance has no surcharge', () => {
+    assert.equal(priceTopup(79_200, 'BALANCE', null).amount, 79_200);
   });
 });
 
-describe('top-up retail price — Digiflazz price + 3%, rounded up to Rp100 (§8)', () => {
+describe('Balance voucher price (§5)', () => {
+  it('credits nominal × qty and adds the method surcharge', () => {
+    assert.deepEqual(priceBalanceFill(100_000, 1, 'QRIS'), { credit: 100_000, surcharge: 1_500, amount: 101_500 });
+    assert.deepEqual(priceBalanceFill(50_000, 3, 'VA'), { credit: 150_000, surcharge: 5_000, amount: 155_000 });
+  });
+});
+
+describe('top-up retail price — Digiflazz price + 3%, rounded up to Rp100 (§2)', () => {
   it('adds 3% and rounds up to the next Rp100', () => {
     assert.equal(topupRetailFor(51_145), 52_700);
     assert.equal(topupRetailFor(1_425), 1_500);
     assert.equal(topupRetailFor(1_003_289), 1_033_400);
+  });
+  it('TC-13: a Rp20.000 cost price sells for Rp20.600', () => {
+    assert.equal(topupRetailFor(20_000), 20_600);
   });
   it('does not overshoot on exact multiples (no float error)', () => {
     assert.equal(topupRetailFor(10_000), 10_300);

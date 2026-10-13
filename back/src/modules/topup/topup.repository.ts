@@ -1,12 +1,9 @@
-import { METHOD_LABEL, type TopupMethod } from '../../config/money.js';
+import { METHOD_LABEL, type PromoRule, type TopupMethod } from '../../config/money.js';
 import { all, one, run, type Db } from '../../db/pool.js';
 
-export interface PromoRow {
+export interface PromoRow extends PromoRule {
   id: number;
   code: string;
-  kind: 'PERCENT' | 'FIXED';
-  value: number;
-  min_spend: number;
   label: string;
 }
 
@@ -22,20 +19,18 @@ export const findUsablePromo = (db: Db, code: string) =>
 
 export interface ProductWithGame {
   id: string;
-  name: string;
-  amount_label: string;
   retail_price: number;
-  game_name: string;
   uid_extra_label: string | null;
   uid_extra_options: string[] | null;
 }
 
+/** An orderable product: the product and its game are both active. */
 export const findProduct = (db: Db, id: string) =>
   one<ProductWithGame>(
     db,
-    `select p.id, p.name, p.amount_label, p.retail_price, g.name as game_name, g.uid_extra_label, g.uid_extra_options
+    `select p.id, p.retail_price, g.uid_extra_label, g.uid_extra_options
      from topup_products p join games g on g.id = p.game_id
-     where p.id = $1 and p.is_active and g.is_active and g.supports_topup`,
+     where p.id = $1 and p.is_active and g.is_active`,
     [id],
   );
 
@@ -57,16 +52,14 @@ export async function insertTopupOrder(
     amount: number;
     method: TopupMethod;
     status: 'PENDING' | 'SUCCESS';
-    providerRef: string | null;
   },
 ) {
   await run(
     db,
     `insert into topup_orders (id, invoice_number, user_id, product_id, promo_code_id, user_game_id, game_zone_id,
-       contact_email, contact_whatsapp, base_price, discount, surcharge, amount, pay_source, payment_method, status,
-       provider_ref, paid_at)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-             case when $16::topup_status = 'SUCCESS' then now() end)`,
+       contact_email, contact_whatsapp, base_price, discount, surcharge, amount, payment_method, status, paid_at)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+             case when $15::topup_status = 'SUCCESS' then now() end)`,
     [
       o.id,
       o.invoice,
@@ -81,70 +74,55 @@ export async function insertTopupOrder(
       o.discount,
       o.surcharge,
       o.amount,
-      o.method === 'BALANCE' ? 'BALANCE' : 'MIDTRANS',
       o.method,
       o.status,
-      o.providerRef,
     ],
   );
 }
 
-// ── TransactionRecord (front/src/types/api.ts) ──
+// ── TransactionRecord (front/src/types/api.ts): one shape for top-up and Balance invoices ──
 
 export interface TransactionRecord {
   id: string;
   invoice_number: string;
-  user_game_id: string;
-  game_zone_id: string | null;
-  item_id: string;
+  kind: 'GAME_TOPUP' | 'BALANCE_TOPUP';
   item_name: string;
+  user_game_id: string | null;
+  game_zone_id: string | null;
+  contact_email: string | null;
   amount: number;
   payment_method: string;
   status: string;
   gateway_ref: string | null;
-  user_id: string | null;
-  kind: 'GAME_TOPUP' | 'BALANCE_TOPUP';
   created_at: string;
 }
 
 interface TopupTxRow {
   id: string;
   invoice_number: string;
+  item_name: string;
   user_game_id: string;
   game_zone_id: string | null;
-  product_id: string;
-  item_name: string;
+  contact_email: string | null;
   amount: number;
   payment_method: TopupMethod;
   status: string;
   gateway_ref: string | null;
-  user_id: string | null;
   created_at: string;
 }
 
-export const TOPUP_TX_SELECT = `
-  select t.id, t.invoice_number, t.user_game_id, t.game_zone_id, t.product_id,
-         g.name || ' - ' || p.amount_label as item_name, t.amount, t.payment_method, t.status,
-         pay.midtrans_transaction_id as gateway_ref, t.user_id, t.created_at
+const TOPUP_TX_SELECT = `
+  select t.id, t.invoice_number, g.name || ' - ' || p.amount_label as item_name, t.user_game_id, t.game_zone_id,
+         t.contact_email, t.amount, t.payment_method, t.status, pay.midtrans_transaction_id as gateway_ref, t.created_at
   from topup_orders t
   join topup_products p on p.id = t.product_id
   join games g on g.id = p.game_id
   left join payments pay on pay.purpose = 'TOPUP' and pay.ref_id = t.id`;
 
-export const toTopupTx = (r: TopupTxRow): TransactionRecord => ({
-  id: r.id,
-  invoice_number: r.invoice_number,
-  user_game_id: r.user_game_id,
-  game_zone_id: r.game_zone_id,
-  item_id: r.product_id,
-  item_name: r.item_name,
-  amount: r.amount,
-  payment_method: METHOD_LABEL[r.payment_method],
-  status: r.status,
-  gateway_ref: r.gateway_ref,
-  user_id: r.user_id,
+const toTopupTx = (r: TopupTxRow): TransactionRecord => ({
+  ...r,
   kind: 'GAME_TOPUP',
-  created_at: r.created_at,
+  payment_method: METHOD_LABEL[r.payment_method],
 });
 
 export async function findTopupTx(db: Db, where: 'id' | 'invoice_number', value: string) {
@@ -156,14 +134,15 @@ export async function findTopupTx(db: Db, where: 'id' | 'invoice_number', value:
 export const listUserTopupTx = async (db: Db, userId: string) =>
   (await all<TopupTxRow>(db, `${TOPUP_TX_SELECT} where t.user_id = $1 order by t.created_at desc limit 100`, [userId])).map(toTopupTx);
 
-export const listAllTopupTx = async (db: Db, q: string | undefined, status: string | undefined, limit = 200) =>
+/** Admin search: invoice number, game account ID or contact email. */
+export const listAllTopupTx = async (db: Db, q: string | undefined, status: string | undefined) =>
   (
     await all<TopupTxRow>(
       db,
       `${TOPUP_TX_SELECT}
        where ($1::text is null or t.invoice_number ilike $1 or t.user_game_id ilike $1 or t.contact_email ilike $1)
          and ($2::topup_status is null or t.status = $2)
-       order by t.created_at desc limit ${limit}`,
+       order by t.created_at desc limit 200`,
       [q ? `%${q}%` : null, status ?? null],
     )
   ).map(toTopupTx);
@@ -173,33 +152,33 @@ interface BalanceTxRow {
   invoice_number: string;
   nominal: number;
   qty: number;
+  email: string;
   amount: number;
   payment_method: TopupMethod;
   status: string;
   gateway_ref: string | null;
-  user_id: string;
   created_at: string;
 }
 
 const BALANCE_TX_SELECT = `
-  select b.id, b.invoice_number, b.nominal, b.qty, b.amount, b.payment_method, b.status,
-         pay.midtrans_transaction_id as gateway_ref, b.user_id, b.created_at
+  select b.id, b.invoice_number, b.nominal, b.qty, u.email, b.amount, b.payment_method, b.status,
+         pay.midtrans_transaction_id as gateway_ref, b.created_at
   from balance_topups b
+  join profiles u on u.id = b.user_id
   left join payments pay on pay.purpose = 'BALANCE_FILL' and pay.ref_id = b.id`;
 
 const toBalanceTx = (r: BalanceTxRow): TransactionRecord => ({
   id: r.id,
   invoice_number: r.invoice_number,
-  user_game_id: '-',
-  game_zone_id: null,
-  item_id: `BLC-${r.nominal}`,
+  kind: 'BALANCE_TOPUP',
   item_name: `Voucher Balance ${r.nominal.toLocaleString('id-ID')} BLC × ${r.qty}`,
+  user_game_id: null,
+  game_zone_id: null,
+  contact_email: r.email,
   amount: r.amount,
   payment_method: METHOD_LABEL[r.payment_method],
   status: r.status,
   gateway_ref: r.gateway_ref,
-  user_id: r.user_id,
-  kind: 'BALANCE_TOPUP',
   created_at: r.created_at,
 });
 
@@ -211,11 +190,13 @@ export async function findBalanceTx(db: Db, id: string) {
 export const listUserBalanceTx = async (db: Db, userId: string) =>
   (await all<BalanceTxRow>(db, `${BALANCE_TX_SELECT} where b.user_id = $1 order by b.created_at desc limit 100`, [userId])).map(toBalanceTx);
 
-export const listAllBalanceTx = async (db: Db, q: string | undefined, limit = 200) =>
+/** Admin search: invoice number or the member's email. */
+export const listAllBalanceTx = async (db: Db, q: string | undefined) =>
   (
     await all<BalanceTxRow>(
       db,
-      `${BALANCE_TX_SELECT} where ($1::text is null or b.invoice_number ilike $1) order by b.created_at desc limit ${limit}`,
+      `${BALANCE_TX_SELECT} where ($1::text is null or b.invoice_number ilike $1 or u.email ilike $1)
+       order by b.created_at desc limit 200`,
       [q ? `%${q}%` : null],
     )
   ).map(toBalanceTx);

@@ -2,10 +2,9 @@
 // talks to this API; tokens are kept in httpOnly cookies (never localStorage).
 import { Router } from 'express';
 import { z } from 'zod';
-import { env } from '../../config/env.js';
 import { one, pool, run } from '../../db/pool.js';
-import { AppError, badRequest, conflict, parse, unauthorized } from '../../lib/errors.js';
-import { clearSessionCookies, permissionsOf, requireUser, setSessionCookies } from '../../middlewares/auth.js';
+import { AppError, badRequest, conflict, parse } from '../../lib/errors.js';
+import { ACCESS_COOKIE, clearSessionCookies, requireUser, setSessionCookies } from '../../middlewares/auth.js';
 import { authLimiter } from '../../middlewares/security.js';
 import { authClient, supabaseAdmin } from '../../supabase/client.js';
 
@@ -34,28 +33,18 @@ interface ProfileRow {
   phone: string | null;
   role: 'USER' | 'ADMIN';
   balance: number;
-  loyalty_points: number;
   referral_code: string;
   created_at: string;
 }
 
-/** GET /auth/me payload: profile + admin permissions + store summary + unread count. */
+/** GET /auth/me payload. */
 export async function currentUser(userId: string) {
   const profile = await one<ProfileRow>(
     pool,
-    'select id, email, name, phone, role, balance, loyalty_points, referral_code, created_at from profiles where id = $1',
+    'select id, email, name, phone, role, balance, referral_code, created_at from profiles where id = $1',
     [userId],
   );
   if (!profile) return null;
-  const [store, unread, permissions] = await Promise.all([
-    one<{ id: string; slug: string; name: string; status: string; type: string }>(
-      pool,
-      'select id, slug, name, status, type from stores where owner_id = $1',
-      [userId],
-    ),
-    one<{ count: number }>(pool, 'select count(*)::int as count from notifications where user_id = $1 and not is_read', [userId]),
-    profile.role === 'ADMIN' ? permissionsOf(userId) : Promise.resolve(new Set<string>()),
-  ]);
   return {
     id: profile.id,
     name: profile.name,
@@ -63,11 +52,7 @@ export async function currentUser(userId: string) {
     phone: profile.phone,
     role: profile.role,
     balance: profile.balance,
-    loyaltyPoints: profile.loyalty_points,
     referralCode: profile.referral_code,
-    permissions: [...permissions].sort(),
-    store,
-    unreadNotifications: unread?.count ?? 0,
     created_at: profile.created_at,
   };
 }
@@ -128,19 +113,12 @@ authRouter.post('/login', authLimiter, async (req, res) => {
   if (!email) throw bad;
   const { data, error } = await authClient().auth.signInWithPassword({ email, password });
   if (error || !data.session) throw bad;
-  const banned = await one<{ is_banned: boolean; ban_reason: string | null }>(pool, 'select is_banned, ban_reason from profiles where id = $1', [
-    data.user.id,
-  ]);
-  if (banned?.is_banned) {
-    await supabaseAdmin.auth.admin.signOut(data.session.access_token).catch(() => undefined);
-    throw new AppError(403, 'BANNED', `Akun diblokir${banned.ban_reason ? `: ${banned.ban_reason}` : '.'}`);
-  }
   setSessionCookies(res, data.session);
   res.json({ user: await currentUser(data.user.id) });
 });
 
 authRouter.post('/logout', async (req, res) => {
-  const access: unknown = req.cookies?.vs_at;
+  const access: unknown = req.cookies?.[ACCESS_COOKIE];
   if (typeof access === 'string') await supabaseAdmin.auth.admin.signOut(access).catch(() => undefined);
   clearSessionCookies(res);
   res.json({ ok: true });
@@ -148,25 +126,6 @@ authRouter.post('/logout', async (req, res) => {
 
 authRouter.get('/me', async (req, res) => {
   res.json({ user: req.user ? await currentUser(req.user.id) : null });
-});
-
-/** Password reset email (Mailpit locally: http://127.0.0.1:55324). Always 200 — no account enumeration. */
-authRouter.post('/forgot', authLimiter, async (req, res) => {
-  const { email } = parse(z.object({ email: z.email('email tidak valid').trim().toLowerCase() }).strict(), req.body);
-  await authClient()
-    .auth.resetPasswordForEmail(email, { redirectTo: `${env.FRONTEND_URL}/reset-password` })
-    .catch(() => undefined);
-  res.json({ ok: true });
-});
-
-/** The reset link lands on /reset-password#access_token=…; the page posts that token here. */
-authRouter.post('/reset', authLimiter, async (req, res) => {
-  const { accessToken, password } = parse(z.object({ accessToken: z.string().min(20).max(4000), password: passwordField }).strict(), req.body);
-  const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
-  if (error || !data.user) throw unauthorized('Tautan reset sudah kedaluwarsa. Minta tautan baru.');
-  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, { password });
-  if (updateError) throw badRequest(updateError.message, 'RESET_FAILED');
-  res.json({ ok: true });
 });
 
 const profileSchema = z
@@ -203,4 +162,3 @@ authRouter.post('/change-password', authLimiter, async (req, res) => {
   if (updateError) throw badRequest(updateError.message, 'CHANGE_FAILED');
   res.json({ ok: true });
 });
-

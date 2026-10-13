@@ -1,73 +1,11 @@
-// The only functions allowed to change a balance. Each call locks the balance
-// row (SELECT … FOR UPDATE), applies the movements, and writes one ledger row
-// per movement with `balance_after` — all inside the caller's transaction.
-import { REFERRAL_REWARD, pointsFor } from '../config/money.js';
+// The only functions allowed to change a Balance. Each call locks the profile row
+// (SELECT … FOR UPDATE), applies the movement, and writes one balance_ledger row
+// with `balance_after` — all inside the caller's transaction.
+import { REFERRAL_REWARD } from '../config/money.js';
 import { one, run, type Tx } from '../db/pool.js';
 import { conflict } from './errors.js';
-import { notify } from './notify.js';
 
-export type StoreBucket = 'ESCROW' | 'AVAILABLE' | 'DEPOSIT';
-export type StoreLedgerType =
-  | 'ESCROW_HOLD'
-  | 'ESCROW_RELEASE'
-  | 'COMMISSION'
-  | 'REFUND'
-  | 'COMPENSATION'
-  | 'WITHDRAW'
-  | 'WITHDRAW_FEE'
-  | 'TRANSFER'
-  | 'TRANSFER_FEE'
-  | 'PAYOUT_REVERSAL'
-  | 'ADJUSTMENT'
-  | 'DEPOSIT_HOLD'
-  | 'DEPOSIT_DEDUCTION'
-  | 'DEPOSIT_REFUND';
-
-export interface StoreMovement {
-  bucket: StoreBucket;
-  type: StoreLedgerType;
-  /** Signed Rupiah: + in, − out. */
-  amount: number;
-  refType: 'order' | 'withdrawal' | 'transfer' | 'dispute' | 'adjustment' | 'deposit' | 'sanction';
-  refId: string | null;
-  note?: string;
-}
-
-export async function moveStoreBalance(tx: Tx, storeId: string, movements: StoreMovement[]) {
-  const row = await one<{ escrow: number; available: number; deposit: number }>(
-    tx,
-    'select escrow, available, deposit from store_balances where store_id = $1 for update',
-    [storeId],
-  );
-  if (!row) throw conflict('Saldo toko belum dibuat (toko belum disetujui admin).', 'NO_STORE_BALANCE');
-
-  const balance = { ESCROW: row.escrow, AVAILABLE: row.available, DEPOSIT: row.deposit };
-  for (const m of movements) {
-    balance[m.bucket] += m.amount;
-    if (balance[m.bucket] < 0) throw conflict('Saldo toko tidak mencukupi.', 'INSUFFICIENT_STORE_BALANCE');
-    await run(
-      tx,
-      `insert into store_ledger (store_id, bucket, type, amount, balance_after, ref_type, ref_id, note)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [storeId, m.bucket, m.type, m.amount, balance[m.bucket], m.refType, m.refId, m.note ?? null],
-    );
-  }
-  await run(tx, 'update store_balances set escrow = $1, available = $2, deposit = $3 where store_id = $4', [
-    balance.ESCROW,
-    balance.AVAILABLE,
-    balance.DEPOSIT,
-    storeId,
-  ]);
-  return { escrow: balance.ESCROW, available: balance.AVAILABLE, deposit: balance.DEPOSIT };
-}
-
-export type BalanceLedgerType =
-  | 'TOPUP_CREDIT'
-  | 'SPEND_TOPUP'
-  | 'REFUND_CREDIT'
-  | 'LOYALTY_CREDIT'
-  | 'REFERRAL_CREDIT'
-  | 'ADJUSTMENT';
+export type BalanceLedgerType = 'TOPUP_CREDIT' | 'SPEND_TOPUP' | 'REFERRAL_CREDIT';
 
 /** Closed-loop Balance (BLC) of a user. Returns the new balance. */
 export async function moveUserBalance(
@@ -90,52 +28,19 @@ export async function moveUserBalance(
   return next;
 }
 
-/** Loyalty points (MONEY_RULES §13b). Returns the new points balance. */
-export async function movePoints(
-  tx: Tx,
-  userId: string,
-  movement: { type: 'EARN' | 'REDEEM' | 'ADJUSTMENT'; points: number; reference: string },
-): Promise<number> {
-  const row = await one<{ loyalty_points: number }>(tx, 'select loyalty_points from profiles where id = $1 for update', [userId]);
-  if (!row) throw conflict('Pengguna tidak ditemukan.', 'NO_USER');
-  const next = row.loyalty_points + movement.points;
-  if (next < 0) throw conflict('Poin tidak mencukupi.', 'INSUFFICIENT_POINTS');
-  await run(tx, 'update profiles set loyalty_points = $1 where id = $2', [next, userId]);
-  await run(tx, 'insert into loyalty_ledger (user_id, type, points, balance_after, reference) values ($1, $2, $3, $4, $5)', [
-    userId,
-    movement.type,
-    movement.points,
-    next,
-    movement.reference,
-  ]);
-  return next;
-}
-
-/** Points for a completed purchase / successful top-up (1 point per Rp1.000). */
-export async function earnPoints(tx: Tx, userId: string, amount: number, reference: string): Promise<void> {
-  const points = pointsFor(amount);
-  if (points > 0) await movePoints(tx, userId, { type: 'EARN', points, reference });
-}
-
 /**
- * Referral reward (MONEY_RULES §13b): the first completed order or successful
- * top-up of a referred user credits Rp10.000 Balance to the referrer — once.
+ * Referral reward (MONEY_RULES §6): the referred user's FIRST successful top-up credits Rp10.000 Balance to
+ * the referrer. Call after the invoice was set to SUCCESS. Locking the referred profile serialises concurrent
+ * settlements of the same user, so the "any earlier success?" check cannot pass twice.
  */
-export async function rewardReferral(tx: Tx, userId: string, reference: string): Promise<void> {
-  const user = await one<{ referred_by: string | null }>(tx, 'select referred_by from profiles where id = $1', [userId]);
+export async function rewardReferral(tx: Tx, userId: string, invoice: string): Promise<void> {
+  const user = await one<{ referred_by: string | null }>(tx, 'select referred_by from profiles where id = $1 for update', [userId]);
   if (!user?.referred_by) return;
-  const inserted = await run(
+  const earlier = await one(
     tx,
-    `insert into referral_rewards (referrer_id, referred_id, reward, status, reference, rewarded_at)
-     values ($1, $2, $3, 'REWARDED', $4, now()) on conflict (referred_id) do nothing`,
-    [user.referred_by, userId, REFERRAL_REWARD, reference],
+    `select 1 from topup_orders where user_id = $1 and status = 'SUCCESS' and invoice_number <> $2 limit 1`,
+    [userId, invoice],
   );
-  if (inserted === 0) return;
-  await moveUserBalance(tx, user.referred_by, { type: 'REFERRAL_CREDIT', amount: REFERRAL_REWARD, reference });
-  await notify(tx, user.referred_by, {
-    kind: 'SYSTEM',
-    title: 'Hadiah referral masuk',
-    body: `Teman yang kamu ajak menyelesaikan transaksi pertamanya. Rp${REFERRAL_REWARD.toLocaleString('id-ID')} masuk ke Balance.`,
-    link: '/account/affiliate',
-  });
+  if (earlier) return;
+  await moveUserBalance(tx, user.referred_by, { type: 'REFERRAL_CREDIT', amount: REFERRAL_REWARD, reference: invoice });
 }

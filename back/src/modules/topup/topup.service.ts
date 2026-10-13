@@ -1,47 +1,70 @@
-import { BLC_DENOMINATIONS, BLC_MAX_QTY, discountFor, surchargeFor, type GatewayMethod, type TopupMethod } from '../../config/money.js';
+import {
+  BLC_DENOMINATIONS,
+  BLC_MAX_QTY,
+  priceBalanceFill,
+  priceTopup,
+  type GatewayMethod,
+  type TopupMethod,
+} from '../../config/money.js';
 import { one, pool, run, withTransaction } from '../../db/pool.js';
 import { badRequest, notFound, unauthorized } from '../../lib/errors.js';
-import { documentNumber, randomCode, uuid } from '../../lib/ids.js';
-import { earnPoints, moveUserBalance, rewardReferral } from '../../lib/ledger.js';
+import { invoiceNumber, uuid } from '../../lib/ids.js';
+import { moveUserBalance, rewardReferral } from '../../lib/ledger.js';
 import type { AuthUser } from '../../middlewares/auth.js';
 import * as payments from '../payments/payments.service.js';
 import * as repo from './topup.repository.js';
 
-export async function checkPromo(code: string) {
-  const promo = await repo.findUsablePromo(pool, code);
-  if (!promo) throw notFound('Kode promo');
-  return { code: promo.code, kind: promo.kind, value: promo.value, minSpend: promo.min_spend, label: promo.label };
+// ── DFD 3.1–3.3: validate the order, the promo, and price it (server-side only) ──
+
+async function productOrFail(productId: string) {
+  const product = await repo.findProduct(pool, productId);
+  if (!product) throw notFound('Produk top-up');
+  return product;
 }
 
-export interface CheckoutInput {
+async function promoOrFail(code: string | undefined) {
+  if (!code) return null;
+  const promo = await repo.findUsablePromo(pool, code);
+  if (!promo) throw badRequest('Kode promo tidak ditemukan.', 'PROMO_INVALID');
+  return promo;
+}
+
+export interface QuoteInput {
   productId: string;
+  paymentMethod: TopupMethod;
+  promoCode?: string;
+}
+
+/** Ringkasan Pesanan: what the checkout will charge for this product, method and promo. */
+export async function quote(input: QuoteInput) {
+  const product = await productOrFail(input.productId);
+  const promo = await promoOrFail(input.promoCode);
+  const price = priceTopup(product.retail_price, input.paymentMethod, promo);
+  return {
+    ...price,
+    promo: promo ? { code: promo.code, label: promo.label, minSpend: promo.min_spend, applied: price.discount > 0 } : null,
+  };
+}
+
+export interface CheckoutInput extends QuoteInput {
   userGameId: string;
   gameZoneId?: string;
-  promoCode?: string;
-  paymentMethod: TopupMethod;
   contactEmail?: string;
   contactWhatsapp?: string;
 }
 
-/** DFD 4.1–4.3: validate, price (server-side only), create the invoice, pay. */
+/** DFD 3.4 / 3.5: create the invoice, then pay through Midtrans (4.0) or with Balance. */
 export async function checkout(user: AuthUser | undefined, input: CheckoutInput) {
-  const product = await repo.findProduct(pool, input.productId);
-  if (!product) throw notFound('Produk top-up');
+  const product = await productOrFail(input.productId);
   if (product.uid_extra_label && !input.gameZoneId) throw badRequest(`Harap isi ${product.uid_extra_label}.`);
   if (product.uid_extra_options && input.gameZoneId && !product.uid_extra_options.includes(input.gameZoneId)) {
     throw badRequest(`${product.uid_extra_label ?? 'Pilihan'} tidak dikenal. Pilih salah satu: ${product.uid_extra_options.join(', ')}.`);
   }
-
-  const promo = input.promoCode ? await repo.findUsablePromo(pool, input.promoCode) : null;
-  if (input.promoCode && !promo) throw badRequest('Kode promo tidak ditemukan atau sudah tidak berlaku.', 'PROMO_INVALID');
-
-  const discount = promo ? discountFor(promo, product.retail_price) : 0;
-  const base = product.retail_price - discount;
-  const surcharge = surchargeFor(input.paymentMethod, base);
-  const amount = base + surcharge;
+  const promo = await promoOrFail(input.promoCode);
+  const price = priceTopup(product.retail_price, input.paymentMethod, promo);
   const id = uuid();
-  const invoice = documentNumber('TU');
-  const common = {
+  const invoice = invoiceNumber('TU');
+  const order = {
     id,
     invoice,
     userId: user?.id ?? null,
@@ -51,21 +74,17 @@ export async function checkout(user: AuthUser | undefined, input: CheckoutInput)
     gameZoneId: input.gameZoneId ?? null,
     email: input.contactEmail ?? null,
     whatsapp: input.contactWhatsapp ?? null,
-    basePrice: product.retail_price,
-    discount,
-    surcharge,
-    amount,
+    ...price,
     method: input.paymentMethod,
   };
 
   if (input.paymentMethod === 'BALANCE') {
-    if (!user) throw unauthorized('Masuk dulu untuk membayar dengan Balance.');
-    // DFD 4.3: debit Balance + invoice in one transaction; delivery simulated → SUCCESS.
+    if (!user) throw unauthorized('Masuk dulu untuk membayar dengan Balance (BLC).');
+    // DFD 3.5: invoice + Balance debit in one transaction; delivery simulated → SUCCESS at once.
     const balance = await withTransaction(async (tx) => {
-      await repo.insertTopupOrder(tx, { ...common, status: 'SUCCESS', providerRef: `SIM-${randomCode(8)}` });
+      await repo.insertTopupOrder(tx, { ...order, status: 'SUCCESS' });
       if (promo) await run(tx, 'update promo_codes set used_count = used_count + 1 where id = $1', [promo.id]);
-      const next = await moveUserBalance(tx, user.id, { type: 'SPEND_TOPUP', amount: -amount, reference: invoice });
-      await earnPoints(tx, user.id, amount, invoice);
+      const next = await moveUserBalance(tx, user.id, { type: 'SPEND_TOPUP', amount: -price.amount, reference: invoice });
       await rewardReferral(tx, user.id, invoice);
       return next;
     });
@@ -75,8 +94,8 @@ export async function checkout(user: AuthUser | undefined, input: CheckoutInput)
 
   const method = input.paymentMethod;
   await withTransaction(async (tx) => {
-    await repo.insertTopupOrder(tx, { ...common, status: 'PENDING', providerRef: null });
-    await payments.recordPayment(tx, { invoice, purpose: 'TOPUP', refId: id, userId: user?.id ?? null, amount, method });
+    await repo.insertTopupOrder(tx, { ...order, status: 'PENDING' });
+    await payments.recordPayment(tx, { invoice, purpose: 'TOPUP', refId: id, amount: price.amount, method });
   });
   const payment = await payments.openPaymentPage(invoice, {
     name: user?.name,
@@ -87,35 +106,50 @@ export async function checkout(user: AuthUser | undefined, input: CheckoutInput)
   return { transaction, payment };
 }
 
-/** "Cek Invoice" — exact invoice number only; the game account is masked. */
-export async function lookupInvoice(invoiceNumber: string) {
-  const invoice = invoiceNumber.trim().toUpperCase();
-  const pending = await one<{ status: string }>(pool, 'select status from topup_orders where invoice_number = $1', [invoice]);
-  if (!pending) throw notFound('Invoice');
-  if (pending.status === 'PENDING') await payments.syncPayment(invoice).catch(() => undefined);
+// ── DFD 6.0: "Cek Invoice" — exact invoice number only; the game account is masked, the contact hidden ──
+
+export async function lookupInvoice(invoiceNumberInput: string) {
+  const invoice = invoiceNumberInput.trim().toUpperCase();
+  const current = await one<{ status: string }>(pool, 'select status from topup_orders where invoice_number = $1', [invoice]);
+  if (!current) throw notFound('Invoice');
+  if (current.status === 'PENDING') await payments.syncPayment(invoice).catch(() => undefined);
   const tx = await repo.findTopupTx(pool, 'invoice_number', invoice);
   if (!tx) throw notFound('Invoice');
-  const { user_game_id, game_zone_id, user_id: _owner, ...rest } = tx;
+  const { user_game_id, game_zone_id, contact_email: _contact, ...rest } = tx;
   return {
     ...rest,
-    user_game_id_masked: maskGameId(user_game_id),
+    user_game_id_masked: user_game_id ? maskGameId(user_game_id) : null,
     game_zone_id_masked: game_zone_id ? maskGameId(game_zone_id) : null,
   };
 }
 
-/** "Nightfall#GGWP" → "Ni**********WP". */
+/** "Nightfall#GGWP" → "Ni**********WP", "800123456" → "80*****56". */
 function maskGameId(value: string): string {
   const trimmed = value.trim();
   if (trimmed.length <= 4) return `${trimmed.charAt(0)}***`;
   return `${trimmed.slice(0, 2)}${'*'.repeat(trimmed.length - 4)}${trimmed.slice(-2)}`;
 }
 
-// ── Balance (closed-loop BLC) — DFD 4.4 ──
+// ── DFD 5.1–5.2: Balance (closed-loop BLC) vouchers ──
 
-export async function fillBalance(user: AuthUser, input: { nominal: number; qty: number; method: GatewayMethod; idempotencyKey: string }) {
+export interface BalanceFillInput {
+  nominal: number;
+  qty: number;
+  method: GatewayMethod;
+}
+
+function assertVoucher(input: BalanceFillInput) {
   if (!BLC_DENOMINATIONS.includes(input.nominal)) throw badRequest('Nominal voucher tidak tersedia.');
   if (input.qty < 1 || input.qty > BLC_MAX_QTY) throw badRequest(`Jumlah voucher 1 sampai ${BLC_MAX_QTY}.`);
+}
 
+export function quoteBalance(input: BalanceFillInput) {
+  assertVoucher(input);
+  return priceBalanceFill(input.nominal, input.qty, input.method);
+}
+
+export async function fillBalance(user: AuthUser, input: BalanceFillInput & { idempotencyKey: string }) {
+  assertVoucher(input);
   // Same key again (double click / retry) → the same invoice, never a second one.
   const existing = await one<{ id: string; invoice_number: string }>(
     pool,
@@ -126,25 +160,17 @@ export async function fillBalance(user: AuthUser, input: { nominal: number; qty:
   let invoice = existing?.invoice_number;
 
   if (!id || !invoice) {
-    const credit = input.nominal * input.qty;
-    const surcharge = surchargeFor(input.method, credit);
+    const price = priceBalanceFill(input.nominal, input.qty, input.method);
     const newId = uuid();
-    const newInvoice = documentNumber('BL');
+    const newInvoice = invoiceNumber('BL');
     await withTransaction(async (tx) => {
       await run(
         tx,
         `insert into balance_topups (id, invoice_number, user_id, nominal, qty, credit, payment_method, surcharge, amount, idempotency_key)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [newId, newInvoice, user.id, input.nominal, input.qty, credit, input.method, surcharge, credit + surcharge, input.idempotencyKey],
+        [newId, newInvoice, user.id, input.nominal, input.qty, price.credit, input.method, price.surcharge, price.amount, input.idempotencyKey],
       );
-      await payments.recordPayment(tx, {
-        invoice: newInvoice,
-        purpose: 'BALANCE_FILL',
-        refId: newId,
-        userId: user.id,
-        amount: credit + surcharge,
-        method: input.method,
-      });
+      await payments.recordPayment(tx, { invoice: newInvoice, purpose: 'BALANCE_FILL', refId: newId, amount: price.amount, method: input.method });
     });
     id = newId;
     invoice = newInvoice;

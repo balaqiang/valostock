@@ -3,7 +3,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { Session } from '@supabase/supabase-js';
 import { env } from '../config/env.js';
-import { all, one, pool } from '../db/pool.js';
+import { one, pool } from '../db/pool.js';
 import { forbidden, unauthorized } from '../lib/errors.js';
 import { authClient, supabaseAdmin } from '../supabase/client.js';
 
@@ -18,8 +18,6 @@ export interface AuthUser {
   email: string;
   name: string;
   role: 'USER' | 'ADMIN';
-  /** Admin permissions (`modul:aksi`), loaded on demand. */
-  permissions?: Set<string>;
 }
 
 declare global {
@@ -58,7 +56,7 @@ async function userIdFromAccessToken(token: string): Promise<string | null> {
  * with the refresh token — only for browser requests: refresh tokens rotate, so
  * refreshing on a server-side (SSR) request would hand the new cookies to the
  * Next.js server instead of the browser and log the user out.
- * Never rejects: routes decide with requireUser / requireAdmin / requirePermission.
+ * Never rejects: routes decide with requireUser / requireAdmin.
  */
 export async function loadUser(req: Request, res: Response, next: NextFunction) {
   const access: unknown = req.cookies?.[ACCESS_COOKIE];
@@ -76,14 +74,8 @@ export async function loadUser(req: Request, res: Response, next: NextFunction) 
   }
 
   if (userId) {
-    const profile = await one<{ id: string; email: string; name: string; role: 'USER' | 'ADMIN'; is_banned: boolean }>(
-      pool,
-      'select id, email, name, role, is_banned from profiles where id = $1',
-      [userId],
-    );
-    if (profile && !profile.is_banned) {
-      req.user = { id: profile.id, email: profile.email, name: profile.name, role: profile.role };
-    }
+    const profile = await one<AuthUser>(pool, 'select id, email, name, role from profiles where id = $1', [userId]);
+    if (profile) req.user = profile;
   }
   next();
 }
@@ -94,21 +86,9 @@ export function requireUser(req: Request): AuthUser {
   return req.user;
 }
 
-export async function permissionsOf(userId: string): Promise<Set<string>> {
-  const rows = await all<{ permission_key: string }>(
-    pool,
-    `select distinct rp.permission_key from admin_user_roles ur
-     join role_permissions rp on rp.role_id = ur.role_id where ur.user_id = $1`,
-    [userId],
-  );
-  return new Set(rows.map((r) => r.permission_key));
-}
-
-/** Admin with a specific permission (docs/ADMIN_PANEL.md §2), or 401/403. */
-export async function requirePermission(req: Request, permission: string): Promise<AuthUser> {
+/** An admin (profiles.role = ADMIN), or 401/403. */
+export function requireAdmin(req: Request): AuthUser {
   const user = requireUser(req);
   if (user.role !== 'ADMIN') throw forbidden('Khusus admin.');
-  user.permissions ??= await permissionsOf(user.id);
-  if (!user.permissions.has(permission)) throw forbidden(`Butuh izin ${permission}.`);
   return user;
 }

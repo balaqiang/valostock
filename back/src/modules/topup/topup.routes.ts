@@ -8,11 +8,6 @@ import * as service from './topup.service.js';
 
 export const topupRouter = Router();
 
-topupRouter.get('/topup/promo', lookupLimiter, async (req, res) => {
-  const { code } = parse(z.object({ code: z.string().trim().min(1).max(30) }).strict(), req.query);
-  res.json({ promo: await service.checkPromo(code) });
-});
-
 const optionalText = (max: number) =>
   z
     .string()
@@ -21,9 +16,20 @@ const optionalText = (max: number) =>
     .optional()
     .transform((value) => (value ? value : undefined));
 
+const productId = z.string().trim().min(1).max(36);
+
+const quoteSchema = z
+  .object({ productId, method: z.enum(TOPUP_METHODS), promo: optionalText(30) })
+  .strict();
+
+topupRouter.get('/topup/quote', lookupLimiter, async (req, res) => {
+  const q = parse(quoteSchema, req.query);
+  res.json({ quote: await service.quote({ productId: q.productId, paymentMethod: q.method, promoCode: q.promo }) });
+});
+
 const checkoutSchema = z
   .object({
-    productId: z.string().trim().min(1).max(36),
+    productId,
     userGameId: z.string().trim().min(1, 'isi ID akun game').max(100),
     gameZoneId: optionalText(30),
     promoCode: optionalText(30),
@@ -43,19 +49,22 @@ topupRouter.post('/topup/checkout', checkoutLimiter, async (req, res) => {
 
 topupRouter.get('/topup/invoice', lookupLimiter, async (req, res) => {
   const { q } = parse(z.object({ q: z.string().trim().min(5).max(30) }).strict(), req.query);
-  res.json({ transactions: [await service.lookupInvoice(q)] });
+  res.json({ transaction: await service.lookupInvoice(q) });
 });
 
-const fillSchema = z
-  .object({
-    nominal: z.number().int().positive(),
-    qty: z.number().int().positive(),
-    method: z.enum(GATEWAY_METHODS),
-    idempotencyKey: z.string().min(8).max(64),
-  })
-  .strict();
+const voucherFields = {
+  nominal: z.coerce.number().int().positive(),
+  qty: z.coerce.number().int().positive(),
+  method: z.enum(GATEWAY_METHODS),
+};
+
+topupRouter.get('/balance/quote', lookupLimiter, async (req, res) => {
+  requireUser(req);
+  res.json({ quote: service.quoteBalance(parse(z.object(voucherFields).strict(), req.query)) });
+});
 
 topupRouter.post('/balance/topup', checkoutLimiter, async (req, res) => {
   const user = requireUser(req);
-  res.status(201).json(await service.fillBalance(user, parse(fillSchema, req.body)));
+  const input = parse(z.object({ ...voucherFields, idempotencyKey: z.string().min(8).max(64) }).strict(), req.body);
+  res.status(201).json(await service.fillBalance(user, input));
 });

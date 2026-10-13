@@ -35,8 +35,6 @@ function limiter(windowMinutes: number, limit: number) {
 export const authLimiter = limiter(15, 30);
 export const checkoutLimiter = limiter(5, 40);
 export const lookupLimiter = limiter(5, 120);
-export const uploadLimiter = limiter(5, 60);
-export const writeLimiter = limiter(5, 120);
 
 const PG_ERRORS: Record<string, [number, string, string]> = {
   '23505': [409, 'DUPLICATE', 'Data sudah ada.'],
@@ -45,7 +43,7 @@ const PG_ERRORS: Record<string, [number, string, string]> = {
   '22P02': [400, 'BAD_INPUT', 'Format data tidak valid.'],
 };
 
-/** Last middleware: AppError → its status; known DB/upload errors → 4xx; anything else → 500 without internals. */
+/** Last middleware: AppError → its status; known DB errors → 4xx; anything else → 500 without internals. */
 export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _next) => {
   if (error instanceof AppError) {
     res.status(error.status).json({ error: { code: error.code, message: error.message } });
@@ -56,10 +54,6 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _ne
     return;
   }
   const code = typeof error === 'object' && error !== null ? (error as { code?: string }).code : undefined;
-  if (code === 'LIMIT_FILE_SIZE' || code === 'LIMIT_FILE_COUNT' || code === 'LIMIT_UNEXPECTED_FILE') {
-    res.status(400).json({ error: { code: 'BAD_UPLOAD', message: 'File terlalu besar atau terlalu banyak.' } });
-    return;
-  }
   if (code && PG_ERRORS[code]) {
     const [status, errCode, message] = PG_ERRORS[code];
     res.status(status).json({ error: { code: errCode, message } });

@@ -11,7 +11,7 @@ const invoiceParam = z
   .string()
   .trim()
   .toUpperCase()
-  .regex(/^[A-Z]{2,3}-\d{6}-[A-Z0-9]{6}$/, 'nomor invoice tidak valid');
+  .regex(/^(TU|BL)-\d{6}-[A-Z0-9]{6}$/, 'nomor invoice tidak valid');
 
 const view = (payment: service.PaymentRow) => ({
   invoice: payment.midtrans_order_id,
@@ -36,7 +36,7 @@ paymentsRouter.post('/payments/:invoice/simulate', async (req, res) => {
   if (env.PAYMENT_MODE !== 'simulation') throw notFound('Halaman');
   const invoice = parse(invoiceParam, req.params.invoice);
   const { result } = parse(simulateBody, req.body);
-  const payment = await service.applyResult(invoice, result, { grossAmount: null, transactionId: `SIM-${invoice}`, paymentType: 'simulation' });
+  const payment = await service.applyResult(invoice, result, { grossAmount: null, transactionId: `SIM-${invoice}` });
   res.json({ payment: view(payment) });
 });
 
