@@ -1,33 +1,28 @@
-// End-to-end smoke test of the v8 API (PAYMENT_MODE=simulation) on a freshly
-// reset database (`npm run db:reset`). Needs the API running (`npm run dev`).
-//   npm run test:smoke        (API_URL defaults to http://localhost:4000/api)
+// End-to-end smoke test of the top-up API (PAYMENT_MODE=simulation), following the PDHUPL
+// scenarios (TC-xx). Needs the API running and the demo seed (supabase/seed.sql).
+//   npm run test:smoke        (API_URL, else :4000 / :4100 in simulation mode)
 import { resolveApi } from './api-url.ts';
 import assert from 'node:assert/strict';
 
 const API = await resolveApi();
 const DEMO_PASSWORD = 'valostock-demo';
-// 1×1 transparent PNG — a real image so the magic-byte check passes.
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+const RUN = Date.now().toString(36).slice(-6);
 
 type Json = Record<string, unknown>;
+type ApiError = { error?: { code?: string; message?: string } };
 
 class Client {
   private jar = new Map<string, string>();
   constructor(readonly name: string) {}
 
-  private cookieHeader() {
-    return [...this.jar].map(([k, v]) => `${k}=${v}`).join('; ');
-  }
-
   async call<T = Json>(method: string, path: string, body?: unknown): Promise<{ status: number; data: T }> {
-    const isForm = body instanceof FormData;
     const res = await fetch(`${API}${path}`, {
       method,
       headers: {
-        ...(body && !isForm ? { 'Content-Type': 'application/json' } : {}),
-        ...(this.jar.size ? { Cookie: this.cookieHeader() } : {}),
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...(this.jar.size ? { Cookie: [...this.jar].map(([k, v]) => `${k}=${v}`).join('; ') } : {}),
       },
-      body: isForm ? body : body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : undefined,
     });
     for (const line of res.headers.getSetCookie()) {
       const [pair] = line.split(';');
@@ -45,262 +40,266 @@ class Client {
     return data;
   }
 
-  async fails(method: string, path: string, body: unknown, expected: number) {
-    const { status, data } = await this.call(method, path, body);
+  async fails(method: string, path: string, body: unknown, expected: number): Promise<ApiError> {
+    const { status, data } = await this.call<ApiError>(method, path, body);
     assert.equal(status, expected, `${this.name} ${method} ${path} expected ${expected}, got ${status} ${JSON.stringify(data)}`);
-    return data as { error?: { code?: string; message?: string } };
+    return data;
   }
 
-  login = (email: string) => this.ok('POST', '/auth/login', { identity: email, password: DEMO_PASSWORD });
+  login = (identity: string, password = DEMO_PASSWORD) => this.ok('POST', '/auth/login', { identity, password });
 }
 
-type Session = { mode: string; redirectUrl?: string };
-const invoiceOf = (session: Session) => new URL(session.redirectUrl!).searchParams.get('invoice')!;
-const pay = (client: Client, invoice: string, result: 'PAID' | 'FAILED' = 'PAID') =>
-  client.ok<{ payment: { status: string; next: string } }>('POST', `/payments/${invoice}/simulate`, { result });
+interface Quote {
+  basePrice: number;
+  discount: number;
+  surcharge: number;
+  amount: number;
+  promo: { code: string; applied: boolean } | null;
+}
+interface Tx {
+  invoice_number: string;
+  status: string;
+  amount: number;
+  user_game_id_masked?: string;
+}
+interface Checkout {
+  transaction: Tx;
+  payment: { mode: string; redirectUrl?: string };
+  balance?: number;
+}
+interface Ledger {
+  ledger: { type: string; amount: number; balance_after: number; reference: string }[];
+}
 
 let step = 0;
 const check = (label: string) => console.log(`✓ ${String(++step).padStart(2, '0')} ${label}`);
-
-function imageForm(field = 'images') {
-  const form = new FormData();
-  form.append(field, new Blob([PNG], { type: 'image/png' }), 'foto.png');
-  return form;
-}
+const invoiceOf = (c: Checkout) => new URL(c.payment.redirectUrl!).searchParams.get('invoice')!;
+const pay = (client: Client, invoice: string, result: 'PAID' | 'FAILED' = 'PAID') =>
+  client.ok<{ payment: { status: string; next: string } }>('POST', `/payments/${invoice}/simulate`, { result });
+const quote = (client: Client, productId: string, method: string, promo?: string) =>
+  client.ok<{ quote: Quote }>('GET', `/topup/quote?${new URLSearchParams({ productId, method, ...(promo ? { promo } : {}) })}`);
+const order = (productId: string, paymentMethod: string, extra: Json = {}) => ({
+  productId,
+  userGameId: '800123456',
+  gameZoneId: 'Asia',
+  paymentMethod,
+  ...extra,
+});
 
 async function main() {
   const guest = new Client('guest');
   const health = await guest.ok<{ paymentMode: string }>('GET', '/health');
-  assert.equal(health.paymentMode, 'simulation', 'run with PAYMENT_MODE=simulation');
+  assert.equal(health.paymentMode, 'simulation', 'run with PAYMENT_MODE=simulation (npm run dev:sim)');
   check('health + simulation mode');
 
-  // ── Public marketplace ──
-  const { games } = await guest.ok<{ games: { slug: string }[] }>('GET', '/games');
-  const { fields } = await guest.ok<{ fields: { key: string; filterable: boolean }[] }>('GET', '/games/valorant/fields');
-  const { listings } = await guest.ok<{ listings: { id: string; storeSlug: string; status: string }[] }>('GET', '/listings?game=valorant');
-  const filtered = await guest.ok<{ listings: { attributes: { skins: number } }[] }>('GET', '/listings?game=valorant&min.skins=100');
-  assert.ok(filtered.listings.every((l) => l.attributes.skins >= 100), 'min.skins filter');
-  const mlbb = await guest.ok<{ listings: unknown[] }>('GET', '/listings?game=mobile-legends');
-  await guest.ok('GET', '/stores/nusagame');
-  await guest.ok('GET', '/help/cara-membeli-akun');
-  assert.ok(games.length >= 4 && fields.some((f) => f.filterable) && listings.length >= 10 && mlbb.listings.length >= 2);
-  assert.ok(listings.every((l) => l.status !== 'PENDING_REVIEW'), 'pending catalogs are not public');
-  check(`public: ${games.length} games, ${fields.length} Valorant fields, ${listings.length} Valorant + ${mlbb.listings.length} MLBB listings, attribute filter`);
-
-  // ── Register with referral → open a store → deposit ──
-  const owner = new Client('owner');
-  const email = `smoke-${Date.now()}@example.test`;
-  await owner.fails('POST', '/auth/register', { name: 'Budi', email, password: 'rahasia-123', ref: 'NOPE0000', acceptTerms: true }, 400);
-  await owner.ok('POST', '/auth/register', { name: 'Budi Santoso', email, password: 'rahasia-123', ref: 'NIGHTFALL10', acceptTerms: true });
-  const me = await owner.ok<{ user: { email: string; referralCode: string } }>('GET', '/auth/me');
-  assert.equal(me.user.email, email);
-  const { store: opened } = await owner.ok<{ store: { status: string; id: string } }>('POST', '/stores', {
-    name: 'Smoke Store',
-    type: 'OWNER',
-    ownerLegalName: 'Budi Santoso',
-    acceptRules: true,
+  // ── Autentikasi dan Profil (TC-01 … TC-10) ──
+  const member = new Client('member');
+  const email = `penguji-${RUN}@valostock.test`;
+  const phone = `0812${String(Date.now()).slice(-8)}`;
+  const registered = await member.ok<{ user: { name: string; balance: number } }>('POST', '/auth/register', {
+    name: `Penguji ${RUN}`,
+    email,
+    phone,
+    password: 'rahasia123',
+    ref: 'NIGHTFALL10',
+    acceptTerms: true,
   });
-  assert.equal(opened.status, 'PENDING_DEPOSIT');
-  const deposit = await owner.ok<{ invoice: string }>('POST', '/stores/me/deposit', { method: 'QRIS' });
-  await pay(owner, deposit.invoice);
-  const afterDeposit = await owner.ok<{ store: { status: string; depositStatus: string } }>('GET', '/stores/me');
-  assert.equal(afterDeposit.store.status, 'PENDING_REVIEW');
-  check('register with referral, open store, deposit paid → PENDING_REVIEW');
+  assert.equal(registered.user.balance, 0);
+  check('TC-01 register with referral code NIGHTFALL10');
 
-  // Draft catalog can be written before approval but not submitted.
-  const draft = await owner.ok<{ listing: { id: string; status: string } }>('POST', '/stores/me/catalogs', {
-    gameSlug: 'valorant',
-    title: 'Akun Valorant Diamond 2 smoke test',
-    description: 'Akun smoke test, email bisa diganti.',
-    price: 750_000,
-    attributes: { rank: 'Diamond 2', level: 120, server: 'Indonesia', skins: 35, skinsList: 'Reaver Vandal, Prime Phantom', unknownKey: 'x' },
-  });
-  const catalogId = draft.listing.id;
-  assert.equal(draft.listing.status, 'DRAFT');
-  await owner.fails('POST', `/stores/me/catalogs/${catalogId}/submit`, undefined, 409);
-  await owner.fails('POST', '/stores/me/catalogs', { gameSlug: 'valorant', title: 'Chat WA 081234567890 ya', price: 50_000 }, 400);
-
-  // ── Admin verifies the store ──
-  const moderator = new Client('moderator');
-  await moderator.login('moderator@valostock.test');
-  const queue = await moderator.ok<{ stores: { id: string }[] }>('GET', '/admin/stores');
-  assert.ok(queue.stores.some((s) => s.id === opened.id));
-  await moderator.ok('POST', `/admin/stores/${opened.id}/approve`, { note: 'Nama KTP sesuai.' });
-  check('draft saved, submit blocked before store approval, contact info rejected, admin approved store');
-
-  // ── Catalog moderation: submit → reject → fix → resubmit → approve ──
-  await owner.fails('POST', `/stores/me/catalogs/${catalogId}/submit`, undefined, 400); // no photo yet
-  await owner.ok('POST', `/stores/me/catalogs/${catalogId}/images`, imageForm());
-  const submitted = await owner.ok<{ listing: { status: string; code: string; attributes: Json } }>('POST', `/stores/me/catalogs/${catalogId}/submit`);
-  assert.equal(submitted.listing.status, 'PENDING_REVIEW');
-  assert.match(submitted.listing.code, /^VS[A-Z0-9]{5}$/);
-  assert.ok(!('unknownKey' in submitted.listing.attributes), 'unknown attribute dropped');
-  const vs = submitted.listing.code;
-  await guest.fails('GET', `/listings/${catalogId}`, undefined, 404);
-
-  const finance = new Client('finance');
-  await finance.login('finance@valostock.test');
-  await finance.fails('POST', `/admin/catalogs/${catalogId}/approve`, {}, 403);
-
-  const pendingQueue = await moderator.ok<{ catalogs: { id: string }[]; reasons: string[] }>('GET', '/admin/catalogs?status=PENDING_REVIEW');
-  assert.ok(pendingQueue.catalogs.some((c) => c.id === catalogId));
-  await moderator.fails('POST', `/admin/catalogs/${catalogId}/reject`, { reasons: ['Lainnya'] }, 400);
-  await moderator.ok('POST', `/admin/catalogs/${catalogId}/reject`, { reasons: [pendingQueue.reasons[1]], note: 'Rank di foto berbeda.' });
-  const rejected = await owner.ok<{ listing: { status: string; reviewNote: string }; reviews: { decision: string }[] }>('GET', `/stores/me/catalogs/${catalogId}`);
-  assert.equal(rejected.listing.status, 'REJECTED');
-  assert.ok(rejected.listing.reviewNote.includes('Rank di foto berbeda'));
-
-  await owner.ok('PATCH', `/stores/me/catalogs/${catalogId}`, { attributes: { rank: 'Diamond 3', level: 120, server: 'Indonesia', skins: 35 } });
-  const resubmitted = await owner.ok<{ listing: { status: string; code: string } }>('POST', `/stores/me/catalogs/${catalogId}/submit`);
-  assert.equal(resubmitted.listing.code, vs, 'VS code is kept on resubmit');
-  await moderator.ok('POST', `/admin/catalogs/${catalogId}/approve`, { note: 'Foto dan atribut sesuai.' });
-  const detail = await moderator.ok<{ reviews: { decision: string }[]; submitCount: number }>('GET', `/admin/catalogs/${catalogId}`);
-  assert.deepEqual(
-    detail.reviews.map((r) => r.decision),
-    ['APPROVED', 'SUBMITTED', 'REJECTED', 'SUBMITTED'],
-  );
-  const pub = await guest.ok<{ listing: { status: string; image: string } }>('GET', `/listings/${catalogId}`);
-  assert.equal(pub.listing.status, 'LISTED');
-  assert.ok(pub.listing.image.includes('/storage/v1/object/public/catalog-images/'));
-  const search = await guest.ok<{ listings: { id: string }[] }>('GET', `/listings?game=valorant&attr.rank=${encodeURIComponent('Diamond 3')}`);
-  assert.ok(search.listings.some((l) => l.id === catalogId));
-  check(`catalog ${vs}: submit → reject (reason) → fix → resubmit → approve → public + searchable`);
-
-  // ── Offer → counter → accept → order → pay → rekber → safe → complete ──
-  const buyer = new Client('buyer');
-  await buyer.login('raven@email.com');
-  await buyer.ok('POST', '/me/wishlist', { catalogId });
-  await buyer.ok('POST', '/stores/smoke-store/follow');
-  const { offer } = await buyer.ok<{ offer: { id: string } }>('POST', '/offers', { catalogId, amount: 600_000 });
-  await owner.ok('POST', `/offers/${offer.id}/counter`, { amount: 700_000 });
-  const accepted = await buyer.ok<{ offer: { status: string; finalAmount: number } }>('POST', `/offers/${offer.id}/accept-counter`);
-  assert.equal(accepted.offer.finalAmount, 700_000);
-  const { order } = await buyer.ok<{ order: { id: string; itemPrice: number; totalPaid: number; handlingFee: number; commission: number; storeReceives: number } }>(
+  const dup = await guest.fails('POST', '/auth/register', { name: 'Dup', email, password: 'rahasia123', acceptTerms: true }, 409);
+  assert.equal(dup.error?.message, 'Email sudah terdaftar.');
+  const badRef = await guest.fails(
     'POST',
-    '/orders',
-    { catalogId, offerId: offer.id },
+    '/auth/register',
+    { name: 'Ref', email: `ref-${RUN}@valostock.test`, password: 'rahasia123', ref: 'TIDAKADA', acceptTerms: true },
+    400,
   );
-  assert.equal(order.itemPrice, 700_000);
-  assert.equal(order.handlingFee, 24_500);
-  assert.equal(order.totalPaid, 700_000 + 24_500 + 5_000);
-  assert.equal(order.commission, 35_000);
-  const locked = await guest.ok<{ listing: { status: string } }>('GET', `/listings/${catalogId}`);
-  assert.equal(locked.listing.status, 'LOCKED');
-  const orderPay = await buyer.ok<{ invoice: string }>('POST', `/orders/${order.id}/pay`, { method: 'VA' });
-  await pay(buyer, orderPay.invoice);
-  await owner.ok('POST', `/orders/${order.id}/messages`, { body: 'Email: akun@contoh.test / password dikirim di sini.' });
-  await buyer.ok('POST', `/orders/${order.id}/safe`);
-  await buyer.ok('POST', `/orders/${order.id}/complete`);
-  const done = await buyer.ok<{ order: { status: string; canRate: boolean; protectionUntil: string } }>('GET', `/orders/${order.id}`);
-  assert.equal(done.order.status, 'COMPLETED');
-  assert.ok(done.order.canRate && done.order.protectionUntil);
-  const balance = await owner.ok<{ escrow: number; available: number; ledger: { type: string }[] }>('GET', '/stores/me/balance');
-  assert.equal(balance.escrow, 0);
-  assert.equal(balance.available, 700_000 - 35_000);
-  const points = await buyer.ok<{ points: number }>('GET', '/me/points');
-  assert.ok(points.points >= 700);
-  check('offer → counter → accept → order (price from offer) → pay → rekber → safe → complete → escrow released, points earned');
+  assert.equal(badRef.error?.message, 'Kode referral tidak ditemukan.');
+  await guest.fails('POST', '/auth/register', { name: 'Pendek', email: `p-${RUN}@valostock.test`, password: 'pendek', acceptTerms: true }, 400);
+  check('TC-02/03/04 duplicate email, unknown referral, short password rejected');
 
-  await buyer.ok('POST', `/orders/${order.id}/rating`, { overall: 1, descAccuracy: 5, attitude: 5, deliverySpeed: 4, comment: 'Mantap' });
-  const ratings = await owner.ok<{ ratings: { id: string }[] }>('GET', '/stores/me/ratings');
-  await owner.ok('POST', `/stores/me/ratings/${ratings.ratings[0]!.id}/reply`, { reply: 'Terima kasih!' });
-  check('rating + store reply');
+  const byEmail = new Client('by-email');
+  await byEmail.login(email, 'rahasia123');
+  const byPhone = new Client('by-phone');
+  await byPhone.login(phone, 'rahasia123');
+  const wrong = await guest.fails('POST', '/auth/login', { identity: email, password: 'salah-sekali' }, 401);
+  assert.equal(wrong.error?.message, 'Email/nomor HP atau password salah.');
+  await byPhone.ok('POST', '/auth/logout');
+  assert.equal((await byPhone.ok<{ user: unknown }>('GET', '/auth/me')).user, null);
+  check('TC-05/06/07/08 login by email and phone, logout, wrong password');
 
-  // ── Withdrawal (Account Validation) approved by finance ──
-  await owner.fails('POST', '/stores/me/withdrawals', { amount: 100_000, bankName: 'BCA', accountNumber: '1234567890', accountName: 'Orang Lain' }, 400);
-  const { withdrawal } = await owner.ok<{ withdrawal: { uuid: string; nameMatch: string } }>('POST', '/stores/me/withdrawals', {
-    amount: 100_000,
-    bankName: 'BCA',
-    accountNumber: '1234567890',
-    accountName: 'Budi Santoso',
+  const renamed = await member.ok<{ user: { name: string } }>('PATCH', '/auth/profile', { name: `Penguji ${RUN} Edit` });
+  assert.equal(renamed.user.name, `Penguji ${RUN} Edit`);
+  const badPw = await member.fails('POST', '/auth/change-password', { currentPassword: 'bukan-ini', newPassword: 'rahasia456' }, 400);
+  assert.equal(badPw.error?.message, 'Password saat ini salah.');
+  check('TC-09/10 edit profile, wrong current password rejected');
+
+  // ── Kelola Produk Top-Up (TC-11 … TC-17) ──
+  const admin = new Client('admin');
+  await admin.login('admin@valostock.test');
+  const { games: adminGames } = await admin.ok<{ games: { id: number; name: string }[] }>('GET', '/admin/topup-products');
+  const genshinId = adminGames.find((g) => g.name === 'Genshin Impact')!.id;
+  const productId = `uji-crud-${RUN}`;
+  await admin.ok('POST', '/admin/topup-products', {
+    id: productId,
+    gameId: genshinId,
+    name: 'Genesis Crystals',
+    amountLabel: `99 Crystals Uji ${RUN}`,
+    supplierPrice: 20_000,
   });
-  assert.equal(withdrawal.nameMatch, 'MATCH');
-  await finance.ok('POST', `/admin/withdrawals/${withdrawal.uuid}`, { decision: 'approve' });
-  check('withdrawal: name mismatch refused, MATCH approved by finance');
+  const listed = await admin.ok<{ products: { id: string; retailPrice: number; margin: number; isActive: boolean }[] }>('GET', '/admin/topup-products');
+  assert.equal(listed.products.find((p) => p.id === productId)?.retailPrice, 20_600);
+  check('TC-11 add product: retail = cost + 3% (Rp20.600)');
 
-  // ── Referral reward on the referred user's first top-up ──
-  const referrer = new Client('referrer');
-  await referrer.login('nightfall@email.com');
-  const before = await referrer.ok<{ user: { balance: number } }>('GET', '/auth/me');
-  const topup = await owner.ok<{ payment: Session }>('POST', '/topup/checkout', {
-    productId: 'vp-475',
-    userGameId: 'Smoke#TEST',
-    paymentMethod: 'QRIS',
-    contactEmail: email,
-  });
-  await pay(owner, invoiceOf(topup.payment));
-  const after = await referrer.ok<{ user: { balance: number } }>('GET', '/auth/me');
-  assert.equal(after.user.balance, before.user.balance + 10_000);
-  const invoice = await guest.ok<{ transactions: { status: string }[] }>('GET', `/topup/invoice?q=${invoiceOf(topup.payment)}`);
-  assert.equal(invoice.transactions[0]!.status, 'SUCCESS');
-  check('game top-up (Midtrans sim) → SUCCESS, referrer credited Rp10.000');
+  const genshin = await guest.ok<{ products: { id: string; section: string }[] }>('GET', '/games/genshin-impact');
+  assert.ok(genshin.products.some((p) => p.id === productId));
+  assert.ok(genshin.products.some((p) => p.section === 'SPECIAL') && genshin.products.some((p) => p.section === 'INSTANT'));
+  check('TC-12/19 new product on the Genshin form, Item Spesial + Top Up Instan');
 
-  // Balance top-up + pay with Balance + redeem points
-  const fill = await buyer.ok<{ payment: Session }>('POST', '/balance/topup', { nominal: 100_000, qty: 1, method: 'QRIS', idempotencyKey: `smoke-${Date.now()}` });
-  await pay(buyer, invoiceOf(fill.payment));
-  const blc = await buyer.ok<{ balance: number }>('POST', '/topup/checkout', { productId: 'vp-475', userGameId: 'Raven#123', paymentMethod: 'BALANCE' });
-  assert.ok(blc.balance < 100_000);
-  const redeem = await buyer.ok<{ credited: number }>('POST', '/me/points/redeem', { points: 500 });
-  assert.equal(redeem.credited, 5_000);
-  check('Balance fill → pay top-up with Balance → redeem 500 points = Rp5.000');
+  const below = await admin.fails('PATCH', `/admin/topup-products/${productId}`, { retailPrice: 15_000 }, 400);
+  assert.equal(below.error?.message, 'Harga jual tidak boleh di bawah harga modal Digiflazz.');
+  await admin.ok('PATCH', `/admin/topup-products/${productId}`, { retailPrice: 22_000 });
+  const repriced = await admin.ok<{ products: { id: string; margin: number }[] }>('GET', '/admin/topup-products');
+  assert.equal(repriced.products.find((p) => p.id === productId)?.margin, 2_000);
+  check('TC-13/14 retail below cost rejected, Rp22.000 → margin Rp2.000');
 
-  // ── Dispute on a seeded catalog: buyer wins before completion → refund ──
-  const { listings: nusa } = await guest.ok<{ listings: { id: string; price: number }[] }>('GET', '/listings?store=nusagame');
-  const target = nusa[0]!;
-  const { order: order2 } = await buyer.ok<{ order: { id: string } }>('POST', '/orders', { catalogId: target.id });
-  const pay2 = await buyer.ok<{ invoice: string }>('POST', `/orders/${order2.id}/pay`, { method: 'QRIS' });
-  await pay(buyer, pay2.invoice);
-  const form = new FormData();
-  form.append('reason', 'NOT_DELIVERED');
-  form.append('description', 'Toko tidak mengirim data akun setelah dibayar.');
-  form.append('files', new Blob([PNG], { type: 'image/png' }), 'bukti.png');
-  const { disputeId } = await buyer.ok<{ disputeId: string }>('POST', `/orders/${order2.id}/dispute`, form);
-  const nusaOwner = new Client('nusagame');
-  await nusaOwner.login('nusagame@email.com');
-  await nusaOwner.ok('POST', `/disputes/${disputeId}/events`, { body: 'Maaf, kami terlambat.' });
-  const support = new Client('support');
-  await support.login('support@valostock.test');
-  const dd = await support.ok<{ dispute: { status: string }; events: { attachments: { url: string | null }[] }[] }>('GET', `/disputes/${disputeId}`);
-  assert.equal(dd.dispute.status, 'STORE_RESPONDED');
-  assert.ok(dd.events[0]!.attachments[0]!.url, 'evidence has a signed URL');
-  await support.ok('POST', `/admin/disputes/${disputeId}/resolve`, { winner: 'BUYER', note: 'Toko tidak mengirim akun.', sanction: { type: 'WARNING' } });
-  const refunded = await buyer.ok<{ order: { status: string } }>('GET', `/orders/${order2.id}`);
-  assert.equal(refunded.order.status, 'REFUNDED');
-  const relisted = await guest.ok<{ listing: { status: string } }>('GET', `/listings/${target.id}`);
-  assert.equal(relisted.listing.status, 'LISTED');
-  check('dispute with private evidence → store responds → support rules for buyer → REFUNDED, catalog back on sale');
+  await admin.ok('PATCH', `/admin/topup-products/${productId}`, { isActive: false });
+  const afterDeactivate = await guest.ok<{ products: { id: string }[] }>('GET', '/games/genshin-impact');
+  assert.ok(!afterDeactivate.products.some((p) => p.id === productId));
+  await guest.fails('GET', `/topup/quote?productId=${productId}&method=QRIS`, undefined, 404);
+  check('TC-15 deactivated product hidden from the form and not orderable');
 
-  // ── Store business: subscription, free ad, voucher, chat, notifications ──
-  const sub = await owner.ok<{ invoice: string }>('POST', '/stores/me/subscription', { tier: 'PRO', method: 'QRIS' });
-  await pay(owner, sub.invoice);
-  const subState = await owner.ok<{ current: { tier: string } }>('GET', '/stores/me/subscription');
-  assert.equal(subState.current.tier, 'PRO');
-  await owner.ok('POST', '/stores/me/vouchers', { code: 'SMOKE10', kind: 'PERCENT', value: 10, minSpend: 0 });
-  const chat = await buyer.ok<{ conversationId: string }>('POST', '/chat/conversations', { storeSlug: 'nusagame', body: 'Halo, akun ini masih ada?' });
-  await buyer.fails('POST', `/chat/conversations/${chat.conversationId}/messages`, { body: 'WA aku ya 081234567890' }, 400);
-  const notes = await owner.ok<{ notifications: { title: string }[] }>('GET', '/me/notifications');
-  assert.ok(notes.notifications.some((n) => n.title === 'Katalog disetujui'));
-  check('subscription PRO paid, voucher created, chat (contact blocked), notifications');
+  // ── Transaksi Top-Up (TC-18 … TC-27) ──
+  const { games } = await guest.ok<{ games: { slug: string }[] }>('GET', '/games');
+  assert.deepEqual(games.map((g) => g.slug), ['valorant', 'mobile-legends', 'genshin-impact', 'free-fire']);
+  check('TC-18 four games');
 
-  // ── Admin views ──
-  const adminUser = new Client('admin');
-  await adminUser.login('admin@valostock.test');
-  await adminUser.ok('GET', '/admin/dashboard');
-  await adminUser.ok('GET', '/admin/finance');
-  const auditLog = await adminUser.ok<{ entries: { action: string }[] }>('GET', '/admin/audit');
-  for (const action of ['store.approve', 'catalog.reject', 'catalog.approve', 'withdrawal.approve', 'dispute.resolve']) {
-    assert.ok(auditLog.entries.some((e) => e.action === action), `audit has ${action}`);
-  }
-  await buyer.fails('GET', '/admin/dashboard', undefined, 403);
-  check('admin dashboard/finance, audit trail complete, non-admin blocked');
+  const qris = (await quote(guest, 'gi-330', 'QRIS')).quote;
+  assert.deepEqual([qris.basePrice, qris.surcharge, qris.amount], [79_200, 1_188, 80_388]);
+  assert.equal((await quote(guest, 'gi-330', 'VA')).quote.amount, 84_200);
+  check('TC-20/23 quote 330 Crystals: QRIS Rp80.388, VA Rp84.200');
 
-  await owner.ok('POST', '/auth/logout');
-  assert.equal((await owner.ok<{ user: unknown }>('GET', '/auth/me')).user, null);
-  check('logout');
-  console.log(`\nSemua ${step} langkah lulus.`);
+  const valo10 = (await quote(guest, 'gi-1090', 'QRIS', 'valo10')).quote;
+  assert.equal(valo10.discount, 24_910);
+  assert.equal(valo10.promo?.applied, true);
+  const fake = await guest.fails('GET', '/topup/quote?productId=gi-1090&method=QRIS&promo=PROMOPALSU', undefined, 400);
+  assert.equal(fake.error?.message, 'Kode promo tidak ditemukan.');
+  const hemat = (await quote(guest, 'gi-60', 'QRIS', 'HEMAT5K')).quote;
+  assert.deepEqual([hemat.discount, hemat.amount, hemat.promo?.applied], [0, 16_443, false]);
+  check('TC-24/25/26 VALO10 −Rp24.910, unknown promo rejected, HEMAT5K below min spend gives Rp0');
+
+  await guest.fails('POST', '/topup/checkout', { productId: 'gi-330', userGameId: '800123456', paymentMethod: 'QRIS' }, 400);
+  await guest.fails('POST', '/topup/checkout', { productId: 'gi-330', userGameId: '', gameZoneId: 'Asia', paymentMethod: 'QRIS' }, 400);
+  await guest.fails('POST', '/topup/checkout', order('gi-330', 'QRIS', { gameZoneId: 'Mars' }), 400);
+  check('TC-21/22 missing UID / server, unknown server rejected');
+
+  const guestOrder = await guest.ok<Checkout>('POST', '/topup/checkout', order('gi-330', 'QRIS', { contactEmail: 'tamu@valostock.test' }));
+  assert.equal(guestOrder.transaction.status, 'PENDING');
+  assert.equal(guestOrder.transaction.amount, 80_388);
+  assert.match(guestOrder.transaction.invoice_number, /^TU-\d{6}-[A-Z0-9]{6}$/);
+  assert.equal(invoiceOf(guestOrder), guestOrder.transaction.invoice_number);
+  check('TC-27 guest QRIS invoice: PENDING, Rp80.388, redirect to the payment page');
+
+  // ── Pembayaran Top-Up (TC-28 … TC-31) ──
+  const paid = await pay(guest, guestOrder.transaction.invoice_number);
+  assert.equal(paid.payment.status, 'PAID');
+  assert.equal(paid.payment.next, `/topup/invoice?q=${guestOrder.transaction.invoice_number}`);
+  const lookedUp = await guest.ok<{ transaction: Tx }>('GET', `/topup/invoice?q=${guestOrder.transaction.invoice_number.toLowerCase()}`);
+  assert.equal(lookedUp.transaction.status, 'SUCCESS');
+  assert.equal(lookedUp.transaction.user_game_id_masked, '80*****56');
+  assert.ok(!('contact_email' in lookedUp.transaction) && !('user_game_id' in lookedUp.transaction));
+  await pay(guest, guestOrder.transaction.invoice_number); // a second result is ignored
+  check('TC-28/29/37 simulated payment → SUCCESS; Cek Invoice masks the game ID and hides the contact');
+
+  const toFail = await guest.ok<Checkout>('POST', '/topup/checkout', order('gi-60', 'VA'));
+  await pay(guest, toFail.transaction.invoice_number, 'FAILED');
+  assert.equal((await guest.ok<{ transaction: Tx }>('GET', `/topup/invoice?q=${toFail.transaction.invoice_number}`)).transaction.status, 'FAILED');
+  await guest.fails('GET', '/topup/invoice?q=TU-000000-XXXXXX', undefined, 404);
+  check('TC-30/38 failed payment → FAILED; unknown invoice → 404');
+
+  const guestBalance = await guest.fails('POST', '/topup/checkout', order('gi-330', 'BALANCE'), 401);
+  assert.match(guestBalance.error?.message ?? '', /Masuk dulu/);
+  const broke = await member.fails('POST', '/topup/checkout', order('gi-330', 'BALANCE'), 409);
+  assert.equal(broke.error?.message, 'Balance tidak mencukupi.');
+  assert.equal((await member.ok<{ transactions: Tx[] }>('GET', '/me/transactions')).transactions.length, 0);
+  check('TC-31/32 Balance needs login; insufficient Balance creates no invoice');
+
+  // ── Pengelolaan Balance (TC-33 … TC-36) ──
+  const { denominations, maxQty } = await guest.ok<{ denominations: number[]; maxQty: number }>('GET', '/balance/vouchers');
+  assert.ok(denominations.includes(100_000) && maxQty === 10);
+  const fillQuote = await member.ok<{ quote: { credit: number; surcharge: number; amount: number } }>('GET', '/balance/quote?nominal=100000&qty=1&method=QRIS');
+  assert.deepEqual(fillQuote.quote, { credit: 100_000, surcharge: 1_500, amount: 101_500 });
+  const key = `smoke-${RUN}-fill`;
+  const fill = await member.ok<Checkout>('POST', '/balance/topup', { nominal: 100_000, qty: 1, method: 'QRIS', idempotencyKey: key });
+  const again = await member.ok<Checkout>('POST', '/balance/topup', { nominal: 100_000, qty: 1, method: 'QRIS', idempotencyKey: key });
+  assert.equal(again.transaction.invoice_number, fill.transaction.invoice_number);
+  await member.fails('POST', '/balance/topup', { nominal: 12_345, qty: 1, method: 'QRIS', idempotencyKey: `${key}-x` }, 400);
+  const fillPaid = await pay(member, fill.transaction.invoice_number);
+  assert.equal(fillPaid.payment.next, '/balance');
+  assert.equal((await member.ok<{ user: { balance: number } }>('GET', '/auth/me')).user.balance, 100_000);
+  check('TC-34 buy 100.000 BLC voucher (idempotent), paid → Balance 100.000');
+
+  const spend = await member.ok<Checkout>('POST', '/topup/checkout', order('gi-330', 'BALANCE'));
+  assert.equal(spend.payment.mode, 'BALANCE');
+  assert.equal(spend.transaction.status, 'SUCCESS');
+  assert.equal(spend.transaction.amount, 79_200);
+  assert.equal(spend.balance, 20_800);
+  check('TC-33 pay 330 Crystals with Balance: SUCCESS, no surcharge, Balance 20.800');
+
+  const ledger = (await member.ok<Ledger>('GET', '/me/balance-ledger')).ledger;
+  assert.deepEqual(
+    ledger.map((l) => [l.type, l.amount, l.balance_after]),
+    [
+      ['SPEND_TOPUP', -79_200, 20_800],
+      ['TOPUP_CREDIT', 100_000, 100_000],
+    ],
+  );
+  const history = (await member.ok<{ transactions: Tx[] }>('GET', '/me/transactions')).transactions;
+  assert.deepEqual(history.map((t) => t.invoice_number).sort(), [fill.transaction.invoice_number, spend.transaction.invoice_number].sort());
+  check('TC-36/39 Mutasi (TOPUP_CREDIT, SPEND_TOPUP) and Transaksi list both invoices');
+
+  // ── Referral reward: once, on the referred member's first successful top-up ──
+  const nightfall = new Client('nightfall');
+  await nightfall.login('nightfall@email.com');
+  const rewards = async () =>
+    (await nightfall.ok<Ledger>('GET', '/me/balance-ledger')).ledger.filter((l) => l.type === 'REFERRAL_CREDIT' && l.reference === spend.transaction.invoice_number);
+  assert.equal((await rewards()).length, 1);
+  const second = await member.ok<Checkout>('POST', '/topup/checkout', order('gi-60', 'QRIS'));
+  await pay(member, second.transaction.invoice_number);
+  const allRewards = (await nightfall.ok<Ledger>('GET', '/me/balance-ledger')).ledger.filter((l) => l.type === 'REFERRAL_CREDIT');
+  assert.ok(!allRewards.some((l) => l.reference === second.transaction.invoice_number));
+  check('referral: Rp10.000 to NIGHTFALL10 once, not again on the second top-up');
+
+  // ── Pelacakan dan Laporan, admin access (TC-40 … TC-42) ──
+  await member.fails('GET', '/admin/analytics', undefined, 403);
+  await guest.fails('GET', '/admin/topup-products', undefined, 401);
+  check('TC-40 non-admins cannot read admin endpoints');
+
+  const analytics = await admin.ok<{ summary: { totalTransactions: number }; accounts: { user_game_id: string; game_zone_id: string | null }[] }>(
+    'GET',
+    '/admin/analytics',
+  );
+  assert.ok(analytics.summary.totalTransactions >= 3);
+  assert.ok(analytics.accounts.some((a) => a.user_game_id === '800123456' && a.game_zone_id === 'Asia'));
+  const search = await admin.ok<{ topups: Tx[]; balanceFills: Tx[] }>('GET', `/admin/topups?q=${guestOrder.transaction.invoice_number}`);
+  assert.deepEqual(search.topups.map((t) => t.invoice_number), [guestOrder.transaction.invoice_number]);
+  const byEmailSearch = await admin.ok<{ topups: Tx[]; balanceFills: Tx[] }>('GET', `/admin/topups?q=${email}`);
+  assert.deepEqual(byEmailSearch.balanceFills.map((t) => t.invoice_number), [fill.transaction.invoice_number]);
+  check('TC-41/42 analytics per game account; search by invoice and by email');
+
+  // ── Delete rules (TC-16/17) ──
+  const inUse = await admin.fails('DELETE', '/admin/topup-products/gi-60', undefined, 409);
+  assert.equal(inUse.error?.message, 'Produk sudah pernah dipesan, nonaktifkan saja agar riwayat invoice tetap utuh.');
+  await admin.ok('DELETE', `/admin/topup-products/${productId}`);
+  const afterDelete = await admin.ok<{ products: { id: string }[] }>('GET', '/admin/topup-products');
+  assert.ok(!afterDelete.products.some((p) => p.id === productId));
+  check('TC-16/17 ordered product cannot be deleted; unused test product deleted');
+
+  console.log(`\nSemua ${step} langkah lolos (${API}).`);
 }
 
 main().catch((error: unknown) => {
-  console.error('✗', error instanceof Error ? error.message : error);
+  console.error('\n✗', error instanceof Error ? error.message : error);
   process.exit(1);
 });
