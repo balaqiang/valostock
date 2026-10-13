@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Game banner gradients are stored in the database (games.gradient, supabase/seed.sql), so Tailwind cannot
+   find them in the source files — generate them explicitly. */
+@source inline("bg-gradient-to-br from-rose-500/80 via-red-500/70 to-violet-600/80 from-sky-500/80 via-blue-600/70 to-indigo-600/80 from-amber-400/80 via-orange-500/70 to-emerald-500/70 from-orange-500/80 via-amber-500/70 to-red-600/80");
+
 /* Dark mode variant — toggled via a `.dark` class on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 

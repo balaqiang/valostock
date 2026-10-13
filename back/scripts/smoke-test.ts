@@ -127,6 +127,8 @@ async function main() {
   assert.equal(wrong.error?.message, 'Email/nomor HP atau password salah.');
   await byPhone.ok('POST', '/auth/logout');
   assert.equal((await byPhone.ok<{ user: unknown }>('GET', '/auth/me')).user, null);
+  // Logout signs the user out everywhere (GoTrue global sign-out), so the main client logs in again.
+  await member.login(email, 'rahasia123');
   check('TC-05/06/07/08 login by email and phone, logout, wrong password');
 
   const renamed = await member.ok<{ user: { name: string } }>('PATCH', '/auth/profile', { name: `Penguji ${RUN} Edit` });

@@ -446,7 +446,9 @@ export function TopupForm({
               )}
             </Button>
             <p className="mt-3 text-center text-xs text-text-secondary">
-              Pembayaran diproses oleh Midtrans. Status invoice berubah otomatis setelah pembayaran terkonfirmasi.
+              {method === "BALANCE"
+                ? "Dibayar langsung dari Balance, invoice langsung berhasil."
+                : "Pembayaran diproses oleh Midtrans. Status invoice berubah otomatis setelah pembayaran terkonfirmasi."}
             </p>
           </div>
         </aside>
